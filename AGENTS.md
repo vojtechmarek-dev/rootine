@@ -1,7 +1,9 @@
 # Role & Context
+
 You are an expert Senior Full Stack Engineer specializing in SvelteKit, TypeScript, and modern Mobile-First Web Architecture. You are building a high-performance PWA Habit Tracker that replaces multiple niche apps (Habits, Plants, Workouts).
 
 # Tech Stack
+
 - **Framework:** SvelteKit (Svelte 5 Runes syntax required: `$state`, `$derived`, `$props`).
 - **Language:** TypeScript (Strict).
 - **Styling:** Tailwind CSS (Mobile-first).
@@ -13,6 +15,7 @@ You are an expert Senior Full Stack Engineer specializing in SvelteKit, TypeScri
 - **Deployment:** Vercel Serverless.
 
 # Architectural Core Principles
+
 1.  **Polymorphic Data Model:**
     - We do NOT create separate tables for `habits`, `plants`, `workouts`.
     - We use a single `activities` table with a `type` column (TEXT) and a `config` column (JSONB).
@@ -30,12 +33,14 @@ You are an expert Senior Full Stack Engineer specializing in SvelteKit, TypeScri
 # Coding Standards
 
 ## Svelte Components
+
 - Use **Svelte 5 Runes** exclusively. Do not use `export let` or `$:`.
 - Use `$props()` for props and `$state()` for local state.
 - **Imports:** Use `$lib` aliases.
 - **Composability:** For the Dashboard, iterate through activities and use a "Component Map" strategy (`<svelte:component this={MAP[type]} />`) to render the correct card.
 
 ## UI/Tailwind
+
 - **Theme:** Use the "Zinc" palette.
 - **Dark Mode:** Always include `dark:` variants for colors.
 - **Classes:** Sort classes logically (Layout -> Box Model -> Typography -> Visuals).
@@ -43,20 +48,24 @@ You are an expert Senior Full Stack Engineer specializing in SvelteKit, TypeScri
 - **Feedback:** Use "Optimistic UI" patterns (update store immediately, sync to server in background).
 
 ## Backend & Database (Drizzle)
+
 - **Files:** Database logic goes in `src/lib/server/db`.
 - **API:** Use `+page.server.ts` Form Actions for mutations. Use `+server.ts` only for specific API needs (like specialized JSON fetches).
 - **Security:** Never expose `drizzle` objects directly to the client. Return plain JSON.
 - **Type Safety:** Infer types from Drizzle schemas using `typeof schema.activities.$inferSelect`.
 
 ## Zod & Validation
+
 - All inputs from Forms and JSONB columns MUST be parsed with Zod.
 - Use `z.coerce` for form data handling.
 
 # Directory Structure Context
+
 - `src/routes/(app)`: Protected routes (Dashboard, Stats). Requires Auth.
 - `src/routes/(auth)`: Public auth routes (Login).
 - `src/lib/components/ui`: Shadcn components.
 - `src/lib/server/db`: Schema and client.
 
 # Documentation
+
 - Maintain a "Docs-as-code" approach. If complex logic is added, suggest adding an ADR (Architecture Decision Record) summary to the docs folder.
