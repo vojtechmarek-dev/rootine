@@ -95,6 +95,23 @@ export const LogSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('workout'), data: WorkoutLogSchema }),
 ]);
 
+
+export const UserSchema = z.object({
+    id: z.uuid(),
+    name: z.string(),
+    emailVerified: z.date().optional(),
+    email: z.email(),
+    image: z.string().optional(),
+});
+
+export const SessionSchema = z.object({
+    sessionToken: z.string(),
+    uesrId: z.uuid(),
+    expires: z.date(),
+    user: UserSchema,
+
+});
+
 // ==========================================
 // 4. TYPESCRIPT EXPORTS
 // ==========================================
@@ -107,3 +124,6 @@ export type PlantConfig = z.infer<typeof PlantConfigSchema>;
 export type WorkoutConfig = z.infer<typeof WorkoutConfigSchema>;
 
 export type Log = z.infer<typeof LogSchema>;
+
+export type User = z.infer<typeof UserSchema>;
+export type Session = z.infer<typeof SessionSchema>;
