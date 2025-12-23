@@ -46,7 +46,7 @@ export const accounts = pgTable(
 );
 
 // This links sessions to our users
-export const sessions = pgTable('sessions', {
+export const sessions = pgTable('session', {
     sessionToken: text('sessionToken').primaryKey(),
     userId: uuid('userId')
         .notNull()

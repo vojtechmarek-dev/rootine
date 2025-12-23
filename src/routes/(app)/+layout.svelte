@@ -1,16 +1,21 @@
 <script lang="ts">
-    import { page } from '$app/state';
-    import { goto } from '$app/navigation';
-    import { House, ChartBar, User } from '@lucide/svelte';
-    import { cn } from '$lib/utils';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { House, ChartBar, User } from '@lucide/svelte';
+	import { cn } from '$lib/utils';
 
-    let { children } = $props();
+	let { children, data } = $props<{
+		children: import('svelte').Snippet;
+		data: { session: { user: { name?: string; email?: string } } | null };
+	}>();
 
-    const navItems = [
-        { href: '/dashboard', label: 'Dashboard', icon: House },
-        { href: '/stats', label: 'Stats', icon: ChartBar },
-        { href: '/profile', label: 'Profile', icon: User },
-    ];
+	const session = $derived(data.session);
+
+	const navItems = [
+		{ href: '/', label: 'Dashboard', icon: House },
+		{ href: '/stats', label: 'Stats', icon: ChartBar },
+		{ href: '/profile', label: 'Profile', icon: User },
+	];
 
     function isActive(href: string): boolean {
         return page.url.pathname === href || page.url.pathname.startsWith(href + '/');

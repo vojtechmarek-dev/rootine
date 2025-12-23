@@ -25,6 +25,28 @@ npm run dev
 npm run dev -- --open
 ```
 
+```
+graph TD
+    User[User's Browser]
+    subgraph "Vercel (Serverless)"
+        CDN[Edge Network]
+        SK_Client[SvelteKit Client (CSR)]
+        SK_Server[SvelteKit Server (SSR + API)]
+    end
+    
+    subgraph "External Services"
+        Auth[OAuth Providers (Google/GitHub)]
+        DB[(Neon/Supabase PostgreSQL)]
+    end
+
+    User -->|https://app.yourdomain.com| CDN
+    CDN --> SK_Client
+    SK_Client -->|Form Actions / API Calls| SK_Server
+    SK_Server -->|Validate Session| Auth
+    SK_Server -->|SQL Queries (Drizzle)| DB
+
+```
+
 ## Building
 
 To create a production version of your app:
