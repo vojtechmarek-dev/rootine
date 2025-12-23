@@ -1,5 +1,5 @@
 <script lang="ts">
-    import LoginForm from '$lib/components/organisms/login-form.svelte';
+    import LoginForm from '@/components/organisms/LoginForm.svelte';
 
     let { form } = $props<{
         form?: { error?: string };
