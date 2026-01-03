@@ -1,7 +1,7 @@
 <script lang="ts">
     import Header from '@/components/organisms/Header.svelte';
     import Navigation from '@/components/organisms/Navigation.svelte';
-    import CreateActivityDrawer from '@/components/organisms/CreateActivityDrawer.svelte';
+    import CreateActivity from '@/components/organisms/CreateActivity.svelte';
     import type { LayoutData } from './$types';
 
     let { children, data } = $props<{
@@ -21,6 +21,6 @@
     </main>
 
     <!-- Fixed Bottom Navigation -->
-    <CreateActivityDrawer />
+    <CreateActivity />
     <Navigation />
 </div>

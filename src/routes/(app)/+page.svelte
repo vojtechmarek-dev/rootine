@@ -1,9 +1,11 @@
 <script lang="ts">
-    let { data } = $props<{
-        data: { session: { user: { name?: string; email?: string; image?: string } } | null };
-    }>();
+    import * as Card from '$lib/components/ui/card';
+    import type { PageData } from './$types';
+
+    let { data }: { data: PageData } = $props();
 
     const session = $derived(data.session);
+    const activities = $derived(data.activities);
 </script>
 
 <div class="p-4">
@@ -18,7 +20,25 @@
         </div>
     </div>
 
-    <div class="rounded-lg border border-border bg-card p-6 dark:border-border dark:bg-card">
-        <p class="text-muted-foreground">Your activities will appear here.</p>
-    </div>
+    {#if activities?.length === 0}
+        <div class="rounded-lg border border-border bg-card p-6 dark:border-border dark:bg-card">
+            <p class="text-muted-foreground">Your activities will appear here.</p>
+        </div>
+    {:else}
+        <div class="space-y-4">
+            {#each activities as activity}
+                <Card.Root>
+                    <Card.Header>
+                        <Card.Title>{activity.title}</Card.Title>
+                        <Card.Description>Type: {activity.type}</Card.Description>
+                    </Card.Header>
+                    <Card.Content>
+                        <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs">
+{JSON.stringify(activity, null, 2)}
+                        </pre>
+                    </Card.Content>
+                </Card.Root>
+            {/each}
+        </div>
+    {/if}
 </div>

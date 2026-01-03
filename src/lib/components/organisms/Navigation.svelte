@@ -3,11 +3,12 @@
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { ChartBar, House, User } from '@lucide/svelte';
+    import { Button } from '$lib/components/ui/button/index.js';
 
     const navItems = [
-        { href: '/', label: 'Dashboard', icon: House },
-        { href: '/stats', label: 'Stats', icon: ChartBar },
-        { href: '/profile', label: 'Profile', icon: User },
+        { href: '/', label: 'Dashboard', disabled: false, icon: House },
+        { href: '/stats', label: 'Stats', disabled: true, icon: ChartBar },
+        { href: '/profile', label: 'Profile', disabled: true, icon: User },
     ];
 
     function isActive(href: string): boolean {
@@ -28,21 +29,18 @@
         {#each navItems as item}
             {@const Icon = item.icon}
             {@const active = isActive(item.href)}
-            <button
-                type="button"
+            <Button
                 onclick={(e) => handleNavClick(item.href, e)}
-                class={cn(
-                    'flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 rounded-lg px-4 py-2 transition-colors',
-                    active
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                )}
+                variant="ghost"
+                size="icon"
+                class="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 transition-colors hover:bg-transparent hover:text-current"
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
+                disabled={item.disabled}
             >
                 <Icon class="h-5 w-5" />
                 <span class="text-xs font-medium">{item.label}</span>
-            </button>
+            </Button>
         {/each}
     </div>
 </nav>

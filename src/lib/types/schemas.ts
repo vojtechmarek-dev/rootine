@@ -6,9 +6,18 @@ import { z } from 'zod';
 // These define "What is this activity?"
 // Stored in activities.config
 
+export const ActivityConfig = z.object({
+    title: z.string().min(1, 'Title is required'),
+    description: z.string().optional(),
+    color: z.string().optional(),
+    icon: z.string().optional(),
+    createdAt: z.date().optional(),
+    updatedAt: z.date().optional()
+});
+
 // --- TYPE 1: HABIT (Simple Counter) ---
 // Example: "Drink Water", Target: 3 liters
-export const HabitConfigSchema = z.object({
+export const HabitConfigSchema = ActivityConfig.extend({
     targetValue: z.number().min(1).default(1), // Must be at least 1, defaults to 1
     unit: z.string().optional().default('times'), // e.g., "liters", "pages", "reps"
     period: z.enum(['daily', 'weekly']).default('daily'),
@@ -16,7 +25,7 @@ export const HabitConfigSchema = z.object({
 
 // --- TYPE 2: PLANT (Interval Tracker) ---
 // Example: "Monstera", Water every 7 days
-export const PlantConfigSchema = z.object({
+export const PlantConfigSchema = ActivityConfig.extend({
     waterIntervalDays: z.number().min(1, 'Interval must be at least 1 day'),
     location: z.string().optional(), // e.g., "Living Room"
     species: z.string().optional(),
@@ -26,7 +35,7 @@ export const PlantConfigSchema = z.object({
 
 // --- TYPE 3: WORKOUT (Complex Template) ---
 // Example: "Push Day", List of exercises to perform
-export const WorkoutConfigSchema = z.object({
+export const WorkoutConfigSchema = ActivityConfig.extend({
     // A simple list of exercise names to populate the default form
     exercises: z.array(z.string()).default([]),
     estimatedDurationMin: z.number().optional(),
@@ -109,7 +118,6 @@ export const SessionSchema = z.object({
     uesrId: z.uuid(),
     expires: z.date(),
     user: UserSchema,
-
 });
 
 // ==========================================
@@ -119,6 +127,7 @@ export const SessionSchema = z.object({
 // @example: let act: Activity = ...
 
 export type Activity = z.infer<typeof ActivitySchema>;
+export type ActivityConfig = z.infer<typeof ActivityConfig>;
 export type HabitConfig = z.infer<typeof HabitConfigSchema>;
 export type PlantConfig = z.infer<typeof PlantConfigSchema>;
 export type WorkoutConfig = z.infer<typeof WorkoutConfigSchema>;
