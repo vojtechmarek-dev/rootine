@@ -95,6 +95,8 @@ export const activities = pgTable('activity', {
     icon: text('icon').default('circle'), // Lucide icon name
 
     archived: boolean('archived').default(false).notNull(),
+    startDate: timestamp('start_date').defaultNow().notNull(),
+    endDate: timestamp('end_date', { mode: 'date' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

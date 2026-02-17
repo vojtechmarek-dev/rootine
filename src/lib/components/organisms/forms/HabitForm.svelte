@@ -10,15 +10,20 @@
 <script lang="ts">
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
-    import type { HabitConfig } from '@/types/schemas';
+    import type { HabitConfig, Schedule, SharedActivityProps } from '$lib/types/schemas';
     import CommonActivityFields from '$lib/components/molecules/CommonActivityFields.svelte';
+    import ScheduleFields from '$lib/components/molecules/ScheduleFields.svelte';
 
     let {
         id,
+        shared = $bindable(),
         config = $bindable(),
+        schedule = $bindable(),
     }: {
         id?: string;
+        shared: SharedActivityProps;
         config: HabitConfig;
+        schedule: Schedule;
     } = $props();
 </script>
 
@@ -37,10 +42,12 @@
 
                 <!-- Shared Fields -->
                 <CommonActivityFields
-                    bind:title={config.title}
-                    bind:description={config.description}
-                    bind:color={config.color}
-                    bind:icon={config.icon}
+                    bind:title={shared.title}
+                    bind:description={shared.description}
+                    bind:color={shared.color}
+                    bind:icon={shared.icon}
+                    bind:startDate={shared.startDate}
+                    bind:endDate={shared.endDate}
                 />
 
                 <!-- Habit Specific Fields -->
@@ -63,16 +70,9 @@
                             bind:value={config.unit}
                         />
                     </Field.Field>
-                    <Field.Field>
-                        <Field.Label>Period</Field.Label>
-                        <!-- Ideally a Select component -->
-                        <Input
-                            type="text"
-                            name="period"
-                            placeholder="e.g. daily"
-                            bind:value={config.period}
-                        />
-                    </Field.Field>
+
+                    <!-- Unified Schedule -->
+                    <ScheduleFields bind:schedule />
                 </Field.Group>
             </Field.Set>
         </Field.Group>
