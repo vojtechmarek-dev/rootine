@@ -1,5 +1,5 @@
+import { toDateRequired } from '@/utils/date';
 import { z } from 'zod';
-import { toDateOptional } from '$lib/utils/date.js';
 
 // ==========================================
 // 1. SHARED PROPS (Top-level DB Columns)
@@ -13,8 +13,8 @@ export const SharedActivityProps = z.object({
     description: z.string().optional(),
     color: z.string().optional(),
     icon: z.string().optional(),
-    startDate: z.preprocess(toDateOptional, z.date()).default(() => new Date()),
-    endDate: z.preprocess(toDateOptional, z.date().optional()),
+    startDate: z.preprocess(toDateRequired, z.date()).default(() => new Date()),
+    endDate: z.preprocess(toDateRequired, z.date().optional()),
 });
 
 // ==========================================
