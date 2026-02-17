@@ -1,18 +1,20 @@
 import { z } from 'zod';
+import { toDateOptional } from '$lib/utils/date.js';
 
 // ==========================================
 // 1. SHARED PROPS (Top-level DB Columns)
 // ==========================================
 // These are stored as explicit columns in the 'activities' table
 // and should NOT be duplicated in the JSONB 'config'.
+// startDate/endDate accept Date, string (ISO), or DateValue (from Shadcn calendar).
 
 export const SharedActivityProps = z.object({
     title: z.string().min(1, 'Title is required'),
     description: z.string().optional(),
     color: z.string().optional(),
     icon: z.string().optional(),
-    startDate: z.date().default(new Date()),
-    endDate: z.date().optional(),
+    startDate: z.preprocess(toDateOptional, z.date()).default(() => new Date()),
+    endDate: z.preprocess(toDateOptional, z.date().optional()),
 });
 
 // ==========================================

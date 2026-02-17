@@ -47,6 +47,8 @@
         description: undefined,
         color: 'zinc',
         icon: 'circle',
+        startDate: new Date(),
+        endDate: undefined,
     });
 
     let formConfig = $state<any>(defaults.habit.config);

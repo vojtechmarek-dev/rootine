@@ -2,6 +2,7 @@
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import type { SharedActivityProps } from '@/types/schemas';
+    import DatePicker from '../organisms/DatePicker.svelte';
 
     // Use a generic or partial type for the shared fields
     let {
@@ -37,7 +38,7 @@
     </Field.Field>
     <Field.Field>
         <Field.Label>Start Date</Field.Label>
-        <Input type="date" name="startDate" bind:value={startDate} />
+        <DatePicker bind:value={startDate} />
     </Field.Field>
     <Field.Field>
         <!-- Future: ColorPicker and IconPicker components would go here -->

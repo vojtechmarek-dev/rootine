@@ -41,6 +41,8 @@
                     bind:description={shared.description}
                     bind:color={shared.color}
                     bind:icon={shared.icon}
+                    bind:startDate={shared.startDate}
+                    bind:endDate={shared.endDate}
                 />
 
                 <!-- Workout Specific Fields -->
