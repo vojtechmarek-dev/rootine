@@ -1,11 +1,24 @@
+<script module lang="ts">
+    // Prevent skeleton flash on client-side navigations.
+    let hasHydrated = false;
+</script>
+
 <script lang="ts">
-    import * as Card from '$lib/components/ui/card';
+    import ActivityCard from '@/components/organisms/ActivityCard.svelte';
     import type { PageData } from './$types';
+    import { onMount } from 'svelte';
 
     let { data }: { data: PageData } = $props();
 
     const session = $derived(data.session);
     const activities = $derived(data.activities);
+
+    let hydrated = $state(hasHydrated);
+
+    onMount(() => {
+        hydrated = true;
+        hasHydrated = true;
+    });
 </script>
 
 <div class="p-4">
@@ -24,20 +37,21 @@
         <div class="rounded-lg border border-border bg-card p-6 dark:border-border dark:bg-card">
             <p class="text-muted-foreground">Your activities will appear here.</p>
         </div>
+    {:else if !hydrated}
+        <div class="space-y-4">
+            <!-- Skeletons for loading state -->
+            {#each Array.from({ length: 3 }) as _}
+                <div class="animate-pulse rounded-lg border border-border bg-card p-4 dark:border-border dark:bg-card">
+                    <div class="mb-3 h-4 w-1/2 rounded bg-muted"></div>
+                    <div class="mb-4 h-3 w-2/3 rounded bg-muted"></div>
+                    <div class="h-11 w-24 rounded bg-muted"></div>
+                </div>
+            {/each}
+        </div>
     {:else}
         <div class="space-y-4">
             {#each activities as activity}
-                <Card.Root>
-                    <Card.Header>
-                        <Card.Title>{activity.title}</Card.Title>
-                        <Card.Description>Type: {activity.type}</Card.Description>
-                    </Card.Header>
-                    <Card.Content>
-                        <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs">
-{JSON.stringify(activity, null, 2)}
-                        </pre>
-                    </Card.Content>
-                </Card.Root>
+                <ActivityCard {activity} />
             {/each}
         </div>
     {/if}

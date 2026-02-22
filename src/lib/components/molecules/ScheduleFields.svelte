@@ -2,11 +2,10 @@
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import * as Select from '$lib/components/ui/select/index.js';
+    import { WEEKDAYS } from '$lib/constants';
     import type { Schedule } from '$lib/types/schemas';
 
     let { schedule = $bindable() }: { schedule: Schedule } = $props();
-
-    const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
     // Helper to sync Select value with Schedule type
     let selectedType = $derived(schedule.type);
@@ -77,7 +76,7 @@
             {/each}
 
             <div class="flex flex-wrap gap-2">
-                {#each DAYS as day}
+                {#each WEEKDAYS as day}
                     <label
                         class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border transition-colors
                         {schedule.days.includes(day)

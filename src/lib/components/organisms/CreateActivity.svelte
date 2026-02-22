@@ -5,17 +5,8 @@
     import { cn } from '$lib/utils';
     import HabitForm, { meta as HabitMeta } from '$lib/components/organisms/forms/HabitForm.svelte';
     import PlantForm, { meta as PlantMeta } from '$lib/components/organisms/forms/PlantForm.svelte';
-    import WorkoutForm, {
-        meta as WorkoutMeta,
-    } from '$lib/components/organisms/forms/WorkoutForm.svelte';
-    import type {
-        Activity,
-        HabitConfig,
-        PlantConfig,
-        WorkoutConfig,
-        Schedule,
-        SharedActivityProps,
-    } from '$lib/types/schemas';
+    import WorkoutForm, { meta as WorkoutMeta } from '$lib/components/organisms/forms/WorkoutForm.svelte';
+    import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, BaseActivity } from '$lib/types/schemas';
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
 
@@ -42,13 +33,14 @@
         },
     };
 
-    let formShared = $state<SharedActivityProps>({
+    let formShared = $state<BaseActivity>({
         title: '',
         description: undefined,
         color: 'zinc',
         icon: 'circle',
         startDate: new Date(),
         endDate: undefined,
+        archived: false,
     });
 
     let formConfig = $state<any>(defaults.habit.config);
@@ -83,10 +75,7 @@
 
 <Drawer.Root bind:open={isOpen}>
     <Drawer.Trigger
-        class={cn(
-            buttonVariants({ variant: 'default', size: 'icon' }),
-            'fixed right-4 bottom-24 z-50 h-14 w-14 rounded-full shadow-xl'
-        )}
+        class={cn(buttonVariants({ variant: 'default', size: 'icon' }), 'fixed right-4 bottom-24 z-50 h-14 w-14 rounded-full shadow-xl')}
     >
         <Plus class="h-6 w-6" />
         <span class="sr-only">Create new Rootine</span>
@@ -119,17 +108,9 @@
                 {:else}
                     {@const FormDef = ACTIVITY_FORMS[view]}
                     {@const Icon = FormDef.icon}
-                    <div
-                        class="h-full w-full"
-                        transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}
-                    >
+                    <div class="h-full w-full" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
                         <div class="flex items-center justify-between pt-2 pb-4">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="-ml-2 h-9 w-9 rounded-full"
-                                onclick={resetView}
-                            >
+                            <Button variant="ghost" size="icon" class="-ml-2 h-9 w-9 rounded-full" onclick={resetView}>
                                 <ChevronLeft class="h-5 w-5" />
                                 <span class="sr-only">Back</span>
                             </Button>
@@ -145,19 +126,12 @@
 
                         <!-- Render the component dynamically -->
                         <!-- We pass both config and schedule bindings -->
-                        <FormDef.component
-                            id={FORM_ID}
-                            bind:shared={formShared}
-                            bind:config={formConfig}
-                            bind:schedule={formSchedule}
-                        />
+                        <FormDef.component id={FORM_ID} bind:shared={formShared} bind:config={formConfig} bind:schedule={formSchedule} />
                     </div>
                 {/if}
             </div>
             <Drawer.Footer class="shrink-0 p-4 pt-0">
-                <Drawer.Close class={buttonVariants({ variant: 'ghost' })} onclick={resetView}>
-                    Cancel
-                </Drawer.Close>
+                <Drawer.Close class={buttonVariants({ variant: 'ghost' })} onclick={resetView}>Cancel</Drawer.Close>
             </Drawer.Footer>
         </div>
     </Drawer.Content>

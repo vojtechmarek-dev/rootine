@@ -1,4 +1,5 @@
-import { toDateRequired } from '@/utils/date';
+import { toDate, toDateRequired } from '@/utils/date';
+import { WEEKDAYS } from '$lib/constants';
 import { z } from 'zod';
 
 // ==========================================
@@ -8,13 +9,15 @@ import { z } from 'zod';
 // and should NOT be duplicated in the JSONB 'config'.
 // startDate/endDate accept Date, string (ISO), or DateValue (from Shadcn calendar).
 
-export const SharedActivityProps = z.object({
+export const BaseActivitySchema = z.object({
+    id: z.uuid().optional(),
     title: z.string().min(1, 'Title is required'),
     description: z.string().optional(),
     color: z.string().optional(),
     icon: z.string().optional(),
     startDate: z.preprocess(toDateRequired, z.date()).default(() => new Date()),
-    endDate: z.preprocess(toDateRequired, z.date().optional()),
+    endDate: z.preprocess(toDate, z.date().optional()),
+    archived: z.boolean().default(false),
 });
 
 // ==========================================
@@ -26,7 +29,7 @@ export const SharedActivityProps = z.object({
 // Base config (currently empty as common props moved up, but kept for extensibility)
 export const ActivityConfig = z.object({
     createdAt: z.date().optional(),
-    updatedAt: z.date().optional()
+    updatedAt: z.date().optional(),
 });
 
 // --- SCHEDULE SCHEMA ---
@@ -43,7 +46,7 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
     // "I do this on Mon, Wed, Fri"
     z.object({
         type: z.literal('weekly'),
-        days: z.array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])),
+        days: z.array(z.enum(WEEKDAYS)),
         times: z.array(z.string()).optional()
     }),
 
@@ -90,19 +93,19 @@ export const ActivitySchema = z.discriminatedUnion('type', [
     z.object({
         type: z.literal('habit'),
         // Merge shared props so we can validate a complete form submission
-        ...SharedActivityProps.shape,
+        ...BaseActivitySchema.shape,
         config: HabitConfigSchema,
         schedule: ScheduleSchema.default({ type: 'daily' }),
     }),
     z.object({
         type: z.literal('plant'),
-        ...SharedActivityProps.shape,
+        ...BaseActivitySchema.shape,
         config: PlantConfigSchema,
         schedule: ScheduleSchema.default({ type: 'interval', value: 7, unit: 'days' }),
     }),
     z.object({
         type: z.literal('workout'),
-        ...SharedActivityProps.shape,
+        ...BaseActivitySchema.shape,
         config: WorkoutConfigSchema,
         schedule: ScheduleSchema.default({ type: 'weekly', days: ['mon', 'wed', 'fri'] }),
     }),
@@ -169,10 +172,9 @@ export const SessionSchema = z.object({
 // 5. TYPESCRIPT EXPORTS
 // ==========================================
 // This extracts the Typescript types from the Zod logic
-// @example: let act: Activity = ...
 
 export type Activity = z.infer<typeof ActivitySchema>;
-export type SharedActivityProps = z.infer<typeof SharedActivityProps>;
+export type BaseActivity = z.infer<typeof BaseActivitySchema>;
 export type Schedule = z.infer<typeof ScheduleSchema>;
 export type HabitConfig = z.infer<typeof HabitConfigSchema>;
 export type PlantConfig = z.infer<typeof PlantConfigSchema>;
@@ -182,3 +184,8 @@ export type Log = z.infer<typeof LogSchema>;
 
 export type User = z.infer<typeof UserSchema>;
 export type Session = z.infer<typeof SessionSchema>;
+
+export type DashboardActivity = Activity & {
+    isCompleted: boolean;
+    logs?: Log[] | null;
+};

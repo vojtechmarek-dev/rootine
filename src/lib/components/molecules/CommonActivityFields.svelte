@@ -1,8 +1,8 @@
 <script lang="ts">
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
-    import type { SharedActivityProps } from '@/types/schemas';
-    import DatePicker from '../organisms/DatePicker.svelte';
+    import type { BaseActivity } from '@/types/schemas';
+    import DatePicker from './DatePicker.svelte';
 
     // Use a generic or partial type for the shared fields
     let {
@@ -12,29 +12,19 @@
         icon = $bindable(),
         startDate = $bindable(),
         endDate = $bindable(),
-    }: SharedActivityProps = $props();
+        archived = $bindable(),
+    }: BaseActivity = $props();
 </script>
 
 <Field.Group>
     <Field.Field>
         <Field.Label>Title</Field.Label>
-        <Input
-            type="text"
-            name="title"
-            placeholder="e.g. Drink Water"
-            bind:value={title}
-            required
-        />
+        <Input type="text" name="title" placeholder="e.g. Drink Water" bind:value={title} required />
     </Field.Field>
 
     <Field.Field>
         <Field.Label>Description</Field.Label>
-        <Input
-            type="text"
-            name="description"
-            placeholder="e.g. Drink water 3 times a day"
-            bind:value={description}
-        />
+        <Input type="text" name="description" placeholder="e.g. Drink water 3 times a day" bind:value={description} />
     </Field.Field>
     <Field.Field>
         <Field.Label>Start Date</Field.Label>

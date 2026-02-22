@@ -74,6 +74,7 @@ export const activities = pgTable('activity', {
         .notNull()
         .references(() => users.id, { onDelete: 'cascade' }),
 
+
     // THE POLYMORPHIC IDENTIFIER
     // stored as text: "habit", "plant", "workout"
     // Validation happens in Zod, not here.

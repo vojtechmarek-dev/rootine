@@ -10,7 +10,7 @@
 <script lang="ts">
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
-    import type { HabitConfig, Schedule, SharedActivityProps } from '$lib/types/schemas';
+    import type { HabitConfig, Schedule, BaseActivity } from '$lib/types/schemas';
     import CommonActivityFields from '$lib/components/molecules/CommonActivityFields.svelte';
     import ScheduleFields from '$lib/components/molecules/ScheduleFields.svelte';
 
@@ -21,7 +21,7 @@
         schedule = $bindable(),
     }: {
         id?: string;
-        shared: SharedActivityProps;
+        shared: BaseActivity;
         config: HabitConfig;
         schedule: Schedule;
     } = $props();
@@ -48,27 +48,18 @@
                     bind:icon={shared.icon}
                     bind:startDate={shared.startDate}
                     bind:endDate={shared.endDate}
+                    bind:archived={shared.archived}
                 />
 
                 <!-- Habit Specific Fields -->
                 <Field.Group>
                     <Field.Field>
                         <Field.Label>Target Value</Field.Label>
-                        <Input
-                            type="number"
-                            name="targetValue"
-                            min="1"
-                            bind:value={config.targetValue}
-                        />
+                        <Input type="number" name="targetValue" min="1" bind:value={config.targetValue} />
                     </Field.Field>
                     <Field.Field>
                         <Field.Label>Unit</Field.Label>
-                        <Input
-                            type="text"
-                            name="unit"
-                            placeholder="e.g. times"
-                            bind:value={config.unit}
-                        />
+                        <Input type="text" name="unit" placeholder="e.g. times" bind:value={config.unit} />
                     </Field.Field>
 
                     <!-- Unified Schedule -->

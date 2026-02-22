@@ -10,7 +10,7 @@
 <script lang="ts">
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
-    import type { WorkoutConfig, Schedule, SharedActivityProps } from '$lib/types/schemas';
+    import type { WorkoutConfig, Schedule, BaseActivity } from '$lib/types/schemas';
     import CommonActivityFields from '$lib/components/molecules/CommonActivityFields.svelte';
     import ScheduleFields from '$lib/components/molecules/ScheduleFields.svelte';
 
@@ -23,7 +23,7 @@
         id?: string;
         config: WorkoutConfig;
         schedule: Schedule;
-        shared: SharedActivityProps;
+        shared: BaseActivity;
     } = $props();
 </script>
 
@@ -43,6 +43,7 @@
                     bind:icon={shared.icon}
                     bind:startDate={shared.startDate}
                     bind:endDate={shared.endDate}
+                    bind:archived={shared.archived}
                 />
 
                 <!-- Workout Specific Fields -->
