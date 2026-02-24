@@ -20,16 +20,13 @@ export const load: PageServerLoad = async (event) => {
     const targetDate = urlDate ? new Date(urlDate) : new Date();
 
     const userActivities = await db.query.activities.findMany({
-        where: and(
-            eq(activities.userId, session.user.id),
-            eq(activities.archived, false)
-        ),
+        where: and(eq(activities.userId, session.user.id), eq(activities.archived, false)),
         orderBy: [desc(activities.createdAt)],
         with: {
             logs: {
-                where: between(logs.date, startOfDay(targetDate), endOfDay(targetDate))
-            }
-        }
+                where: between(logs.date, startOfDay(targetDate), endOfDay(targetDate)),
+            },
+        },
     });
 
     const dashboardActivities: DashboardActivity[] = [];
@@ -77,7 +74,6 @@ export const load: PageServerLoad = async (event) => {
     };
 };
 
-
 export const actions: Actions = {
     createActivity: async (event) => {
         const session = await event.locals.auth();
@@ -100,16 +96,16 @@ export const actions: Actions = {
             schedule = {
                 type: 'interval',
                 value: Number(formData.get('schedule_value') || 1),
-                unit: (formData.get('schedule_unit') as 'days' | 'hours') || 'days'
+                unit: (formData.get('schedule_unit') as 'days' | 'hours') || 'days',
             };
         } else if (scheduleType === 'weekly') {
             // Parse selected days from formData (e.g., schedule_days=mon, schedule_days=wed)
             const rawDays = formData.getAll('schedule_days');
-            const days = rawDays.map(d => d.toString());
+            const days = rawDays.map((d) => d.toString());
             // Zod will validate these strings against the enum
             schedule = {
                 type: 'weekly',
-                days: (days.length > 0 ? days : [...WEEKDAYS]) as never
+                days: (days.length > 0 ? days : [...WEEKDAYS]) as never,
             };
         } else {
             // Fallback for legacy forms or implicit defaults
@@ -130,9 +126,7 @@ export const actions: Actions = {
         const rawConfig = {
             // Habit Specific
             // Convert to Number, fallback to undefined if empty/invalid
-            targetValue: formData.get('targetValue')
-                ? Number(formData.get('targetValue'))
-                : undefined,
+            targetValue: formData.get('targetValue') ? Number(formData.get('targetValue')) : undefined,
             unit: formData.get('unit') || undefined,
             // period: REMOVED (handled by schedule)
 
@@ -143,9 +137,7 @@ export const actions: Actions = {
 
             // Workout Specific
             exercises: [], // TODO: Parse complex list when implemented
-            estimatedDurationMin: formData.get('estimatedDurationMin')
-                ? Number(formData.get('estimatedDurationMin'))
-                : undefined,
+            estimatedDurationMin: formData.get('estimatedDurationMin') ? Number(formData.get('estimatedDurationMin')) : undefined,
         };
 
         // 3. Validate
@@ -158,20 +150,17 @@ export const actions: Actions = {
             color: formData.get('color') || undefined,
             icon: formData.get('icon') || undefined,
             config: rawConfig,
-            schedule
+            schedule,
         };
 
         const result = ActivitySchema.safeParse(payload);
 
         if (!result.success) {
-            console.error(
-                `Activity Validation Failed`,
-                formatZodErrorTree(result.error)
-            );
+            console.error(`Activity Validation Failed`, formatZodErrorTree(result.error));
             return fail(400, {
                 message: 'Invalid activity data',
                 errors: formatZodErrorTree(result.error),
-                values: rawConfig
+                values: rawConfig,
             });
         }
 
@@ -203,7 +192,6 @@ export const actions: Actions = {
         const session = await event.locals.auth();
         if (!session?.user?.id) {
             return fail(401, { message: 'Unauthorized' });
-
         }
 
         const formData = await event.request.formData();
@@ -214,7 +202,7 @@ export const actions: Actions = {
             return fail(400, { message: 'Invalid action' });
         }
 
-        // For accurate logging, we generally log "Now". 
+        // For accurate logging, we generally log "Now".
         // If you allow back-dating, pass the date from the form.
         const logDate = new Date();
 
@@ -227,7 +215,7 @@ export const actions: Actions = {
                     data: {}, // todo: Add arbitrary data here if needed (e.g. reps)
                 });
             } else if (action === 'undo') {
-                // To undo, we need the log ID. 
+                // To undo, we need the log ID.
                 // Ideally passed from client, or we look it up.
                 const logId = formData.get('logId') as string | null;
 
@@ -235,10 +223,7 @@ export const actions: Actions = {
                     await db.delete(logs).where(eq(logs.id, logId));
                 } else {
                     const mostRecent = await db.query.logs.findFirst({
-                        where: and(
-                            eq(logs.activityId, activityId),
-                            between(logs.date, startOfDay(logDate), endOfDay(logDate))
-                        ),
+                        where: and(eq(logs.activityId, activityId), between(logs.date, startOfDay(logDate), endOfDay(logDate))),
                         orderBy: [desc(logs.date)],
                     });
 
@@ -253,5 +238,5 @@ export const actions: Actions = {
         }
 
         return { success: true };
-    }
+    },
 };

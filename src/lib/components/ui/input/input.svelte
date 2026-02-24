@@ -5,12 +5,7 @@
     export interface Props extends HTMLInputAttributes {}
     export type InputProps = Props;
 
-    let {
-        class: className = '',
-        value = $bindable(),
-        type = 'text',
-        ...restProps
-    }: Props = $props();
+    let { class: className = '', value = $bindable(), type = 'text', ...restProps }: Props = $props();
 </script>
 
 <input

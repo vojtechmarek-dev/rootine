@@ -32,4 +32,3 @@ const authCheck: Handle = async ({ event, resolve }) => {
 };
 
 export const handle = sequence(authHandle, authCheck);
-

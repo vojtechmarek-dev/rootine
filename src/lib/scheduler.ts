@@ -2,10 +2,7 @@ import { differenceInDays, differenceInHours, startOfDay } from 'date-fns';
 import type { Activity } from '$lib/types/schemas';
 import { WEEKDAYS } from '$lib/constants';
 
-export function isScheduledForDate(
-    activity: Activity,
-    targetDate: Date
-): boolean {
+export function isScheduledForDate(activity: Activity, targetDate: Date): boolean {
     const start = startOfDay(new Date(activity.startDate));
     const target = startOfDay(targetDate);
 
@@ -51,12 +48,7 @@ export function isScheduledForDate(
     }
 }
 
-function isScheduledBySchedule(
-    schedule: Activity['schedule'],
-    anchor: Date,
-    target: Date,
-    weekday: (typeof WEEKDAYS)[number]
-): boolean {
+function isScheduledBySchedule(schedule: Activity['schedule'], anchor: Date, target: Date, weekday: (typeof WEEKDAYS)[number]): boolean {
     switch (schedule.type) {
         case 'daily': {
             return true;

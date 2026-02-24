@@ -39,10 +39,7 @@
                             <Drawer.Description>Manage your account settings.</Drawer.Description>
                         </div>
                         <div class="flex flex-col items-end justify-center">
-                            <Drawer.Close
-                                class={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
-                                ><X class="h-4 w-4" /></Drawer.Close
-                            >
+                            <Drawer.Close class={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}><X class="h-4 w-4" /></Drawer.Close>
                         </div>
                     </Drawer.Header>
                     <div class="p-4 pb-8">

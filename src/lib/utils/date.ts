@@ -14,8 +14,6 @@ export function toDateValue(date: Date | undefined | null): DateValue | undefine
     );
 }
 
-
-
 /**
  * Converts various types to a JS Date.
  * Returns an Invalid Date(NaN) if input is unknown / invalid.
@@ -44,10 +42,10 @@ export function toDate(val: unknown): Date | undefined {
     return new Date(NaN);
 }
 
-/** 
-* Wrapper for strict Date requirements.
-* Ensures the result is always a Date (throws if undefined/invalid).
-*/
+/**
+ * Wrapper for strict Date requirements.
+ * Ensures the result is always a Date (throws if undefined/invalid).
+ */
 export function toDateRequired(val: unknown): Date {
     const d = toDate(val);
     if (!d || isNaN(d.getTime())) {

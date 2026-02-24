@@ -48,12 +48,6 @@
         {/snippet}
     </Popover.Trigger>
     <Popover.Content class="w-auto p-0">
-        <Calendar
-            bind:value={dateProxy.value}
-            bind:placeholder
-            type="single"
-            initialFocus
-            captionLayout="dropdown"
-        />
+        <Calendar bind:value={dateProxy.value} bind:placeholder type="single" initialFocus captionLayout="dropdown" />
     </Popover.Content>
 </Popover.Root>

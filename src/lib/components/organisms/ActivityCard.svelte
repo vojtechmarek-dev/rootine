@@ -50,25 +50,9 @@
                 <input type="hidden" name="activityId" value={activity.id} />
 
                 {#if isCompleted}
-                    <Button
-                        type="submit"
-                        name="action"
-                        value="undo"
-                        variant="secondary"
-                        class="h-11"
-                        disabled={isSubmitting}
-                    >
-                        Undo
-                    </Button>
+                    <Button type="submit" name="action" value="undo" variant="secondary" class="h-11" disabled={isSubmitting}>Undo</Button>
                 {:else}
-                    <Button
-                        type="submit"
-                        name="action"
-                        value="complete"
-                        variant="default"
-                        class="h-11"
-                        disabled={isSubmitting}
-                    >
+                    <Button type="submit" name="action" value="complete" variant="default" class="h-11" disabled={isSubmitting}>
                         Done
                     </Button>
                 {/if}

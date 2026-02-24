@@ -33,7 +33,7 @@ graph TD
         SK_Client[SvelteKit Client (CSR)]
         SK_Server[SvelteKit Server (SSR + API)]
     end
-    
+
     subgraph "External Services"
         Auth[OAuth Providers (Google/GitHub)]
         DB[(Neon/Supabase PostgreSQL)]
@@ -56,14 +56,15 @@ npm run build
 ```
 
 ## Stack
+
 Summary of the "Beautiful" Stack
-Category	Library	Why?
-Styling	Tailwind CSS	AI speaks this language fluently.
-Components	Shadcn-Svelte	Premium look, copy-pasteable code.
-Icons	Lucide-Svelte	Clean, consistent vectors.
-Mobile Drawer	Vaul Svelte	Essential for that "Native App" feel.
-Charts	Unovis	Best looking charts for Svelte.
-Date Handling	Date-fns	Lightweight, you'll need it for habit tracking math.
+Category Library Why?
+Styling Tailwind CSS AI speaks this language fluently.
+Components Shadcn-Svelte Premium look, copy-pasteable code.
+Icons Lucide-Svelte Clean, consistent vectors.
+Mobile Drawer Vaul Svelte Essential for that "Native App" feel.
+Charts Unovis Best looking charts for Svelte.
+Date Handling Date-fns Lightweight, you'll need it for habit tracking math.
 
 You can preview the production build with `npm run preview`.
 

@@ -93,9 +93,7 @@
                                 if (checked) {
                                     (schedule as any).days = [...currentDays, day];
                                 } else {
-                                    (schedule as any).days = currentDays.filter(
-                                        (d: any) => d !== day
-                                    );
+                                    (schedule as any).days = currentDays.filter((d: any) => d !== day);
                                 }
                             }}
                             class="sr-only"

@@ -1,15 +1,6 @@
 import type { AdapterAccount } from '@auth/core/adapters';
 import { relations } from 'drizzle-orm';
-import {
-    pgTable,
-    uuid,
-    text,
-    timestamp,
-    integer,
-    primaryKey,
-    jsonb,
-    boolean,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, primaryKey, jsonb, boolean } from 'drizzle-orm/pg-core';
 
 // =========================================
 // 1. THE AUTHENTICATION TABLES
@@ -73,7 +64,6 @@ export const activities = pgTable('activity', {
     userId: uuid('userId')
         .notNull()
         .references(() => users.id, { onDelete: 'cascade' }),
-
 
     // THE POLYMORPHIC IDENTIFIER
     // stored as text: "habit", "plant", "workout"
