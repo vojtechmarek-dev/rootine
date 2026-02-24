@@ -1,4 +1,5 @@
 import { WEEKDAYS } from '$lib/constants';
+import { toDate } from '$lib/utils/date';
 import { z } from 'zod';
 
 // ==========================================
@@ -14,7 +15,14 @@ export const BaseActivitySchema = z.object({
     color: z.string().default('zinc'),
     icon: z.string().default('circle'),
     startDate: z.coerce.date().default(() => new Date()),
-    endDate: z.coerce.date().optional(),
+    endDate: z
+        .preprocess(
+            (val) => {
+                const d = toDate(val);
+                return d != null && !isNaN(d.getTime()) ? d : undefined;
+            },
+            z.date().optional()
+        ),
     archived: z.boolean().default(false),
 });
 

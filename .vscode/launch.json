@@ -13,6 +13,16 @@
             "webRoot": "${workspaceFolder}"
         },
         {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to SvelteKit server",
+            "port": 9229,
+            "restart": true,
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
+        },
+        {
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
