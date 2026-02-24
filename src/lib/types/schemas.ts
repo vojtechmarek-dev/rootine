@@ -1,22 +1,20 @@
-import { toDate, toDateRequired } from '@/utils/date';
 import { WEEKDAYS } from '$lib/constants';
 import { z } from 'zod';
 
 // ==========================================
-// 1. SHARED PROPS (Top-level DB Columns)
+// 1. SHARED FIELDS (Common Properties)
 // ==========================================
 // These are stored as explicit columns in the 'activities' table
 // and should NOT be duplicated in the JSONB 'config'.
-// startDate/endDate accept Date, string (ISO), or DateValue (from Shadcn calendar).
+// Uses z.coerce.date() for automatic handling of ISO strings and Date objects.
 
 export const BaseActivitySchema = z.object({
-    id: z.uuid().optional(),
     title: z.string().min(1, 'Title is required'),
     description: z.string().optional(),
-    color: z.string().optional(),
-    icon: z.string().optional(),
-    startDate: z.preprocess(toDateRequired, z.date()).default(() => new Date()),
-    endDate: z.preprocess(toDate, z.date().optional()),
+    color: z.string().default('zinc'),
+    icon: z.string().default('circle'),
+    startDate: z.coerce.date().default(() => new Date()),
+    endDate: z.coerce.date().optional(),
     archived: z.boolean().default(false),
 });
 
@@ -39,7 +37,7 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
     // "I want to do this every day"
     z.object({
         type: z.literal('daily'),
-        times: z.array(z.string()).optional() // e.g. ["09:00"] for reminders
+        times: z.array(z.string()).optional(), // e.g. ["09:00"] for reminders
     }),
 
     // Case 2: Specific Days (Workouts, Weekly Habits)
@@ -47,7 +45,7 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
     z.object({
         type: z.literal('weekly'),
         days: z.array(z.enum(WEEKDAYS)),
-        times: z.array(z.string()).optional()
+        times: z.array(z.string()).optional(),
     }),
 
     // Case 3: Rolling Interval (Plants, Chores)
@@ -56,7 +54,7 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
         type: z.literal('interval'),
         value: z.number().min(1),
         unit: z.enum(['days', 'hours']), // Usually 'days'
-    })
+    }),
 ]);
 
 // --- TYPE 1: HABIT (Simple Counter) ---
@@ -84,32 +82,47 @@ export const WorkoutConfigSchema = ActivityConfig.extend({
 });
 
 // ==========================================
-// 3. THE MASTER ACTIVITY SCHEMA
+// 3. POLYMORPHIC CONFIGS (Type-Specific)
 // ==========================================
-// This is the "Discriminated Union".
-// It is used for FULL validation of an activity object (e.g. from API or Form)
+// Defines the type-specific configurations for each activity type
+// This discriminated union contains only the polymorphic parts
 
-export const ActivitySchema = z.discriminatedUnion('type', [
+const ActivityConfigs = z.discriminatedUnion('type', [
     z.object({
         type: z.literal('habit'),
-        // Merge shared props so we can validate a complete form submission
-        ...BaseActivitySchema.shape,
         config: HabitConfigSchema,
         schedule: ScheduleSchema.default({ type: 'daily' }),
     }),
     z.object({
         type: z.literal('plant'),
-        ...BaseActivitySchema.shape,
         config: PlantConfigSchema,
         schedule: ScheduleSchema.default({ type: 'interval', value: 7, unit: 'days' }),
     }),
     z.object({
         type: z.literal('workout'),
-        ...BaseActivitySchema.shape,
         config: WorkoutConfigSchema,
         schedule: ScheduleSchema.default({ type: 'weekly', days: ['mon', 'wed', 'fri'] }),
     }),
 ]);
+
+// ==========================================
+// 4. SCHEMA FOR CREATING ACTIVITIES (Form Submission)
+// ==========================================
+// For form validation - combines shared fields with polymorphic configs
+export const CreateActivitySchema = z.intersection(BaseActivitySchema, ActivityConfigs);
+
+// ==========================================
+// 5. THE MASTER ACTIVITY SCHEMA (For Reading from DB)
+// ==========================================
+// Extends CreateActivitySchema with required DB fields
+export const ActivitySchema = CreateActivitySchema.and(
+    z.object({
+        id: z.uuid(),
+        userId: z.uuid(),
+        createdAt: z.coerce.date(),
+        updatedAt: z.coerce.date(),
+    })
+);
 
 // ==========================================
 // 4. LOG DATA SCHEMAS (History)
@@ -152,7 +165,6 @@ export const LogSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('workout'), data: WorkoutLogSchema }),
 ]);
 
-
 export const UserSchema = z.object({
     id: z.uuid(),
     name: z.string(),
@@ -169,11 +181,12 @@ export const SessionSchema = z.object({
 });
 
 // ==========================================
-// 5. TYPESCRIPT EXPORTS
+// 6. TYPESCRIPT EXPORTS
 // ==========================================
 // This extracts the Typescript types from the Zod logic
 
 export type Activity = z.infer<typeof ActivitySchema>;
+export type CreateActivity = z.infer<typeof CreateActivitySchema>;
 export type BaseActivity = z.infer<typeof BaseActivitySchema>;
 export type Schedule = z.infer<typeof ScheduleSchema>;
 export type HabitConfig = z.infer<typeof HabitConfigSchema>;
@@ -185,7 +198,14 @@ export type Log = z.infer<typeof LogSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type Session = z.infer<typeof SessionSchema>;
 
+// ==========================================
+// 7. UI - View Model Types
+// ==========================================
+// Those types are used in the UI and are not stored in the database
+
 export type DashboardActivity = Activity & {
     isCompleted: boolean;
     logs?: Log[] | null;
 };
+
+export type ActivityFormData = CreateActivity & { id?: string };

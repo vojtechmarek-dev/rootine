@@ -6,9 +6,10 @@
     import HabitForm, { meta as HabitMeta } from '$lib/components/organisms/forms/HabitForm.svelte';
     import PlantForm, { meta as PlantMeta } from '$lib/components/organisms/forms/PlantForm.svelte';
     import WorkoutForm, { meta as WorkoutMeta } from '$lib/components/organisms/forms/WorkoutForm.svelte';
-    import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, BaseActivity } from '$lib/types/schemas';
+    import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, ActivityFormData } from '$lib/types/schemas';
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
+    import ActivityEditor from './ActivityEditor.svelte';
 
     // The Activity Forms Registry
     const ACTIVITY_FORMS = {
@@ -33,7 +34,7 @@
         },
     };
 
-    let formShared = $state<BaseActivity>({
+    let formData = $state<ActivityFormData>({
         title: '',
         description: undefined,
         color: 'zinc',
@@ -41,10 +42,10 @@
         startDate: new Date(),
         endDate: undefined,
         archived: false,
-    });
-
-    let formConfig = $state<any>(defaults.habit.config);
-    let formSchedule = $state<Schedule>(defaults.habit.schedule);
+        type: 'habit',
+        config: defaults.habit.config,
+        schedule: defaults.habit.schedule,
+    }); // Initialize with defaults
 
     type ActivityType = Activity['type'];
 
@@ -65,8 +66,9 @@
     };
 
     const switchView = (newType: ActivityType) => {
-        formConfig = { ...defaults[newType].config };
-        formSchedule = { ...defaults[newType].schedule };
+        formData.type = newType;
+        formData.config = { ...defaults[newType].config };
+        formData.schedule = { ...defaults[newType].schedule };
         view = newType;
     };
 
@@ -124,9 +126,7 @@
                             <Button type="submit" size="sm" form={FORM_ID}>Save</Button>
                         </div>
 
-                        <!-- Render the component dynamically -->
-                        <!-- We pass both config and schedule bindings -->
-                        <FormDef.component id={FORM_ID} bind:shared={formShared} bind:config={formConfig} bind:schedule={formSchedule} />
+                        <ActivityEditor bind:data={formData} formId={FORM_ID} bind:FormComponent={FormDef.component} />
                     </div>
                 {/if}
             </div>
