@@ -11,8 +11,8 @@
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import type { ActivityFormData } from '$lib/types/schemas';
-    import CommonActivityFields from '$lib/components/molecules/CommonActivityFields.svelte';
-    import ScheduleFields from '$lib/components/molecules/ScheduleFields.svelte';
+    import CommonActivityFields from '$lib/components/activity/CommonActivityFields.svelte';
+    import ScheduleFields from '$lib/components/activity/ScheduleFields.svelte';
 
     let {
         data = $bindable(),

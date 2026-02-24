@@ -63,7 +63,11 @@ You are an expert Senior Full Stack Engineer specializing in SvelteKit, TypeScri
 
 - `src/routes/(app)`: Protected routes (Dashboard, Stats). Requires Auth.
 - `src/routes/(auth)`: Public auth routes (Login).
-- `src/lib/components/ui`: Shadcn components.
+- `src/lib/components/ui`: Shadcn primitives (button, card, drawer, field, etc.).
+- `src/lib/components/shared`: Reusable composed UI (e.g. DatePicker, Collapsible) — not domain-specific.
+- `src/lib/components/activity`: Activity feature (cards, create flow, editor, type-specific forms, shared form fields).
+- `src/lib/components/layout`: Shell/layout (Header, Navigation).
+- `src/lib/components/auth`: Auth UI (e.g. LoginForm).
 - `src/lib/server/db`: Schema and client.
 
 # Documentation

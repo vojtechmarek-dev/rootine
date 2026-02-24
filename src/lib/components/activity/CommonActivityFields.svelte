@@ -1,8 +1,8 @@
 <script lang="ts">
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
-    import type { BaseActivity } from '@/types/schemas';
-    import DatePicker from './DatePicker.svelte';
+    import type { BaseActivity } from '$lib/types/schemas';
+    import DatePicker from '$lib/components/shared/DatePicker.svelte';
 
     // Use a generic or partial type for the shared fields
     let {

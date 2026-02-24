@@ -3,7 +3,7 @@
     import type { DashboardActivity } from '$lib/types/schemas';
     import { Button } from '$lib/components/ui/button';
     import { dev } from '$app/environment';
-    import Collapsible from '$lib/components/molecules/Collapsible.svelte';
+    import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
 

@@ -4,7 +4,7 @@
 </script>
 
 <script lang="ts">
-    import ActivityCard from '@/components/organisms/ActivityCard.svelte';
+    import ActivityCard from '@/components/activity/ActivityCard.svelte';
     import type { PageData } from './$types';
     import { onMount } from 'svelte';
 

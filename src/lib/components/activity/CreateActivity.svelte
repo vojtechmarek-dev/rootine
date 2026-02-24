@@ -3,13 +3,13 @@
     import { Button, buttonVariants } from '$lib/components/ui/button';
     import { Plus, ChevronLeft } from '@lucide/svelte';
     import { cn } from '$lib/utils';
-    import HabitForm, { meta as HabitMeta } from '$lib/components/organisms/forms/HabitForm.svelte';
-    import PlantForm, { meta as PlantMeta } from '$lib/components/organisms/forms/PlantForm.svelte';
-    import WorkoutForm, { meta as WorkoutMeta } from '$lib/components/organisms/forms/WorkoutForm.svelte';
+    import HabitForm, { meta as HabitMeta } from '$lib/components/activity/forms/HabitForm.svelte';
+    import PlantForm, { meta as PlantMeta } from '$lib/components/activity/forms/PlantForm.svelte';
+    import WorkoutForm, { meta as WorkoutMeta } from '$lib/components/activity/forms/WorkoutForm.svelte';
     import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, ActivityFormData } from '$lib/types/schemas';
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
-    import ActivityEditor from './ActivityEditor.svelte';
+    import ActivityEditor from '$lib/components/activity/ActivityEditor.svelte';
 
     // The Activity Forms Registry
     const ACTIVITY_FORMS = {

@@ -1,9 +1,9 @@
 <script module>
-    import { Flower2 } from '@lucide/svelte';
+    import { Dumbbell } from '@lucide/svelte';
     export const meta = {
-        label: 'Plant',
-        icon: Flower2,
-        color: 'text-green-500',
+        label: 'Workout',
+        icon: Dumbbell,
+        color: 'text-blue-500',
     };
 </script>
 
@@ -11,20 +11,20 @@
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import type { ActivityFormData } from '$lib/types/schemas';
-    import CommonActivityFields from '$lib/components/molecules/CommonActivityFields.svelte';
-    import ScheduleFields from '$lib/components/molecules/ScheduleFields.svelte';
+    import CommonActivityFields from '$lib/components/activity/CommonActivityFields.svelte';
+    import ScheduleFields from '$lib/components/activity/ScheduleFields.svelte';
 
     let {
         data = $bindable(),
     }: {
-        data: Extract<ActivityFormData, { type: 'plant' }>;
+        data: Extract<ActivityFormData, { type: 'workout' }>;
     } = $props();
 </script>
 
 <div class="w-full max-w-md">
     <Field.Group>
         <Field.Set>
-            <Field.Description>Track your plant care.</Field.Description>
+            <Field.Description>Plan your workout routine.</Field.Description>
 
             <!-- Shared Fields -->
             <CommonActivityFields
@@ -37,18 +37,20 @@
                 bind:archived={data.archived}
             />
 
-            <!-- Plant Specific Fields -->
+            <!-- Workout Specific Fields -->
             <Field.Group>
                 <Field.Field>
-                    <Field.Label>Species</Field.Label>
-                    <Input type="text" name="species" placeholder="e.g. Monstera Deliciosa" bind:value={data.config.species} />
-                </Field.Field>
-                <Field.Field>
-                    <Field.Label>Location</Field.Label>
-                    <Input type="text" name="location" placeholder="e.g. Living Room" bind:value={data.config.location} />
+                    <Field.Label>Estimated Duration (min)</Field.Label>
+                    <Input
+                        type="number"
+                        name="estimatedDurationMin"
+                        min="1"
+                        placeholder="e.g. 45"
+                        bind:value={data.config.estimatedDurationMin}
+                    />
                 </Field.Field>
 
-                <!-- Unified Schedule (Replaces waterIntervalDays) -->
+                <!-- Unified Schedule -->
                 <ScheduleFields bind:schedule={data.schedule} />
             </Field.Group>
         </Field.Set>

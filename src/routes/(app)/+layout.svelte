@@ -1,7 +1,7 @@
 <script lang="ts">
-    import Header from '@/components/organisms/Header.svelte';
-    import Navigation from '@/components/organisms/Navigation.svelte';
-    import CreateActivity from '@/components/organisms/CreateActivity.svelte';
+    import Header from '@/components/layout/Header.svelte';
+    import Navigation from '@/components/layout/Navigation.svelte';
+    import CreateActivity from '@/components/activity/CreateActivity.svelte';
     import type { LayoutData } from './$types';
 
     let { children, data } = $props<{
