@@ -29,9 +29,10 @@
     <Field.Field>
         <Field.Label>Start Date</Field.Label>
         <DatePicker bind:value={startDate} />
+        <input type="hidden" name="startDate" value={startDate?.toISOString?.() ?? ''} />
     </Field.Field>
-    <Field.Field>
-        <!-- Future: ColorPicker and IconPicker components would go here -->
-        <!-- For now, keeping hidden or simple inputs as per your current setup -->
-    </Field.Field>
+    <input type="hidden" name="endDate" value={endDate?.toISOString?.() ?? ''} />
+    <input type="hidden" name="color" value={color ?? ''} />
+    <input type="hidden" name="icon" value={icon ?? ''} />
+    <input type="hidden" name="archived" value={archived ? 'true' : 'false'} />
 </Field.Group>

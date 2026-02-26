@@ -4,12 +4,14 @@
 
     let {
         data = $bindable(),
-        FormComponent = $bindable(),
+        FormComponent,
         formId = 'activity-form',
+        onSuccess,
     }: {
         data: ActivityFormData;
         FormComponent: any; // Dynamic component - TypeScript will infer at usage
         formId?: string;
+        onSuccess?: () => void;
     } = $props();
 
     // Derived state
@@ -24,9 +26,11 @@
     method="POST"
     {action}
     use:enhance={() => {
-        return async ({ update }) => {
+        return async ({ result, update }) => {
             await update();
-            // You can add logic here to close a modal or show a toast on success
+            if (result.type === 'success') {
+                onSuccess?.();
+            }
         };
     }}
 >

@@ -43,7 +43,7 @@
                     <Field.Label>Estimated Duration (min)</Field.Label>
                     <Input
                         type="number"
-                        name="estimatedDurationMin"
+                        name="config.estimatedDurationMin"
                         min="1"
                         placeholder="e.g. 45"
                         bind:value={data.config.estimatedDurationMin}

@@ -1,13 +1,11 @@
 import { WEEKDAYS } from '$lib/constants';
-import { toDate } from '$lib/utils/date';
 import { z } from 'zod';
 
 // ==========================================
 // 1. SHARED FIELDS (Common Properties)
 // ==========================================
-// These are stored as explicit columns in the 'activities' table
-// and should NOT be duplicated in the JSONB 'config'.
-// Uses z.coerce.date() for automatic handling of ISO strings and Date objects.
+// Stored as explicit columns in the 'activities' table.
+// z.coerce turns form strings into the right types; no separate coercion maps needed.
 
 export const BaseActivitySchema = z.object({
     title: z.string().min(1, 'Title is required'),
@@ -15,15 +13,8 @@ export const BaseActivitySchema = z.object({
     color: z.string().default('zinc'),
     icon: z.string().default('circle'),
     startDate: z.coerce.date().default(() => new Date()),
-    endDate: z
-        .preprocess(
-            (val) => {
-                const d = toDate(val);
-                return d != null && !isNaN(d.getTime()) ? d : undefined;
-            },
-            z.date().optional()
-        ),
-    archived: z.boolean().default(false),
+    endDate: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.coerce.date().optional()),
+    archived: z.preprocess((v) => v === 'true' || v === 'on' || v === '1', z.boolean().default(false)),
 });
 
 // ==========================================
@@ -56,11 +47,11 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
         times: z.array(z.string()).optional(),
     }),
 
-    // Case 3: Rolling Interval (Plants, Chores)
-    // "Due 7 days after I last did it"
+// Case 3: Rolling Interval (Plants, Chores)
+// "Due 7 days after I last did it"
     z.object({
         type: z.literal('interval'),
-        value: z.number().min(1),
+        value: z.coerce.number().min(1),
         unit: z.enum(['days', 'hours']), // Usually 'days'
     }),
 ]);
@@ -68,8 +59,8 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
 // --- TYPE 1: HABIT (Simple Counter) ---
 // Example: "Drink Water", Target: 3 liters
 export const HabitConfigSchema = ActivityConfig.extend({
-    targetValue: z.number().min(1).default(1), // Must be at least 1, defaults to 1
-    unit: z.string().optional().default('times'), // e.g., "liters", "pages", "reps"
+    targetValue: z.coerce.number().min(1).default(1),
+    unit: z.string().optional().default('times'),
 });
 
 // --- TYPE 2: PLANT (Interval Tracker) ---
@@ -84,9 +75,8 @@ export const PlantConfigSchema = ActivityConfig.extend({
 // --- TYPE 3: WORKOUT (Complex Template) ---
 // Example: "Push Day", List of exercises to perform
 export const WorkoutConfigSchema = ActivityConfig.extend({
-    // A simple list of exercise names to populate the default form
     exercises: z.array(z.string()).default([]),
-    estimatedDurationMin: z.number().optional(),
+    estimatedDurationMin: z.coerce.number().optional(),
 });
 
 // ==========================================
@@ -213,6 +203,8 @@ export type Session = z.infer<typeof SessionSchema>;
 
 export type DashboardActivity = Activity & {
     isCompleted: boolean;
+    logCountToday: number;
+    targetCount: number;
     logs?: Log[] | null;
 };
 

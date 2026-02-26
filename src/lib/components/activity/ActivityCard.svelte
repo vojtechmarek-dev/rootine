@@ -11,32 +11,46 @@
     const activity = $derived(props.activity);
 
     let isSubmitting = $state(false);
-    let optimisticCompleted = $state<boolean | null>(null);
+    /** Optimistic log count for today (null = use server value). */
+    let optimisticLogCount = $state<number | null>(null);
+    /** Last inserted log ID from server, used for undo so we delete the right log. */
+    let lastAddedLogId = $state<string | null>(null);
 
-    const isCompleted = $derived(optimisticCompleted ?? activity.isCompleted);
+    const logCountToday = $derived(optimisticLogCount ?? activity.logCountToday);
+    const isCompleted = $derived(logCountToday >= activity.targetCount);
 
     const handleToggle: SubmitFunction = ({ formData }) => {
         const action = formData.get('action');
+        const currentCount = optimisticLogCount ?? activity.logCountToday;
 
         isSubmitting = true;
 
         if (action === 'complete') {
-            optimisticCompleted = true;
+            optimisticLogCount = currentCount + 1;
         } else if (action === 'undo') {
-            optimisticCompleted = false;
+            optimisticLogCount = Math.max(0, currentCount - 1);
         }
 
         return async ({ update, result }) => {
             isSubmitting = false;
 
             if (result.type === 'failure' || result.type === 'error') {
-                optimisticCompleted = null;
+                optimisticLogCount = null;
                 await update();
                 return;
             }
 
+            if (result.type === 'success' && result.data) {
+                const data = result.data as { logId?: string | null };
+                if (formData.get('action') === 'complete' && data.logId) {
+                    lastAddedLogId = data.logId;
+                } else if (formData.get('action') === 'undo') {
+                    lastAddedLogId = null;
+                }
+            }
+
             await update();
-            optimisticCompleted = null;
+            optimisticLogCount = null;
         };
     };
 </script>
@@ -48,12 +62,15 @@
         <Card.Action>
             <form method="POST" action="?/toggleActivity" use:enhance={handleToggle}>
                 <input type="hidden" name="activityId" value={activity.id} />
+                {#if isCompleted && lastAddedLogId}
+                    <input type="hidden" name="logId" value={lastAddedLogId} />
+                {/if}
 
                 {#if isCompleted}
                     <Button type="submit" name="action" value="undo" variant="secondary" class="h-11" disabled={isSubmitting}>Undo</Button>
                 {:else}
                     <Button type="submit" name="action" value="complete" variant="default" class="h-11" disabled={isSubmitting}>
-                        Done
+                        {activity.targetCount > 1 ? `${logCountToday}/${activity.targetCount}` : 'Done'}
                     </Button>
                 {/if}
             </form>

@@ -34,7 +34,7 @@
         },
     };
 
-    let formData = $state<ActivityFormData>({
+    const getInitialFormData = (): ActivityFormData => ({
         title: '',
         description: undefined,
         color: 'zinc',
@@ -45,7 +45,9 @@
         type: 'habit',
         config: defaults.habit.config,
         schedule: defaults.habit.schedule,
-    }); // Initialize with defaults
+    });
+
+    let formData = $state<ActivityFormData>(getInitialFormData());
 
     type ActivityType = Activity['type'];
 
@@ -56,13 +58,14 @@
     $effect(() => {
         if (!isOpen) {
             setTimeout(() => {
-                view = 'menu';
+                resetForm();
             }, 300); // Reset after animation
         }
     });
 
-    const resetView = () => {
+    const resetForm = () => {
         view = 'menu';
+        formData = getInitialFormData();
     };
 
     const switchView = (newType: ActivityType) => {
@@ -84,54 +87,65 @@
     </Drawer.Trigger>
     <Drawer.Content class="flex max-h-[80dvh] flex-col overflow-hidden">
         <div class="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col">
-            <div class="flex-1 overflow-y-auto p-4">
+            <!-- Fixed header: controls stay outside scroll -->
+            <div class="shrink-0 border-b border-border/40 px-4 pt-2 pb-3">
                 {#if view === 'menu'}
-                    <div transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
-                        <Drawer.Header>
-                            <Drawer.Title>Create Activity</Drawer.Title>
-                            <Drawer.Description>What would you like to track?</Drawer.Description>
-                        </Drawer.Header>
-                        <div class="grid grid-cols-3 gap-4">
-                            {#each Object.entries(ACTIVITY_FORMS) as [type, def]}
-                                {@const Icon = def.icon}
-                                <Button
-                                    variant="outline"
-                                    onclick={() => {
-                                        switchView(type as ActivityType);
-                                    }}
-                                    class="flex h-24 flex-col"
-                                >
-                                    <Icon class={def.color} />
-                                    <span>{def.label}</span>
-                                </Button>
-                            {/each}
-                        </div>
-                    </div>
+                    <Drawer.Header>
+                        <Drawer.Title>Create Activity</Drawer.Title>
+                        <Drawer.Description>What would you like to track?</Drawer.Description>
+                    </Drawer.Header>
                 {:else}
                     {@const FormDef = ACTIVITY_FORMS[view]}
                     {@const Icon = FormDef.icon}
-                    <div class="h-full w-full" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
-                        <div class="flex items-center justify-between pt-2 pb-4">
-                            <Button variant="ghost" size="icon" class="-ml-2 h-9 w-9 rounded-full" onclick={resetView}>
-                                <ChevronLeft class="h-5 w-5" />
-                                <span class="sr-only">Back</span>
-                            </Button>
-                            <div class="flex items-center gap-2">
-                                <Icon class={cn('h-4 w-4', FormDef.color)} />
-                                <Drawer.Title class="text-lg font-semibold">
-                                    {FormDef.label}
-                                </Drawer.Title>
-                            </div>
-
-                            <Button type="submit" size="sm" form={FORM_ID}>Save</Button>
+                    <div class="flex items-center justify-between gap-2" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
+                        <Button variant="ghost" size="icon" class="-ml-2 h-9 w-9 shrink-0 rounded-full" onclick={resetForm}>
+                            <ChevronLeft class="h-5 w-5" />
+                            <span class="sr-only">Back</span>
+                        </Button>
+                        <div class="flex min-w-0 flex-1 items-center justify-center gap-2">
+                            <Icon class={cn('h-4 w-4 shrink-0', FormDef.color)} />
+                            <span class="truncate text-lg font-semibold">{FormDef.label}</span>
                         </div>
-
-                        <ActivityEditor bind:data={formData} formId={FORM_ID} bind:FormComponent={FormDef.component} />
+                        <Button type="submit" size="sm" form={FORM_ID} class="shrink-0">Save</Button>
                     </div>
                 {/if}
             </div>
+
+            <!-- Scrollable area: only form / menu content -->
+            <div class="flex-1 overflow-y-auto p-4">
+                {#if view === 'menu'}
+                    <div class="grid grid-cols-3 gap-4" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
+                        {#each Object.entries(ACTIVITY_FORMS) as [type, def]}
+                            {@const Icon = def.icon}
+                            <Button
+                                variant="outline"
+                                onclick={() => {
+                                    switchView(type as ActivityType);
+                                }}
+                                class="flex h-24 flex-col"
+                            >
+                                <Icon class={def.color} />
+                                <span>{def.label}</span>
+                            </Button>
+                        {/each}
+                    </div>
+                {:else}
+                    {@const FormDef = ACTIVITY_FORMS[view]}
+                    <div class="h-full w-full" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
+                        <ActivityEditor
+                            bind:data={formData}
+                            formId={FORM_ID}
+                            FormComponent={FormDef.component}
+                            onSuccess={() => {
+                                isOpen = false;
+                            }}
+                        />
+                    </div>
+                {/if}
+            </div>
+
             <Drawer.Footer class="shrink-0 p-4 pt-0">
-                <Drawer.Close class={buttonVariants({ variant: 'ghost' })} onclick={resetView}>Cancel</Drawer.Close>
+                <Drawer.Close class={buttonVariants({ variant: 'ghost' })} onclick={() => (isOpen = false)}>Cancel</Drawer.Close>
             </Drawer.Footer>
         </div>
     </Drawer.Content>
