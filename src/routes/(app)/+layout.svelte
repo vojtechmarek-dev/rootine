@@ -8,8 +8,6 @@
         children: import('svelte').Snippet;
         data: LayoutData;
     }>();
-
-    const session = $derived(data.session);
 </script>
 
 <div class="flex min-h-screen flex-col bg-background" data-vaul-drawer-wrapper>

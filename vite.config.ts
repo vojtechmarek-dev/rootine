@@ -32,4 +32,8 @@ export default defineConfig({
             },
         ],
     },
+    server: {
+        port: 8007,
+        host: true,
+    },
 });

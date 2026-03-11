@@ -26,7 +26,7 @@
     aria-label="Main navigation"
 >
     <div class="mx-auto flex max-w-7xl items-center justify-around px-4 py-2">
-        {#each navItems as item}
+        {#each navItems as item (item.href)}
             {@const Icon = item.icon}
             {@const active = isActive(item.href)}
             <Button

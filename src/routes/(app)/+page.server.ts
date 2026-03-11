@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { getDashboardActivities } from '$lib/server/dashboard';
 import { createActivity } from '$lib/server/actions/createActivity';
 import { toggleActivity } from '$lib/server/actions/toggleActivity';
@@ -7,7 +7,7 @@ import { toggleActivity } from '$lib/server/actions/toggleActivity';
 export const load: PageServerLoad = async (event) => {
     const session = await event.locals.auth();
     if (!session?.user?.id) {
-        return fail(401, { message: 'Unauthorized' });
+        throw redirect(303, '/login');
     }
 
     const urlDate = event.url.searchParams.get('date');
