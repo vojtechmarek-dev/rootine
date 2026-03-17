@@ -3,7 +3,7 @@
     export const meta = {
         label: 'Habit',
         icon: Check,
-        color: 'text-primary',
+        color: 'text-activity-habit',
     };
 </script>
 
@@ -19,9 +19,6 @@
     }: {
         data: Extract<ActivityFormData, { type: 'habit' }>;
     } = $props();
-
-    // Determine if we are editing or creating based on presence of data.id
-    const isEditing = $derived(!!data.id);
 </script>
 
 <div class="w-full max-w-md">

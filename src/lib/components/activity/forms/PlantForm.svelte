@@ -3,7 +3,7 @@
     export const meta = {
         label: 'Plant',
         icon: Flower2,
-        color: 'text-green-500',
+        color: 'text-activity-plant',
     };
 </script>
 

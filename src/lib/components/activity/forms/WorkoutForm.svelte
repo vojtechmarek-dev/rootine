@@ -3,7 +3,7 @@
     export const meta = {
         label: 'Workout',
         icon: Dumbbell,
-        color: 'text-blue-500',
+        color: 'text-activity-workout',
     };
 </script>
 

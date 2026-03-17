@@ -153,7 +153,7 @@
     </div>
 
     {#if activities?.length === 0 && !isLoading}
-        <div class="rounded-lg border border-border bg-card p-6 dark:border-border dark:bg-card">
+        <div class="rounded-lg border border-border bg-card p-6">
             <p class="text-muted-foreground">Your activities will appear here.</p>
         </div>
     {:else if isLoading}
@@ -183,7 +183,7 @@
 
             {#if pendingActivities.length === 0 && completedActivities.length > 0}
                 <div
-                    class="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-6 text-center text-emerald-600 dark:border-emerald-500/20 dark:bg-emerald-500/5 dark:text-emerald-400"
+                    class="rounded-lg border border-success/20 bg-success/5 p-6 text-center text-success"
                 >
                     <p class="font-medium">All done for this date! 🎉</p>
                 </div>
