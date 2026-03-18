@@ -3,9 +3,16 @@
     import type { DashboardActivity } from '$lib/types/schemas';
     import { Button } from '$lib/components/ui/button';
     import { dev } from '$app/environment';
+    import { onMount } from 'svelte';
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
+    import {
+        addAction,
+        createPendingAction,
+        getPendingCountForActivity,
+        removeLastComplete,
+    } from '$lib/sync/queue';
 
     const props = $props<{ activity: DashboardActivity }>();
     const activity = $derived(props.activity);
@@ -19,7 +26,43 @@
     const logCountToday = $derived(optimisticLogCount ?? activity.logCountToday);
     const isCompleted = $derived(logCountToday >= activity.targetCount);
 
-    const handleToggle: SubmitFunction = ({ formData }) => {
+    onMount(() => {
+        const pendingCounts = getPendingCountForActivity(activity.id);
+        const queuedDelta = pendingCounts.completes - pendingCounts.undos;
+        const nextCount = Math.max(0, activity.logCountToday + queuedDelta);
+
+        if (queuedDelta !== 0) {
+            optimisticLogCount = nextCount;
+        }
+    });
+
+    const queueAction = (action: 'complete' | 'undo', formData: FormData) => {
+        if (action === 'undo') {
+            const removed = removeLastComplete(activity.id);
+            if (removed) {
+                lastAddedLogId = null;
+                return;
+            }
+        }
+
+        const rawLogId = formData.get('logId');
+        const logId = typeof rawLogId === 'string' && rawLogId.length > 0 ? rawLogId : undefined;
+
+        addAction(
+            createPendingAction({
+                activityId: activity.id,
+                action,
+                date: new Date().toISOString(),
+                logId,
+            })
+        );
+
+        if (action === 'undo') {
+            lastAddedLogId = null;
+        }
+    };
+
+    const handleToggle: SubmitFunction = ({ formData, cancel }) => {
         const action = formData.get('action');
         const currentCount = optimisticLogCount ?? activity.logCountToday;
 
@@ -31,10 +74,26 @@
             optimisticLogCount = Math.max(0, currentCount - 1);
         }
 
+        if (!navigator.onLine) {
+            cancel();
+            if (action === 'complete' || action === 'undo') {
+                queueAction(action, formData);
+            }
+            isSubmitting = false;
+            return;
+        }
+
         return async ({ update, result }) => {
             isSubmitting = false;
 
-            if (result.type === 'failure' || result.type === 'error') {
+            if (result.type === 'error') {
+                if (action === 'complete' || action === 'undo') {
+                    queueAction(action, formData);
+                }
+                return;
+            }
+
+            if (result.type === 'failure') {
                 optimisticLogCount = null;
                 await update();
                 return;
