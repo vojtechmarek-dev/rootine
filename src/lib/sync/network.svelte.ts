@@ -6,7 +6,7 @@ class NetworkState {
 
     init() {
         if (!browser || this.initialized) {
-            return () => {};
+            return () => { };
         }
 
         this.initialized = true;

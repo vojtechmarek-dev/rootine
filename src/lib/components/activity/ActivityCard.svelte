@@ -7,12 +7,7 @@
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
-    import {
-        addAction,
-        createPendingAction,
-        getPendingCountForActivity,
-        removeLastComplete,
-    } from '$lib/sync/queue';
+    import { addAction, createPendingAction, getPendingCountForActivity, removeLastComplete } from '$lib/sync/queue';
 
     const props = $props<{ activity: DashboardActivity }>();
     const activity = $derived(props.activity);

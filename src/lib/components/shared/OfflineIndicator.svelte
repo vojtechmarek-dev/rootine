@@ -7,7 +7,7 @@
 </script>
 
 {#if !network.isOnline}
-    <div class="border-b border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning-foreground">
+    <div class="border-warning/30 bg-warning/10 text-warning-foreground border-b px-4 py-2 text-sm">
         <div class="mx-auto flex w-full max-w-screen-sm items-center justify-between gap-2">
             <p class="font-medium">You're offline</p>
             <p class="text-xs text-muted-foreground">
