@@ -1,15 +1,10 @@
-<script module lang="ts">
-    // Prevent skeleton flash on client-side navigations.
-    let hasHydrated = false;
-</script>
-
 <script lang="ts">
     import ActivityCard from '@/components/activity/ActivityCard.svelte';
     import ActivitySkeletons from '@/components/activity/ActivitySkeletons.svelte';
     import { onMount } from 'svelte';
     import type { DashboardActivity } from '$lib/types/schemas';
     import type { Session } from '@auth/sveltekit';
-    import { page, navigating } from '$app/state';
+    import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { format, addDays } from 'date-fns';
     import * as Select from '$lib/components/ui/select/index.js';
@@ -17,22 +12,17 @@
 
     let {
         session,
-        activities,
+        activitiesPromise,
     }: {
-        session: Session;
-        activities: DashboardActivity[];
+        session: Session | null;
+        activitiesPromise: Promise<DashboardActivity[]>;
     } = $props();
 
     const hasSessionUser = $derived(Boolean(session?.user));
 
-    let hydrated = $state(hasHydrated);
-
-    const isLoading = $derived(!hydrated || navigating.type !== null);
+    let hydrated = $state(false);
 
     const isActivityCompleted = (activity: DashboardActivity) => activity.logCountToday >= activity.targetCount;
-
-    const pendingActivities = $derived(activities.filter((a) => !isActivityCompleted(a)));
-    const completedActivities = $derived(activities.filter((a) => isActivityCompleted(a)));
 
     // Date state
     const todayDateStr = format(new Date(), 'yyyy-MM-dd');
@@ -111,7 +101,6 @@
 
     onMount(() => {
         hydrated = true;
-        hasHydrated = true;
     });
 </script>
 
@@ -152,42 +141,47 @@
         </div>
     </div>
 
-    {#if activities?.length === 0 && !isLoading}
-        <div class="rounded-lg border border-border bg-card p-6">
-            <p class="text-muted-foreground">Your activities will appear here.</p>
-        </div>
-    {:else if isLoading}
+    {#await activitiesPromise}
         <ActivitySkeletons count={3} />
-    {:else}
-        <div class="space-y-8">
-            {#if pendingActivities.length > 0}
-                <div>
-                    <div class="space-y-4">
-                        {#each pendingActivities as activity (activity.id)}
-                            <ActivityCard {activity} />
-                        {/each}
-                    </div>
-                </div>
-            {/if}
+    {:then activities}
+        {@const pendingActivities = activities.filter((a) => !isActivityCompleted(a))}
+        {@const completedActivities = activities.filter((a) => isActivityCompleted(a))}
 
-            {#if completedActivities.length > 0}
-                <div>
-                    <h2 class="mb-4 text-lg font-semibold text-muted-foreground">Completed</h2>
-                    <div class="space-y-4 opacity-75 transition-opacity hover:opacity-100">
-                        {#each completedActivities as activity (activity.id)}
-                            <ActivityCard {activity} />
-                        {/each}
+        {#if activities.length === 0}
+            <div class="rounded-lg border border-border bg-card p-6">
+                <p class="text-muted-foreground">Your activities will appear here.</p>
+            </div>
+        {:else}
+            <div class="space-y-8">
+                {#if pendingActivities.length > 0}
+                    <div>
+                        <div class="space-y-4">
+                            {#each pendingActivities as activity (activity.id)}
+                                <ActivityCard {activity} />
+                            {/each}
+                        </div>
                     </div>
-                </div>
-            {/if}
+                {/if}
 
-            {#if pendingActivities.length === 0 && completedActivities.length > 0}
-                <div
-                    class="rounded-lg border border-success/20 bg-success/5 p-6 text-center text-success"
-                >
-                    <p class="font-medium">All done for this date! 🎉</p>
-                </div>
-            {/if}
-        </div>
-    {/if}
+                {#if completedActivities.length > 0}
+                    <div>
+                        <h2 class="mb-4 text-lg font-semibold text-muted-foreground">Completed</h2>
+                        <div class="space-y-4 opacity-75 transition-opacity hover:opacity-100">
+                            {#each completedActivities as activity (activity.id)}
+                                <ActivityCard {activity} />
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
+
+                {#if pendingActivities.length === 0 && completedActivities.length > 0}
+                    <div
+                        class="rounded-lg border border-success/20 bg-success/5 p-6 text-center text-success"
+                    >
+                        <p class="font-medium">All done for this date! 🎉</p>
+                    </div>
+                {/if}
+            </div>
+        {/if}
+    {/await}
 </div>

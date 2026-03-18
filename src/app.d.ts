@@ -15,6 +15,7 @@ declare global {
         // interface Error {}
         interface Locals {
             auth: () => Promise<import('@auth/core/types').Session | null>;
+            session?: import('@auth/core/types').Session | null;
         }
         // interface PageData {}
         // interface PageState {}

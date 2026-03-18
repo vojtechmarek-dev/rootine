@@ -5,14 +5,14 @@ import { createActivity } from '$lib/server/actions/createActivity';
 import { toggleActivity } from '$lib/server/actions/toggleActivity';
 
 export const load: PageServerLoad = async (event) => {
-    const session = await event.locals.auth();
+    const session = event.locals.session ?? (await event.locals.auth());
     if (!session?.user?.id) {
         throw redirect(303, '/login');
     }
 
     const urlDate = event.url.searchParams.get('date');
     const targetDate = urlDate ? new Date(urlDate) : new Date();
-    const activities = await getDashboardActivities(session.user.id, targetDate);
+    const activities = getDashboardActivities(session.user.id, targetDate);
 
     return {
         session,
