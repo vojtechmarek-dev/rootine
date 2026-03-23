@@ -55,7 +55,7 @@
     };
 </script>
 
-<Card.Root class={isCompleted ? 'border-success/40 bg-success/5' : undefined}>
+<Card.Root class={isCompleted ? 'bg-success/10' : undefined}>
     <Card.Header>
         <Card.Title>{activity.title}</Card.Title>
         <Card.Description>{activity.description}</Card.Description>

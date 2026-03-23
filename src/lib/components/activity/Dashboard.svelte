@@ -148,7 +148,7 @@
         {@const completedActivities = activities.filter((a) => isActivityCompleted(a))}
 
         {#if activities.length === 0}
-            <div class="rounded-lg border border-border bg-card p-6">
+            <div class="rounded-2xl bg-surface-container-lowest p-6">
                 <p class="text-muted-foreground">Your activities will appear here.</p>
             </div>
         {:else}
@@ -176,7 +176,7 @@
 
                 {#if pendingActivities.length === 0 && completedActivities.length > 0}
                     <div
-                        class="rounded-lg border border-success/20 bg-success/5 p-6 text-center text-success"
+                        class="rounded-2xl bg-success/10 p-6 text-center text-success"
                     >
                         <p class="font-medium">All done for this date! 🎉</p>
                     </div>

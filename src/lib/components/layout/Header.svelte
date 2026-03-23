@@ -48,7 +48,7 @@
                         </div>
                     </Drawer.Header>
                     <div class="space-y-6 p-4 pb-8">
-                        <div class="flex items-center gap-4 rounded-lg border p-4">
+                        <div class="flex items-center gap-4 rounded-2xl bg-surface-container-low p-4">
                             <Avatar.Root class="h-12 w-12">
                                 <Avatar.Image src={user?.image} alt={user?.name} />
                                 <Avatar.Fallback>{getInitials(user?.name)}</Avatar.Fallback>

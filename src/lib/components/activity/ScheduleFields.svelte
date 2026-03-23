@@ -78,10 +78,10 @@
             <div class="flex flex-wrap gap-2">
                 {#each WEEKDAYS as day}
                     <label
-                        class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border transition-colors
+                        class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full transition-colors
                         {schedule.days.includes(day)
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'bg-background hover:bg-muted'}"
+                            ? 'bg-secondary text-secondary-foreground shadow-ambient'
+                            : 'bg-secondary-fixed text-secondary hover:opacity-80'}"
                     >
                         <input
                             type="checkbox"

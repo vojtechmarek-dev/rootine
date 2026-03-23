@@ -4,8 +4,11 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#18181b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F8F9FA" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B1C14" media="(prefers-color-scheme: dark)" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
     <script>
         // Prevent FOUC (Flash of Unstyled Content): Apply theme before body renders
         !function () { try { const d = document.documentElement, c = localStorage.getItem('rootine.theme.mode'), m = c === 'light' || c === 'dark' || c === 'system' ? c : 'system', p = localStorage.getItem('rootine.theme.preset') === 'zinc' ? 'zinc' : 'zinc', s = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', r = m === 'system' ? s : m; d.dataset.theme = p; d.dataset.mode = r; d.classList.toggle('dark', r === 'dark'); d.style.colorScheme = r } catch (e) { } }();
@@ -19,8 +22,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #fafafa;
-            color: #3f3f46;
+            background: #F8F9FA;
+            color: #012D1D;
             opacity: 0;
             pointer-events: none;
             /* Delay the splash screen by 2000ms so it doesn't flash on fast loads */
@@ -28,8 +31,8 @@
         }
 
         .dark #app-splash {
-            background: #18181b;
-            color: #a1a1aa;
+            background: #0B1C14;
+            color: #F8F9FA;
         }
 
         #app-splash[data-hidden='true'] {

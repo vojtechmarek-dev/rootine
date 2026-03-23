@@ -22,7 +22,7 @@
 </script>
 
 <nav
-    class="fixed right-0 bottom-0 left-0 z-50 border-t border-border bg-card shadow-lg dark:border-border dark:bg-card"
+    class="fixed right-0 bottom-0 left-0 z-50 bg-surface-variant/70 backdrop-blur-[24px] shadow-ambient"
     aria-label="Main navigation"
 >
     <div class="mx-auto flex max-w-7xl items-center justify-around px-4 py-2">

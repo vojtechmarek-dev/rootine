@@ -88,7 +88,7 @@
     <Drawer.Content class="flex max-h-[80dvh] flex-col overflow-hidden">
         <div class="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col">
             <!-- Fixed header: controls stay outside scroll -->
-            <div class="shrink-0 border-b border-border/40 px-4 pt-2 pb-3">
+            <div class="shrink-0 bg-surface-container-low px-4 pt-2 pb-3">
                 {#if view === 'menu'}
                     <Drawer.Header>
                         <Drawer.Title>Create Activity</Drawer.Title>
@@ -118,7 +118,7 @@
                         {#each Object.entries(ACTIVITY_FORMS) as [type, def]}
                             {@const Icon = def.icon}
                             <Button
-                                variant="outline"
+                                variant="secondary"
                                 onclick={() => {
                                     switchView(type as ActivityType);
                                 }}

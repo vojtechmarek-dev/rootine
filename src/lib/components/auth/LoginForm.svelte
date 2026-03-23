@@ -22,7 +22,7 @@
     <Card.Content>
         <div class="space-y-4">
             {#if error}
-                <div class="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                <div class="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
                     {error}
                 </div>
             {/if}
