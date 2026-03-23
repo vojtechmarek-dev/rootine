@@ -6,9 +6,11 @@
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
+    import { CalendarClock } from '@lucide/svelte';
 
-    const props = $props<{ activity: DashboardActivity }>();
+    const props = $props<{ activity: DashboardActivity; canToggle?: boolean }>();
     const activity = $derived(props.activity);
+    const canToggle = $derived(props.canToggle ?? true);
 
     let isSubmitting = $state(false);
     /** Optimistic log count for today (null = use server value). */
@@ -66,7 +68,17 @@
                     <input type="hidden" name="logId" value={lastAddedLogId} />
                 {/if}
 
-                {#if isCompleted}
+                {#if !canToggle}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="h-11 gap-2"
+                        disabled
+                        title="Activity completion is available only for today"
+                    >
+                        <CalendarClock class="h-4 w-4" />
+                    </Button>
+                {:else if isCompleted}
                     <Button type="submit" name="action" value="undo" variant="secondary" class="h-11" disabled={isSubmitting}>Undo</Button>
                 {:else}
                     <Button type="submit" name="action" value="complete" variant="default" class="h-11" disabled={isSubmitting}>

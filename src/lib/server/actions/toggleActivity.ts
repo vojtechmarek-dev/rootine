@@ -2,14 +2,23 @@ import { fail } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { logs } from '$lib/server/db/schema';
 import { eq, and, between, desc } from 'drizzle-orm';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, isToday, isValid } from 'date-fns';
 
 type SessionWithUser = { user: { id: string } };
 
 export async function toggleActivity(
     _session: SessionWithUser,
-    formData: FormData
+    formData: FormData,
+    targetDate: Date
 ) {
+    if (!isValid(targetDate)) {
+        return fail(400, { message: 'Invalid dashboard date' });
+    }
+
+    if (!isToday(targetDate)) {
+        return fail(403, { message: 'Activity completion is only available for today' });
+    }
+
     const activityId = formData.get('activityId') as string;
     const action = formData.get('action') as 'complete' | 'undo';
 

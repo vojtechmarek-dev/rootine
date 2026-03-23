@@ -30,6 +30,7 @@
 
     // Default to today if no date in URL
     const currentDateStr = $derived(page.url.searchParams.get('date') || todayDateStr);
+    const canToggleActivities = $derived(currentDateStr === todayDateStr);
 
     let selectValue = $state('today');
     let customDate = $state<Date | undefined>(undefined);
@@ -85,12 +86,18 @@
 
     // Allow DatePicker to change selectValue to custom if used directly
     const onDatePicked = (v: Date | undefined) => {
-        if (!v) return;
+        if (!v) {
+            return;
+        }
         customDate = v;
         const vStr = format(v, 'yyyy-MM-dd');
-        if (vStr === todayDateStr) selectValue = 'today';
-        else if (vStr === tomorrowDateStr) selectValue = 'tomorrow';
-        else selectValue = 'custom';
+        if (vStr === todayDateStr) {
+            selectValue = 'today';
+        } else if (vStr === tomorrowDateStr) {
+            selectValue = 'tomorrow';
+        } else {
+            selectValue = 'custom';
+        }
     };
 
     $effect(() => {
@@ -159,7 +166,7 @@
                     <div>
                         <div class="space-y-4">
                             {#each pendingActivities as activity (activity.id)}
-                                <ActivityCard {activity} />
+                                <ActivityCard {activity} canToggle={canToggleActivities} />
                             {/each}
                         </div>
                     </div>
@@ -170,7 +177,7 @@
                         <h2 class="mb-4 text-lg font-semibold text-muted-foreground">Completed</h2>
                         <div class="space-y-4">
                             {#each completedActivities as activity (activity.id)}
-                                <ActivityCard {activity} />
+                                <ActivityCard {activity} canToggle={canToggleActivities} />
                             {/each}
                         </div>
                     </div>

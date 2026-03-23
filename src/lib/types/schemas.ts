@@ -47,8 +47,8 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
         times: z.array(z.string()).optional(),
     }),
 
-// Case 3: Rolling Interval (Plants, Chores)
-// "Due 7 days after I last did it"
+    // Case 3: Rolling Interval (Plants, Chores)
+    // "Due 7 days after I last did it"
     z.object({
         type: z.literal('interval'),
         value: z.coerce.number().min(1),

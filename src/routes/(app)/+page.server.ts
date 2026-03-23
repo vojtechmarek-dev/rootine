@@ -37,9 +37,13 @@ export const actions: Actions = {
         if (!session?.user?.id) {
             return fail(401, { message: 'Unauthorized' });
         }
+        const urlDate = event.url.searchParams.get('date');
+        const targetDate = urlDate ? new Date(urlDate) : new Date();
+
         return toggleActivity(
             { user: { id: session.user.id } },
-            await event.request.formData()
+            await event.request.formData(),
+            targetDate
         );
     },
 };
