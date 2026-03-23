@@ -1,0 +1,102 @@
+---
+alwaysApply: true
+---
+
+# Design System Strategy: The Living Editorial
+
+## 1. Overview & Creative North Star
+
+### The Creative North Star: "The Grounded Gallery"
+
+This design system moves away from the sterile, plastic-feeling interfaces of traditional productivity apps. Instead, we are building a "Grounded Gallery"—an experience that feels as much like a high-end botanical journal as it does a functional tool.
+
+The system rejects the rigid, boxy constraints of standard Material or Human Interface guidelines. We achieve a premium feel through **intentional asymmetry**, **editorial-scale typography**, and **tonal depth**. By overlapping elements and using varied container radii, we mimic the beautiful unpredictability of organic growth. This is not a grid of boxes; it is a composition of layers.
+
+---
+
+## 2. Colors & Atmospheric Depth
+
+Our palette is rooted in the earth. The interaction between deep forest greens and warm terracottas provides a high-contrast, sophisticated environment that feels alive.
+
+### The "No-Line" Rule
+
+**Explicit Instruction:** Designers are prohibited from using 1px solid strokes for sectioning or containment. Traditional borders create a "boxed-in" feeling that contradicts our organic theme.
+
+- Boundaries must be defined solely through background color shifts.
+- Use `surface-container-low` (#F3F4F5) to sit on a `surface` (#F8F9FA) background to define a zone.
+
+### Surface Hierarchy & Nesting
+
+Treat the UI as physical layers of fine paper or frosted glass. Use the Material tiers to create "soft" depth:
+
+- **Base Layer:** `surface` (#F8F9FA)
+- **Secondary Zone:** `surface-container-low` (#F3F4F5)
+- **Primary Interaction Card:** `surface-container-lowest` (#FFFFFF) for a "lifted" feel.
+- **Nesting:** When placing an element inside a card, do not use a border; use a subtle shift to `surface-container-high` (#E7E8E9) to "recess" the element into the surface.
+
+### The "Glass & Gradient" Rule
+
+To elevate the app beyond a standard template, use **Glassmorphism** for floating elements (like Bottom Sheets or Navigation Bars).
+
+- **Glass Token:** `surface-variant` (#E1E3E4) at 70% opacity with a `24px` backdrop blur.
+- **Signature Textures:** For primary CTAs and Hero sections, use a subtle linear gradient from `primary` (#012D1D) to `primary-container` (#1B4332). This adds "soul" and prevents the deep greens from feeling flat or "muddy."
+
+---
+
+## 3. Typography: The Editorial Voice
+
+We pair the sturdy, intellectual weight of a serif with the invisible efficiency of a modern sans-serif.
+
+- **Display & Headlines (Newsreader):** Use these for "Moments of Reflection." Large-scale, high-contrast headings that command the page. They represent the "Root"—the stable, unmoving intention of the user.
+- **Body & Titles (Inter):** Use these for "Action & Logistics." Clean, highly legible, and neutral. They represent the "Sprout"—the daily movement and execution.
+
+**Typography Hierarchy conveys brand identity:** By setting a `display-lg` headline next to a `body-md` description, we create an editorial rhythm that feels like a premium magazine, encouraging the user to slow down and focus.
+
+---
+
+## 4. Elevation & Depth: Tonal Layering
+
+We convey hierarchy through **Tonal Layering** rather than structural lines.
+
+- **The Layering Principle:** Stacking tiers creates natural lift. Place a `surface-container-lowest` card on a `surface-container-low` section. The slight color variance creates a soft "shelf" for content without the harshness of a shadow.
+- **Ambient Shadows:** For elements that must float (like the FAB or active modals), use extra-diffused shadows.
+- **Blur:** 32px to 48px.
+- **Opacity:** 4% to 6%.
+- **Color:** Use a tinted shadow (`#1B4332` at 5% opacity) rather than grey to maintain the organic, forest-like atmosphere.
+- **The "Ghost Border" Fallback:** If accessibility requires a stroke (e.g., in Dark Mode), use `outline-variant` (#C1C8C2) at **15% opacity**. High-contrast borders are strictly forbidden.
+
+---
+
+## 5. Components
+
+### Buttons & Inputs
+
+- **Primary Button:** A robust, "rooted" feel. Use `primary` (#012D1D) with a `xl` (3rem) border-radius. This pill shape feels softer in the hand.
+- **Secondary/Tertiary:** Use `surface-container-high` backgrounds. No borders.
+- **Inputs:** Use `surface-container-lowest` for the field background. The focus state should be a subtle shift to `tertiary-fixed` (#FFDCBD) as a soft glow, rather than a hard stroke.
+
+### Cards & Lists
+
+- **The Rule of Space:** Forbid the use of divider lines. Separate list items using the **Spacing Scale** `3` (1rem) or `4` (1.4rem).
+- **Selection Chips:** Use `secondary-fixed` (#FFDBCF) for unselected and `secondary` (#79564B) for selected. The roundedness should be `full` (9999px) to mimic smooth river stones.
+
+### Signature "Growth" Components
+
+- **The Sprout Tracker:** A vertical progress bar that uses a hand-drawn, irregular line (icon style) rather than a geometric rectangle.
+- **The Soil Container:** A bottom sheet that uses the `xl` (3rem) radius on top corners only, creating a "nesting" effect for inputs.
+
+---
+
+## 6. Do’s and Don’ts
+
+### Do
+
+- **DO** use whitespace as a structural element. If a section feels crowded, increase spacing rather than adding a line.
+- **DO** use intentional asymmetry. A card might have a `16px` radius on three corners and a `32px` radius on one to feel more organic.
+- **DO** use the `tertiary` (#3B1F00) tones for warnings or high-importance alerts, as it mimics the warmth of terracotta.
+
+### Don't
+
+- **DON’T** use pure black (#000000) or pure white (#FFFFFF) for UI elements. Stick to the `surface` and `on-surface` tokens to maintain the "creamy" organic feel.
+- **DON’T** use geometric, perfectly circular icons. Icons should have a slight "hand-drawn" wobble to feel human and grounded.
+- **DON’T** use standard "drop shadows." If it looks like a default CSS shadow, it’s too heavy. It should feel like ambient light in a forest.

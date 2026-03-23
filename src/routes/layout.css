@@ -55,7 +55,7 @@ html[data-theme='zinc'][data-mode='light'] {
     --primary-container: #1B4332;
     --secondary-fixed: #FFDBCF;
     --tertiary: #3B1F00;
-    --tertiary-fixed: #FFDCBD;
+    --tertiary-fixed: #1B4332;
     --outline-variant: #C1C8C2;
 }
 
@@ -107,7 +107,7 @@ html.dark {
     --primary-container: #1B4332;
     --secondary-fixed: #79564B;
     --tertiary: #FFDCBD;
-    --tertiary-fixed: #3B1F00;
+    --tertiary-fixed: #A97A68;
     --outline-variant: #C1C8C2;
 }
 

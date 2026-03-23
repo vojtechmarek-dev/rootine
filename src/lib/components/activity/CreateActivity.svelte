@@ -88,11 +88,11 @@
     <Drawer.Content class="flex max-h-[80dvh] flex-col overflow-hidden">
         <div class="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col">
             <!-- Fixed header: controls stay outside scroll -->
-            <div class="shrink-0 bg-surface-container-low px-4 pt-2 pb-3">
+            <div class="shrink-0 px-4 pt-2 pb-3">
                 {#if view === 'menu'}
-                    <Drawer.Header>
-                        <Drawer.Title>Create Activity</Drawer.Title>
-                        <Drawer.Description>What would you like to track?</Drawer.Description>
+                    <Drawer.Header class="text-left px-0">
+                        <Drawer.Title class="text-2xl font-semibold">Create Activity</Drawer.Title>
+                        <Drawer.Description class="text-base text-foreground/70">What would you like to track?</Drawer.Description>
                     </Drawer.Header>
                 {:else}
                     {@const FormDef = ACTIVITY_FORMS[view]}
@@ -115,17 +115,17 @@
             <div class="flex-1 overflow-y-auto p-4">
                 {#if view === 'menu'}
                     <div class="grid grid-cols-3 gap-4" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
-                        {#each Object.entries(ACTIVITY_FORMS) as [type, def]}
+                        {#each Object.entries(ACTIVITY_FORMS) as [type, def] (type)}
                             {@const Icon = def.icon}
                             <Button
-                                variant="secondary"
+                                variant="outline"
                                 onclick={() => {
                                     switchView(type as ActivityType);
                                 }}
-                                class="flex h-24 flex-col"
+                                class="flex h-24 flex-col gap-2"
                             >
-                                <Icon class={def.color} />
-                                <span>{def.label}</span>
+                                <Icon class={cn('h-7 w-7 mb-1', def.color)} />
+                                <span class="font-medium text-base">{def.label}</span>
                             </Button>
                         {/each}
                     </div>

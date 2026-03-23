@@ -105,13 +105,15 @@
 </script>
 
 <div class="p-4">
-    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">Dashboard</h1>
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div class="mb-4">
             {#if hasSessionUser}
-                <p class="text-sm text-muted-foreground">
-                    Welcome back, {session?.user?.name || session?.user?.email}
-                </p>
+                <div class="flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
+                    <p class="font-serif text-2xl text-foreground sm:text-3xl">Welcome back,</p>
+                    <p class="font-serif text-3xl font-semibold text-secondary italic sm:text-4xl">
+                        {session?.user?.name?.split(' ')[0] || session?.user?.email?.split('@')[0]}
+                    </p>
+                </div>
             {/if}
         </div>
 
@@ -175,9 +177,7 @@
                 {/if}
 
                 {#if pendingActivities.length === 0 && completedActivities.length > 0}
-                    <div
-                        class="rounded-2xl bg-success/10 p-6 text-center text-success"
-                    >
+                    <div class="rounded-2xl bg-success/10 p-6 text-center text-success">
                         <p class="font-medium">All done for this date! 🎉</p>
                     </div>
                 {/if}
