@@ -1,21 +1,22 @@
 import type { PageServerLoad, Actions } from './$types';
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { getDashboardActivities } from '$lib/server/dashboard';
 import { createActivity } from '$lib/server/actions/createActivity';
 import { toggleActivity } from '$lib/server/actions/toggleActivity';
 
 export const load: PageServerLoad = async (event) => {
-    const session = event.locals.session ?? (await event.locals.auth());
-    if (!session?.user?.id) {
-        throw redirect(303, '/login');
+    const { session } = await event.parent();
+    const userId = session.user?.id;
+
+    if (!userId) {
+        return { activities: Promise.resolve([]) };
     }
 
     const urlDate = event.url.searchParams.get('date');
     const targetDate = urlDate ? new Date(urlDate) : new Date();
-    const activities = getDashboardActivities(session.user.id, targetDate);
+    const activities = getDashboardActivities(userId, targetDate);
 
     return {
-        session,
         activities,
     };
 };

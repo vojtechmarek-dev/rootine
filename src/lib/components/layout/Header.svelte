@@ -7,11 +7,10 @@
     import type { Session } from '$lib/types/schemas';
     import { theme, setThemeMode, type ThemeMode } from '$lib/theme/theme.svelte';
 
-    let { data } = $props<{
-        data: { session: Session | null };
+    let { session } = $props<{
+        session: Session | null;
     }>();
 
-    const session = $derived(data.session);
     const user = $derived(session?.user);
 
     async function handleSignOut() {

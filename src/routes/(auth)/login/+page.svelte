@@ -1,9 +1,15 @@
 <script lang="ts">
     import LoginForm from '@/components/auth/LoginForm.svelte';
+    import { hideSplash } from '$lib/splash';
+    import { onMount } from 'svelte';
 
     let { form } = $props<{
         form?: { error?: string };
     }>();
+
+    onMount(() => {
+        hideSplash();
+    });
 </script>
 
 <div class="flex min-h-screen items-center justify-center bg-background px-4 py-12">

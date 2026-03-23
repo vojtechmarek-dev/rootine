@@ -5,6 +5,7 @@
     import OfflineIndicator from '$lib/components/shared/OfflineIndicator.svelte';
     import { initNetworkStatus } from '$lib/sync/network.svelte';
     import { initSyncEngine } from '$lib/sync/engine.svelte';
+    import { hideSplash } from '$lib/splash';
     import type { LayoutData } from './$types';
     import { onMount } from 'svelte';
 
@@ -14,6 +15,8 @@
     }>();
 
     onMount(() => {
+        hideSplash();
+
         const cleanupNetwork = initNetworkStatus();
         const cleanupSync = initSyncEngine();
 
@@ -25,15 +28,12 @@
 </script>
 
 <div class="flex min-h-screen flex-col bg-background" data-vaul-drawer-wrapper>
-    <!-- Fixed Header Area -->
-    <Header {data} />
+    <Header session={data.session} />
     <OfflineIndicator />
-    <!-- Main Content Area -->
     <main class="flex-1 pb-20">
         {@render children()}
     </main>
 
-    <!-- Fixed Bottom Navigation -->
     <CreateActivity />
     <Navigation />
 </div>
