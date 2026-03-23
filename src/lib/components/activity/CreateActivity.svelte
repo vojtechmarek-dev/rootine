@@ -90,7 +90,7 @@
             <!-- Fixed header: controls stay outside scroll -->
             <div class="shrink-0 px-4 pt-2 pb-3">
                 {#if view === 'menu'}
-                    <Drawer.Header class="text-left px-0">
+                    <Drawer.Header class="px-0 text-left">
                         <Drawer.Title class="text-2xl font-semibold">Create Activity</Drawer.Title>
                         <Drawer.Description class="text-base text-foreground/70">What would you like to track?</Drawer.Description>
                     </Drawer.Header>
@@ -103,7 +103,7 @@
                             <span class="sr-only">Back</span>
                         </Button>
                         <div class="flex min-w-0 flex-1 items-center justify-center gap-2">
-                            <Icon class={cn('h-4 w-4 shrink-0', FormDef.color)} />
+                            <Icon class="h-4 w-4 shrink-0" />
                             <span class="truncate text-lg font-semibold">{FormDef.label}</span>
                         </div>
                         <Button type="submit" size="sm" form={FORM_ID} class="shrink-0">Save</Button>
@@ -118,14 +118,14 @@
                         {#each Object.entries(ACTIVITY_FORMS) as [type, def] (type)}
                             {@const Icon = def.icon}
                             <Button
-                                variant="outline"
+                                variant="default"
                                 onclick={() => {
                                     switchView(type as ActivityType);
                                 }}
                                 class="flex h-24 flex-col gap-2"
                             >
-                                <Icon class={cn('h-7 w-7 mb-1', def.color)} />
-                                <span class="font-medium text-base">{def.label}</span>
+                                <Icon class="mb-1 h-7 w-7" />
+                                <span class="text-base font-medium">{def.label}</span>
                             </Button>
                         {/each}
                     </div>

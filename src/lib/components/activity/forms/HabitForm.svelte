@@ -3,7 +3,6 @@
     export const meta = {
         label: 'Habit',
         icon: Check,
-        color: 'text-activity-habit',
     };
 </script>
 

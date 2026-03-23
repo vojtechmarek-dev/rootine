@@ -153,9 +153,6 @@ html.dark {
     --color-sidebar-ring: var(--sidebar-ring);
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
-    --color-activity-habit: var(--activity-habit);
-    --color-activity-plant: var(--activity-plant);
-    --color-activity-workout: var(--activity-workout);
 
     --color-surface: var(--surface);
     --color-surface-container-low: var(--surface-container-low);
