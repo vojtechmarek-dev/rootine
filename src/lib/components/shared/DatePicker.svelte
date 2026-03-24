@@ -35,6 +35,7 @@
         {#snippet child({ props })}
             <Button
                 variant="outline"
+                size="lg"
                 class={cn(
                     'w-[280px] justify-start text-start font-normal',
                     !value && 'text-muted-foreground' // Check the real prop, or proxy.value

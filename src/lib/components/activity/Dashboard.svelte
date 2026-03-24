@@ -174,7 +174,6 @@
 
                 {#if completedActivities.length > 0}
                     <div>
-                        <h2 class="mb-4 text-lg font-semibold text-muted-foreground">Completed</h2>
                         <div class="space-y-4">
                             {#each completedActivities as activity (activity.id)}
                                 <ActivityCard {activity} canToggle={canToggleActivities} />
