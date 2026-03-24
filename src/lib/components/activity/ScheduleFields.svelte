@@ -8,10 +8,17 @@
     let { schedule = $bindable() }: { schedule: Schedule } = $props();
 
     // Helper to sync Select value with Schedule type
-    let selectedType = $derived(schedule.type);
+    let selectedType = $derived<Schedule['type']>(schedule.type);
+    type WeeklySchedule = Extract<Schedule, { type: 'weekly' }>;
 
-    const onTypeChange = (newType: string) => {
-        if (newType === schedule.type) return;
+    const isWeeklySchedule = (value: Schedule): value is WeeklySchedule => {
+        return value.type === 'weekly';
+    };
+
+    const onTypeChange = (newType: Schedule['type']) => {
+        if (newType === schedule.type) {
+            return;
+        }
 
         if (newType === 'daily') {
             schedule = { type: 'daily' };
@@ -29,7 +36,7 @@
         <!-- Use hidden input for form submission if needed, but Shadcn Select usually needs manual handling or a hidden field -->
         <input type="hidden" name="schedule.type" value={schedule.type} />
 
-        <Select.Root type="single" value={selectedType} onValueChange={onTypeChange}>
+        <Select.Root type="single" value={selectedType} onValueChange={(value) => onTypeChange(value as Schedule['type'])}>
             <Select.Trigger class="w-full">
                 {#if schedule.type === 'daily'}
                     Every Day
@@ -71,35 +78,34 @@
         <Field.Field>
             <Field.Label>Days</Field.Label>
             <!-- Hidden inputs to submit array values for server handling -->
-            {#each schedule.days as day}
+            {#each schedule.days as day (day)}
                 <input type="hidden" name="schedule.days" value={day} />
             {/each}
 
             <div class="flex flex-wrap gap-2">
-                {#each WEEKDAYS as day}
-                    <label
+                {#each WEEKDAYS as day (day)}
+                    <button
+                        type="button"
                         class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full transition-colors
                         {schedule.days.includes(day)
                             ? 'bg-secondary text-secondary-foreground shadow-ambient'
                             : 'bg-secondary-fixed text-secondary hover:opacity-80'}"
+                        onclick={() => {
+                            if (!isWeeklySchedule(schedule)) {
+                                return;
+                            }
+
+                            const isSelected = schedule.days.includes(day);
+                            const currentDays = schedule.days;
+                            if (!isSelected) {
+                                schedule.days = [...currentDays, day];
+                            } else {
+                                schedule.days = currentDays.filter((item) => item !== day);
+                            }
+                        }}
                     >
-                        <input
-                            type="checkbox"
-                            checked={schedule.days.includes(day)}
-                            onchange={(e) => {
-                                const checked = e.currentTarget.checked;
-                                // We know schedule is weekly here due to if block
-                                const currentDays = (schedule as any).days || [];
-                                if (checked) {
-                                    (schedule as any).days = [...currentDays, day];
-                                } else {
-                                    (schedule as any).days = currentDays.filter((d: any) => d !== day);
-                                }
-                            }}
-                            class="sr-only"
-                        />
                         <span class="text-xs font-medium uppercase">{day.slice(0, 3)}</span>
-                    </label>
+                    </button>
                 {/each}
             </div>
         </Field.Field>

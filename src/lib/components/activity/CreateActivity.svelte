@@ -78,14 +78,14 @@
     const FORM_ID = 'create-activity-form';
 </script>
 
-<Drawer.Root bind:open={isOpen}>
+<Drawer.Root bind:open={isOpen} repositionInputs={false}>
     <Drawer.Trigger
         class={cn(buttonVariants({ variant: 'default', size: 'icon' }), 'fixed right-4 bottom-24 z-50 h-14 w-14 rounded-full shadow-xl')}
     >
         <Plus class="h-6 w-6" />
         <span class="sr-only">Create new Rootine</span>
     </Drawer.Trigger>
-    <Drawer.Content class="flex max-h-[80dvh] flex-col overflow-hidden">
+    <Drawer.Content class="flex max-h-[90dvh] flex-col overflow-hidden">
         <div class="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col">
             <!-- Fixed header: controls stay outside scroll -->
             <div class="shrink-0 px-4 pt-2 pb-3">
