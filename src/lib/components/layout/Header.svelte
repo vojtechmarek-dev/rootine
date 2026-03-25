@@ -2,6 +2,7 @@
     import { LogOut, X, Sun, Moon, Monitor, Settings } from '@lucide/svelte';
     import { signOut } from '@auth/sveltekit/client';
     import { Button, buttonVariants } from '$lib/components/ui/button';
+    import { ButtonGroup } from '$lib/components/ui/button-group';
     import * as Avatar from '$lib/components/ui/avatar';
     import * as Drawer from '$lib/components/ui/drawer';
     import type { Session } from '$lib/types/schemas';
@@ -95,32 +96,38 @@
                             <h3 class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                 Appearance
                             </h3>
-                            <div class="grid grid-cols-3 gap-2">
+                            <ButtonGroup orientation="horizontal" class="flex w-50 justify-center">
                                 <Button
+                                    data-slot="select-trigger"
                                     variant={theme.mode === 'light' ? 'default' : 'outline'}
-                                    class="w-full justify-center"
+                                    size="icon"
+                                    class="h-11 w-0 min-w-0 flex-1 shrink justify-center"
+                                    aria-label="Theme mode: light"
                                     onclick={() => handleThemeChange('light')}
                                 >
-                                    <Sun class="mr-2 h-4 w-4" />
-                                    Light
+                                    <Sun class="h-4 w-4" />
                                 </Button>
                                 <Button
+                                    data-slot="select-trigger"
                                     variant={theme.mode === 'dark' ? 'default' : 'outline'}
-                                    class="w-full justify-center"
+                                    size="icon"
+                                    class="h-11 w-0 min-w-0 flex-1 shrink justify-center"
+                                    aria-label="Theme mode: dark"
                                     onclick={() => handleThemeChange('dark')}
                                 >
-                                    <Moon class="mr-2 h-4 w-4" />
-                                    Dark
+                                    <Moon class="h-4 w-4" />
                                 </Button>
                                 <Button
+                                    data-slot="select-trigger"
                                     variant={theme.mode === 'system' ? 'default' : 'outline'}
-                                    class="w-full justify-center"
+                                    size="icon"
+                                    class="h-11 w-0 min-w-0 flex-1 shrink justify-center"
+                                    aria-label="Theme mode: system"
                                     onclick={() => handleThemeChange('system')}
                                 >
-                                    <Monitor class="mr-2 h-4 w-4" />
-                                    System
+                                    <Monitor class="h-4 w-4" />
                                 </Button>
-                            </div>
+                            </ButtonGroup>
                         </div>
                     </div>
                 </div>

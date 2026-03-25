@@ -92,7 +92,7 @@
     <Card.Content>
         {#if dev}
             <Collapsible title="Raw Details" class="space-y-2">
-                <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs">{JSON.stringify(activity, null, 2)}</pre>
+                <pre class="overflow-x-auto rounded-md p-4 text-xs">{JSON.stringify(activity, null, 2)}</pre>
             </Collapsible>
         {/if}
     </Card.Content>

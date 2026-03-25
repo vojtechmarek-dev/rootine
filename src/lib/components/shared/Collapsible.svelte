@@ -35,7 +35,7 @@
         <Collapsible.Trigger
             aria-label={triggerAriaLabel ?? title ?? 'Toggle collapsible'}
             class={cn(
-                'group inline-flex size-8 items-center justify-center rounded-md bg-background text-foreground shadow-sm transition hover:bg-muted ',
+                'group inline-flex size-8 items-center justify-center rounded-md bg-background text-foreground shadow-sm transition hover:bg-muted',
                 triggerClass
             )}
         >
@@ -49,7 +49,11 @@
 
     <Collapsible.Content
         {hiddenUntilFound}
-        class={cn('overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down', contentClass)}
+        class={cn(
+            'overflow-hidden rounded-lg bg-surface-container-low px-4 py-3 dark:bg-surface-container-high',
+            'data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down',
+            contentClass
+        )}
     >
         {@render children?.()}
     </Collapsible.Content>
