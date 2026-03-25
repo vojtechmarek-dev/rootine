@@ -29,6 +29,14 @@ export const ActivityConfig = z.object({
     updatedAt: z.date().optional(),
 });
 
+// Reused across schedule variants: if true and the activity was not completed on its
+// scheduled date, it continues to appear every day until it is completed, then resumes
+// its normal cadence from the next scheduled mark.
+const FlexibleFlag = z.preprocess(
+    (v) => v === 'true' || v === 'on' || v === '1' || v === true,
+    z.boolean().optional()
+);
+
 // --- SCHEDULE SCHEMA ---
 // Unified scheduling for all activity types
 export const ScheduleSchema = z.discriminatedUnion('type', [
@@ -36,6 +44,7 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
     // "I want to do this every day"
     z.object({
         type: z.literal('daily'),
+        flexible: FlexibleFlag,
         times: z.array(z.string()).optional(), // e.g. ["09:00"] for reminders
     }),
 
@@ -43,6 +52,7 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
     // "I do this on Mon, Wed, Fri"
     z.object({
         type: z.literal('weekly'),
+        flexible: FlexibleFlag,
         days: z.array(z.enum(WEEKDAYS)),
         times: z.array(z.string()).optional(),
     }),
@@ -51,6 +61,7 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
     // "Due 7 days after I last did it"
     z.object({
         type: z.literal('interval'),
+        flexible: FlexibleFlag,
         value: z.coerce.number().min(1),
         unit: z.enum(['days', 'hours']), // Usually 'days'
     }),

@@ -1,4 +1,4 @@
-import { differenceInDays, differenceInHours, startOfDay } from 'date-fns';
+import { addDays, differenceInDays, differenceInHours, startOfDay, subDays } from 'date-fns';
 import type { Activity } from '$lib/types/schemas';
 import { WEEKDAYS } from '$lib/constants';
 
@@ -69,6 +69,54 @@ function isScheduledBySchedule(schedule: Activity['schedule'], anchor: Date, tar
         }
         default: {
             return false;
+        }
+    }
+}
+
+/**
+ * Returns the most recent date strictly before `targetDate` on which the activity
+ * was scheduled. Used by the flexible-spillover logic in the dashboard.
+ *
+ * Returns null if no such date exists (e.g. activity hasn't started yet).
+ */
+export function getPreviousScheduledDate(activity: Activity, targetDate: Date): Date | null {
+    const start = startOfDay(new Date(activity.startDate));
+    const target = startOfDay(targetDate);
+
+    if (target <= start) {
+        return null;
+    }
+
+    const schedule = activity.schedule;
+
+    switch (schedule.type) {
+        case 'daily': {
+            return subDays(target, 1);
+        }
+        case 'weekly': {
+            // Walk back up to 7 days to find the most recent scheduled weekday.
+            for (let i = 1; i <= 7; i++) {
+                const candidate = subDays(target, i);
+                if (candidate < start) {
+                    return null;
+                }
+                const weekdayIndex = (candidate.getDay() + 6) % 7;
+                const dayName = WEEKDAYS[weekdayIndex];
+                if (schedule.days.includes(dayName)) {
+                    return candidate;
+                }
+            }
+            return null;
+        }
+        case 'interval': {
+            // Cycles are anchored to startDate (not rolling from last completion),
+            // so we can calculate the exact last mark with integer division.
+            const daysDiff = differenceInDays(target, start);
+            const completedIntervals = Math.floor(daysDiff / schedule.value);
+            return addDays(start, completedIntervals * schedule.value);
+        }
+        default: {
+            return null;
         }
     }
 }

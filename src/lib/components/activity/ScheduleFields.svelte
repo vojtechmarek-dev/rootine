@@ -2,6 +2,7 @@
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import * as Select from '$lib/components/ui/select/index.js';
+    import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import { WEEKDAYS } from '$lib/constants';
     import type { Schedule } from '$lib/types/schemas';
 
@@ -20,12 +21,15 @@
             return;
         }
 
+        // Carry the flexible flag across type switches so the user doesn't lose it.
+        const wasFlexible = schedule.flexible;
+
         if (newType === 'daily') {
-            schedule = { type: 'daily' };
+            schedule = { type: 'daily', flexible: wasFlexible };
         } else if (newType === 'weekly') {
-            schedule = { type: 'weekly', days: ['mon', 'wed', 'fri'] };
+            schedule = { type: 'weekly', days: ['mon', 'wed', 'fri'], flexible: wasFlexible };
         } else if (newType === 'interval') {
-            schedule = { type: 'interval', value: 1, unit: 'days' };
+            schedule = { type: 'interval', value: 1, unit: 'days', flexible: wasFlexible };
         }
     };
 </script>
@@ -110,4 +114,24 @@
             </div>
         </Field.Field>
     {/if}
+
+    <!-- Flexible spillover toggle -->
+    <input type="hidden" name="schedule.flexible" value={schedule.flexible ? 'true' : ''} />
+    <Field.Field>
+        <div class="flex items-center gap-3">
+            <Checkbox
+                id="schedule-flexible"
+                checked={!!schedule.flexible}
+                onCheckedChange={(checked) => {
+                    schedule = { ...schedule, flexible: checked === true ? true : undefined };
+                }}
+            />
+            <div>
+                <Field.Label for="schedule-flexible" class="cursor-pointer">Flexible</Field.Label>
+                <p class="text-muted-foreground mt-0.5 text-xs leading-snug">
+                    If missed, keep showing every day until completed — then resume the normal schedule.
+                </p>
+            </div>
+        </div>
+    </Field.Field>
 </Field.Group>
