@@ -6,6 +6,9 @@ import { env } from '$env/dynamic/private';
 
 export const { handle, signIn, signOut } = SvelteKitAuth({
     adapter: DrizzleAdapter(db),
+    session: {
+        strategy: 'jwt',
+    },
     providers: [
         Google({
             clientId: env.GOOGLE_CLIENT_ID,
@@ -13,9 +16,15 @@ export const { handle, signIn, signOut } = SvelteKitAuth({
         }),
     ],
     callbacks: {
-        session: ({ session, user }) => {
-            if (session.user) {
-                session.user.id = user.id;
+        jwt: async ({ token, user }) => {
+            if (user) {
+                token.id = user.id;
+            }
+            return token;
+        },
+        session: async ({ session, token }) => {
+            if (session.user && token.id) {
+                session.user.id = token.id as string;
             }
             return session;
         },

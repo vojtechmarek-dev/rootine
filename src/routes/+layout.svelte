@@ -4,6 +4,7 @@
     import favicon from '$lib/assets/favicon.svg';
     import { initializeTheme } from '$lib/theme/theme.svelte';
     import { onMount } from 'svelte';
+    import { page } from '$app/state';
 
     let { children } = $props();
 
@@ -14,9 +15,19 @@
     // Hide splash screen after app is hydrated and ready
     onMount(() => {
         const splash = document.getElementById('app-splash');
-        if (splash) {
+        if (!splash) return;
+
+        const hide = () => {
+            if (splash.dataset.hidden === 'true') return;
             splash.dataset.hidden = 'true';
             setTimeout(() => splash.remove(), 220);
+        };
+
+        // If we are waiting for streamed activities (Neon cold start), wait before hiding
+        if (page.data?.streamed?.activities instanceof Promise) {
+            page.data.streamed.activities.finally(hide).catch(hide);
+        } else {
+            hide();
         }
     });
 </script>

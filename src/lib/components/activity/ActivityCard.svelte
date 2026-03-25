@@ -6,7 +6,7 @@
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
-    import { CalendarClock } from '@lucide/svelte';
+    import { CalendarClock, CheckIcon } from '@lucide/svelte';
 
     const props = $props<{ activity: DashboardActivity; canToggle?: boolean }>();
     const activity = $derived(props.activity);
@@ -79,6 +79,7 @@
                         <CalendarClock class="h-4 w-4" />
                     </Button>
                 {:else if isCompleted}
+                    <Button type="button" variant="default" class="h-11" disabled={true}><CheckIcon /></Button>
                     <Button type="submit" name="action" value="undo" variant="secondary" class="h-11" disabled={isSubmitting}>Undo</Button>
                 {:else}
                     <Button type="submit" name="action" value="complete" variant="default" class="h-11" disabled={isSubmitting}>
