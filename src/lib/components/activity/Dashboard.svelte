@@ -1,6 +1,5 @@
 <script lang="ts">
     import ActivityCard from '@/components/activity/ActivityCard.svelte';
-    import ActivitySkeletons from '@/components/activity/ActivitySkeletons.svelte';
     import { onMount } from 'svelte';
     import type { DashboardActivity } from '$lib/types/schemas';
     import type { Session } from '@auth/sveltekit';
@@ -12,10 +11,10 @@
 
     let {
         session,
-        activitiesPromise,
+        activities,
     }: {
         session: Session | null;
-        activitiesPromise: Promise<DashboardActivity[]>;
+        activities: DashboardActivity[];
     } = $props();
 
     const hasSessionUser = $derived(Boolean(session?.user));
@@ -150,44 +149,23 @@
         </div>
     </div>
 
-    {#await activitiesPromise}
-        <ActivitySkeletons count={3} />
-    {:then activities}
-        {@const pendingActivities = activities.filter((a) => !isActivityCompleted(a))}
-        {@const completedActivities = activities.filter((a) => isActivityCompleted(a))}
-
-        {#if activities.length === 0}
-            <div class="rounded-2xl bg-surface-container-lowest p-6">
-                <p class="text-muted-foreground">Your activities will appear here.</p>
+    {#if activities.length === 0}
+        <div class="rounded-2xl bg-surface-container-lowest p-6">
+            <p class="text-muted-foreground">Your activities will appear here.</p>
+        </div>
+    {:else}
+        <div class="space-y-8">
+            <div class="space-y-4">
+                {#each activities as activity (activity.id)}
+                    <ActivityCard {activity} canToggle={canToggleActivities} />
+                {/each}
             </div>
-        {:else}
-            <div class="space-y-8">
-                {#if pendingActivities.length > 0}
-                    <div>
-                        <div class="space-y-4">
-                            {#each pendingActivities as activity (activity.id)}
-                                <ActivityCard {activity} canToggle={canToggleActivities} />
-                            {/each}
-                        </div>
-                    </div>
-                {/if}
 
-                {#if completedActivities.length > 0}
-                    <div>
-                        <div class="space-y-4">
-                            {#each completedActivities as activity (activity.id)}
-                                <ActivityCard {activity} canToggle={canToggleActivities} />
-                            {/each}
-                        </div>
-                    </div>
-                {/if}
-
-                {#if pendingActivities.length === 0 && completedActivities.length > 0}
-                    <div class="rounded-2xl bg-success/10 p-6 text-center text-success">
-                        <p class="font-medium">All done for this date! 🎉</p>
-                    </div>
-                {/if}
-            </div>
-        {/if}
-    {/await}
+            {#if activities.length > 0 && activities.every(isActivityCompleted)}
+                <div class="rounded-2xl bg-success/10 p-6 text-center text-success">
+                    <p class="font-medium">All done for this date! 🎉</p>
+                </div>
+            {/if}
+        </div>
+    {/if}
 </div>

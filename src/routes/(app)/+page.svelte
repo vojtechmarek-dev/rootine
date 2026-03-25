@@ -5,7 +5,7 @@
     let { data }: { data: PageData } = $props();
 
     const session = $derived(data.session);
-    const activitiesPromise = $derived(data.streamed.activities);
+    const activities = $derived(data.activities);
 </script>
 
-<Dashboard {session} {activitiesPromise} />
+<Dashboard {session} {activities} />

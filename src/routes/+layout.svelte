@@ -23,12 +23,7 @@
             setTimeout(() => splash.remove(), 220);
         };
 
-        // If we are waiting for streamed activities (Neon cold start), wait before hiding
-        if (page.data?.streamed?.activities instanceof Promise) {
-            page.data.streamed.activities.finally(hide).catch(hide);
-        } else {
-            hide();
-        }
+        hide();
     });
 </script>
 

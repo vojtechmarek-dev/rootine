@@ -12,13 +12,11 @@ export const load: PageServerLoad = async (event) => {
 
     const urlDate = event.url.searchParams.get('date');
     const targetDate = urlDate ? new Date(urlDate) : new Date();
-    const activitiesPromise = getDashboardActivities(session.user.id, targetDate);
+    const activities = await getDashboardActivities(session.user.id, targetDate);
 
     return {
         session,
-        streamed: {
-            activities: activitiesPromise,
-        },
+        activities,
     };
 };
 
