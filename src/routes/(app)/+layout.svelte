@@ -10,13 +10,20 @@
     }>();
 </script>
 
-<div class="flex min-h-screen flex-col bg-background" data-vaul-drawer-wrapper>
-    <!-- Fixed Header Area -->
-    <Header {data} />
-    <!-- Main Content Area -->
-    <main class="flex-1 pb-20">
-        {@render children()}
-    </main>
+<div class="flex min-h-screen flex-col bg-background">
+    <!--
+      Vaul "scale background" affects the element with `data-vaul-drawer-wrapper`.
+      We keep it scoped to the page content so fixed UI (bottom nav + "+" trigger)
+      doesn't visibly scale/translate and snap back.
+    -->
+    <div class="flex min-h-screen flex-col bg-background" data-vaul-drawer-wrapper>
+        <!-- Fixed Header Area -->
+        <Header {data} />
+        <!-- Main Content Area -->
+        <main class="flex-1 pb-20">
+            {@render children()}
+        </main>
+    </div>
 
     <!-- Fixed Bottom Navigation -->
     <CreateActivity />
