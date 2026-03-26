@@ -8,7 +8,7 @@
 
     let { children } = $props();
 
-    // In Svelte 5, calling this sync function with $effect 
+    // In Svelte 5, calling this sync function with $effect
     // at the root of a component sets up the reactivity automatically.
     initializeTheme();
 

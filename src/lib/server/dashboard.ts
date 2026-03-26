@@ -14,10 +14,7 @@ function getTargetCount(activity: { type: string; config: Record<string, unknown
     return 1;
 }
 
-export async function getDashboardActivities(
-    userId: string,
-    targetDate: Date
-): Promise<DashboardActivity[]> {
+export async function getDashboardActivities(userId: string, targetDate: Date): Promise<DashboardActivity[]> {
     const userActivities = await db.query.activities.findMany({
         where: and(eq(activities.userId, userId), eq(activities.archived, false)),
         orderBy: [desc(activities.createdAt)],

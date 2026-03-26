@@ -26,10 +26,7 @@ export const actions: Actions = {
         if (!session?.user?.id) {
             return fail(401, { message: 'Unauthorized' });
         }
-        return createActivity(
-            { user: { id: session.user.id } },
-            await event.request.formData()
-        );
+        return createActivity({ user: { id: session.user.id } }, await event.request.formData());
     },
 
     toggleActivity: async (event) => {
@@ -40,10 +37,6 @@ export const actions: Actions = {
         const urlDate = event.url.searchParams.get('date');
         const targetDate = urlDate ? new Date(urlDate) : new Date();
 
-        return toggleActivity(
-            { user: { id: session.user.id } },
-            await event.request.formData(),
-            targetDate
-        );
+        return toggleActivity({ user: { id: session.user.id } }, await event.request.formData(), targetDate);
     },
 };

@@ -7,10 +7,7 @@ import { formDataToObj } from '$lib/utils/form';
 
 type SessionWithUser = { user: { id: string } };
 
-export async function createActivity(
-    session: SessionWithUser,
-    formData: FormData
-) {
+export async function createActivity(session: SessionWithUser, formData: FormData) {
     const raw = formDataToObj(formData);
     const result = CreateActivitySchema.safeParse(raw);
 

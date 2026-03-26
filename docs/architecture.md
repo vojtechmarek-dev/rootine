@@ -1,6 +1,7 @@
 # Architecture
 
 ## Sequence Diagram
+
 ```mermaid
 sequenceDiagram
     participant User
@@ -23,5 +24,7 @@ sequenceDiagram
 ```
 
 ## Architectural Decisions
+
 All major architectural decisions are documented in the `docs/adr` folder.
+
 - [ADR 001: Transition to Single Page Application (SPA) Mode for PWA](./adr/001-spa-mode-for-pwa.md)

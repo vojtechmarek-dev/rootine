@@ -96,4 +96,3 @@ We convey hierarchy through **Tonal Layering** rather than structural lines.
 - **DON’T** use pure black (#000000) or pure white (#FFFFFF) for UI elements. Stick to the `surface` and `on-surface` tokens to maintain the "creamy" organic feel.
 - **DON’T** use geometric, perfectly circular icons. Icons should have a slight "hand-drawn" wobble to feel human and grounded.
 - **DON’T** use standard "drop shadows." If it looks like a default CSS shadow, it’s too heavy. It should feel like ambient light in a forest.
-

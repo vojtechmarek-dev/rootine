@@ -6,11 +6,7 @@ import { startOfDay, endOfDay, isToday, isValid } from 'date-fns';
 
 type SessionWithUser = { user: { id: string } };
 
-export async function toggleActivity(
-    _session: SessionWithUser,
-    formData: FormData,
-    targetDate: Date
-) {
+export async function toggleActivity(_session: SessionWithUser, formData: FormData, targetDate: Date) {
     if (!isValid(targetDate)) {
         return fail(400, { message: 'Invalid dashboard date' });
     }
@@ -49,10 +45,7 @@ export async function toggleActivity(
                 await db.delete(logs).where(eq(logs.id, logId));
             } else {
                 const mostRecent = await db.query.logs.findFirst({
-                    where: and(
-                        eq(logs.activityId, activityId),
-                        between(logs.date, startOfDay(logDate), endOfDay(logDate))
-                    ),
+                    where: and(eq(logs.activityId, activityId), between(logs.date, startOfDay(logDate), endOfDay(logDate))),
                     orderBy: [desc(logs.date)],
                 });
 

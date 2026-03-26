@@ -18,9 +18,7 @@
             "name": "Attach to SvelteKit server",
             "port": 9229,
             "restart": true,
-            "skipFiles": [
-                "<node_internals>/**"
-            ]
+            "skipFiles": ["<node_internals>/**"]
         },
         {
             "type": "chrome",

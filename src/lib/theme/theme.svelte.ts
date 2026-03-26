@@ -12,9 +12,7 @@ class ThemeState {
     preset = $state<ThemePreset>('zinc');
     systemPrefersDark = $state<boolean>(false);
 
-    resolvedMode = $derived<ThemeResolvedMode>(
-        this.mode === 'system' ? (this.systemPrefersDark ? 'dark' : 'light') : this.mode
-    );
+    resolvedMode = $derived<ThemeResolvedMode>(this.mode === 'system' ? (this.systemPrefersDark ? 'dark' : 'light') : this.mode);
 
     constructor() {
         if (browser) {

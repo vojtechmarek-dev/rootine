@@ -30,7 +30,7 @@
                 {/each}
             </select>
             <span
-                class="flex h-8 items-center gap-1 rounded-md ps-2 pe-1 text-sm font-medium select-none transition-colors hover:bg-accent/70 dark:hover:bg-accent/40 [&>svg]:size-3.5 [&>svg]:text-muted-foreground"
+                class="flex h-8 items-center gap-1 rounded-md ps-2 pe-1 text-sm font-medium transition-colors select-none hover:bg-accent/70 dark:hover:bg-accent/40 [&>svg]:size-3.5 [&>svg]:text-muted-foreground"
                 aria-hidden="true"
             >
                 {yearItems.find((item) => item.value === value)?.label || selectedYearItem.label}
