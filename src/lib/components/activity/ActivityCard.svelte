@@ -6,7 +6,9 @@
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
-    import { CalendarClock, CheckIcon } from '@lucide/svelte';
+    import { CalendarClock, CheckIcon, Pencil } from '@lucide/svelte';
+    import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
+    import type { ActivityFormData } from '$lib/types/schemas';
 
     const props = $props<{ activity: DashboardActivity; canToggle?: boolean }>();
     const activity = $derived(props.activity);
@@ -59,11 +61,24 @@
 
 <Card.Root class={isCompleted ? 'bg-success/10' : undefined}>
     <Card.Header>
-        <Card.Title>{activity.title}</Card.Title>
-        <Card.Description>{activity.description}</Card.Description>
+        <div class="flex items-start justify-between">
+            <div>
+                <Card.Title>{activity.title}</Card.Title>
+                <Card.Description>{activity.description}</Card.Description>
+            </div>
+        </div>
         <Card.Action>
-            <form method="POST" action="?/toggleActivity" use:enhance={handleToggle}>
+            <form method="POST" action="?/toggleActivity" use:enhance={handleToggle} class="flex items-center gap-2">
                 <input type="hidden" name="activityId" value={activity.id} />
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    class="-mt-1 -mr-1 h-8 w-8 text-muted-foreground"
+                    onclick={() => openActivityDrawer(activity as ActivityFormData)}
+                >
+                    <Pencil class="h-4 w-4" />
+                    <span class="sr-only">Edit Activity</span>
+                </Button>
                 {#if isCompleted && lastAddedLogId}
                     <input type="hidden" name="logId" value={lastAddedLogId} />
                 {/if}
@@ -79,7 +94,9 @@
                         <CalendarClock class="h-4 w-4" />
                     </Button>
                 {:else if isCompleted}
-                    <Button type="button" variant="default" class="h-11" disabled={true}><CheckIcon /></Button>
+                    <div class="flex h-11 w-11 items-center justify-center rounded-md">
+                        <CheckIcon class="h-5 w-5" />
+                    </div>
                     <Button type="submit" name="action" value="undo" variant="secondary" class="h-11" disabled={isSubmitting}>Undo</Button>
                 {:else}
                     <Button type="submit" name="action" value="complete" variant="default" class="h-11" disabled={isSubmitting}>

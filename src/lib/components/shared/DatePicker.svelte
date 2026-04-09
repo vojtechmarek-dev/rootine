@@ -36,14 +36,10 @@
             <Button
                 variant="outline"
                 size="lg"
-                class={cn(
-                    'w-[280px] justify-start text-start font-normal',
-                    !value && 'text-muted-foreground' // Check the real prop, or proxy.value
-                )}
+                class={cn('w-[280px] justify-start text-start font-normal', !value && 'text-muted-foreground')}
                 {...props}
             >
                 <CalendarIcon class="me-2 size-4" />
-                <!-- Now this check works correctly -->
                 {value ? df.format(value) : 'Select a date'}
             </Button>
         {/snippet}

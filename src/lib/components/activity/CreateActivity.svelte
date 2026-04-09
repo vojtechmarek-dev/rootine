@@ -10,6 +10,9 @@
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
     import ActivityEditor from '$lib/components/activity/ActivityEditor.svelte';
+    import { activityDrawerState, openActivityDrawer, closeActivityDrawer } from '$lib/state/activity-drawer.svelte';
+    import { enhance } from '$app/forms';
+    import { untrack } from 'svelte';
 
     // The Activity Forms Registry
     const ACTIVITY_FORMS = {
@@ -53,14 +56,29 @@
 
     let view = $state<'menu' | ActivityType>('menu');
 
-    let isOpen = $state(false);
-
+    // Sync formData with activityDrawerState
     $effect(() => {
-        if (!isOpen) {
-            setTimeout(() => {
-                resetForm();
-            }, 300); // Reset after animation
-        }
+        const drawerOpen = activityDrawerState.isOpen;
+        const drawerData = activityDrawerState.data;
+
+        untrack(() => {
+            if (drawerOpen) {
+                if (drawerData) {
+                    // Edit Mode
+                    formData = structuredClone($state.snapshot(drawerData));
+                    view = formData.type;
+                } else if (!formData.id && formData.title === '') {
+                    // Ensure form is fresh for new creation if not already seeded
+                    formData = getInitialFormData();
+                    view = 'menu';
+                }
+            } else {
+                // Wait for drawer animation before resetting
+                setTimeout(() => {
+                    resetForm();
+                }, 300);
+            }
+        });
     });
 
     const resetForm = () => {
@@ -78,8 +96,9 @@
     const FORM_ID = 'create-activity-form';
 </script>
 
-<Drawer.Root bind:open={isOpen} repositionInputs={false}>
+<Drawer.Root bind:open={activityDrawerState.isOpen} repositionInputs={false}>
     <Drawer.Trigger
+        onclick={() => openActivityDrawer()}
         class={cn(buttonVariants({ variant: 'default', size: 'icon' }), 'fixed right-4 bottom-24 z-50 h-14 w-14 rounded-full shadow-xl')}
     >
         <Plus class="h-6 w-6" />
@@ -98,13 +117,19 @@
                     {@const FormDef = ACTIVITY_FORMS[view]}
                     {@const Icon = FormDef.icon}
                     <div class="flex items-center justify-between gap-2" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
-                        <Button variant="ghost" size="icon" class="-ml-2 h-9 w-9 shrink-0 rounded-full" onclick={resetForm}>
-                            <ChevronLeft class="h-5 w-5" />
-                            <span class="sr-only">Back</span>
-                        </Button>
+                        {#if activityDrawerState.data}
+                            <div class="w-9 shrink-0"></div> <!-- Placeholder to balance layout -->
+                        {:else}
+                            <Button variant="ghost" size="icon" class="-ml-2 h-9 w-9 shrink-0 rounded-full" onclick={resetForm}>
+                                <ChevronLeft class="h-5 w-5" />
+                                <span class="sr-only">Back</span>
+                            </Button>
+                        {/if}
                         <div class="flex min-w-0 flex-1 items-center justify-center gap-2">
                             <Icon class="h-4 w-4 shrink-0" />
-                            <span class="truncate text-lg font-semibold">{FormDef.label}</span>
+                            <span class="truncate text-lg font-semibold">
+                                {activityDrawerState.data ? 'Edit' : 'New'} {FormDef.label}
+                            </span>
                         </div>
                         <Button type="submit" size="sm" form={FORM_ID} class="shrink-0">Save</Button>
                     </div>
@@ -136,16 +161,38 @@
                             bind:data={formData}
                             formId={FORM_ID}
                             FormComponent={FormDef.component}
-                            onSuccess={() => {
-                                isOpen = false;
-                            }}
+                            onSuccess={() => closeActivityDrawer()}
                         />
+                        
+                        {#if activityDrawerState.data && activityDrawerState.data.id}
+                            <form 
+                                method="POST" 
+                                action="?/archiveActivity"
+                                class="mt-8"
+                                use:enhance={() => {
+                                    return async ({ result, update }) => {
+                                        await update();
+                                        if (result.type === 'success') {
+                                            closeActivityDrawer();
+                                        }
+                                    };
+                                }}
+                            >
+                                <input type="hidden" name="id" value={activityDrawerState.data.id} />
+                                <Button type="submit" variant="destructive" class="w-full">
+                                    Archive {FormDef.label}
+                                </Button>
+                                <p class="mt-2 text-center text-sm text-muted-foreground">
+                                    Archived activities won't appear on your dashboard.
+                                </p>
+                            </form>
+                        {/if}
                     </div>
                 {/if}
             </div>
 
             <Drawer.Footer class="shrink-0 p-4 pt-0">
-                <Drawer.Close class={buttonVariants({ variant: 'ghost' })} onclick={() => (isOpen = false)}>Cancel</Drawer.Close>
+                <Drawer.Close class={buttonVariants({ variant: 'ghost' })}>Cancel</Drawer.Close>
             </Drawer.Footer>
         </div>
     </Drawer.Content>

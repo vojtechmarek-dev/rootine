@@ -110,6 +110,15 @@ const ActivityConfigs = z.discriminatedUnion('type', [
 export const CreateActivitySchema = z.intersection(BaseActivitySchema, ActivityConfigs);
 
 // ==========================================
+// 4b. SCHEMA FOR UPDATING ACTIVITIES
+// ==========================================
+export const UpdateActivitySchema = CreateActivitySchema.and(
+    z.object({
+        id: z.uuid('Invalid activity ID'),
+    })
+);
+
+// ==========================================
 // 5. THE MASTER ACTIVITY SCHEMA (For Reading from DB)
 // ==========================================
 // Extends CreateActivitySchema with required DB fields

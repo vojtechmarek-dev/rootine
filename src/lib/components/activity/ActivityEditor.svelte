@@ -1,5 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
+    import type { Component } from 'svelte';
     import type { ActivityFormData } from '$lib/types/schemas';
 
     let {
@@ -9,7 +10,7 @@
         onSuccess,
     }: {
         data: ActivityFormData;
-        FormComponent: any; // Dynamic component - TypeScript will infer at usage
+        FormComponent: Component<{ data: ActivityFormData }>;
         formId?: string;
         onSuccess?: () => void;
     } = $props();

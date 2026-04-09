@@ -4,7 +4,6 @@
     import favicon from '$lib/assets/favicon.svg';
     import { initializeTheme } from '$lib/theme/theme.svelte';
     import { onMount } from 'svelte';
-    import { page } from '$app/state';
 
     let { children } = $props();
 
@@ -15,10 +14,14 @@
     // Hide splash screen after app is hydrated and ready
     onMount(() => {
         const splash = document.getElementById('app-splash');
-        if (!splash) return;
+        if (!splash) {
+            return;
+        }
 
         const hide = () => {
-            if (splash.dataset.hidden === 'true') return;
+            if (splash.dataset.hidden === 'true') {
+                return;
+            }
             splash.dataset.hidden = 'true';
             setTimeout(() => splash.remove(), 220);
         };
