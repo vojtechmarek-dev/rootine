@@ -10,7 +10,7 @@
         onSuccess,
     }: {
         data: ActivityFormData;
-        FormComponent: Component<{ data: ActivityFormData }>;
+        FormComponent: Component<{ data: any }>;
         formId?: string;
         onSuccess?: () => void;
     } = $props();

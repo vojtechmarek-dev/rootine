@@ -1,11 +1,13 @@
 <script lang="ts">
     import ActivityCard from '@/components/activity/ActivityCard.svelte';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import type { DashboardActivity } from '$lib/types/schemas';
     import type { Session } from '@auth/sveltekit';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
-    import { format, addDays } from 'date-fns';
+    import { format, addDays, subDays } from 'date-fns';
+    import { Button } from '$lib/components/ui/button/index.js';
+    import { ChevronLeft, ChevronRight } from '@lucide/svelte';
     import * as Select from '$lib/components/ui/select/index.js';
     import DatePicker from '$lib/components/shared/DatePicker.svelte';
 
@@ -36,74 +38,80 @@
 
     // Sync selectValue and customDate based on URL
     $effect(() => {
-        if (currentDateStr === todayDateStr) {
-            selectValue = 'today';
-            customDate = new Date();
-        } else if (currentDateStr === tomorrowDateStr) {
-            selectValue = 'tomorrow';
-            customDate = addDays(new Date(), 1);
-        } else {
-            selectValue = 'custom';
-            // Need to parse 'yyyy-MM-dd' correctly in local timezone
-            const [year, month, day] = currentDateStr.split('-').map(Number);
-            if (year && month && day) {
-                customDate = new Date(year, month - 1, day);
+        const dateStr = currentDateStr; // track URL changes
+
+        untrack(() => {
+            if (dateStr === todayDateStr) {
+                if (selectValue !== 'custom') selectValue = 'today';
+                customDate = new Date();
+            } else if (dateStr === tomorrowDateStr) {
+                if (selectValue !== 'custom') selectValue = 'tomorrow';
+                customDate = addDays(new Date(), 1);
+            } else {
+                selectValue = 'custom';
+                // Need to parse 'yyyy-MM-dd' correctly in local timezone
+                const [year, month, day] = dateStr.split('-').map(Number);
+                if (year && month && day) {
+                    customDate = new Date(year, month - 1, day);
+                }
             }
-        }
+        });
     });
 
     // Handle Select changes
     $effect(() => {
+        const value = selectValue; // track select value changes
         if (hydrated) {
-            let targetStr = currentDateStr;
+            untrack(() => {
+                let targetStr = currentDateStr;
 
-            if (selectValue === 'today') {
-                targetStr = todayDateStr;
-            } else if (selectValue === 'tomorrow') {
-                targetStr = tomorrowDateStr;
-            }
-            // If custom is selected via dropdown, we don't navigate immediately
-            // We wait for the DatePicker to trigger a change
+                if (value === 'today') {
+                    targetStr = todayDateStr;
+                } else if (value === 'tomorrow') {
+                    targetStr = tomorrowDateStr;
+                }
 
-            if (targetStr !== currentDateStr && selectValue !== 'custom') {
-                // eslint-disable-next-line svelte/no-navigation-without-resolve
-                goto(`?date=${targetStr}`, { keepFocus: true });
-            }
+                if (targetStr !== currentDateStr && value !== 'custom') {
+                    // eslint-disable-next-line svelte/no-navigation-without-resolve
+                    goto(`?date=${targetStr}`, { keepFocus: true });
+                }
+            });
         }
     });
 
     // Handle Custom Date Picker changes
     $effect(() => {
-        if (hydrated && selectValue === 'custom' && customDate) {
-            const dateStr = format(customDate, 'yyyy-MM-dd');
-            if (dateStr !== currentDateStr) {
-                // eslint-disable-next-line svelte/no-navigation-without-resolve
-                goto(`?date=${dateStr}`, { keepFocus: true });
-            }
+        const custom = customDate; // track customDate
+        if (hydrated && selectValue === 'custom' && custom) {
+            untrack(() => {
+                const dateStr = format(custom, 'yyyy-MM-dd');
+                if (dateStr !== currentDateStr) {
+                    // eslint-disable-next-line svelte/no-navigation-without-resolve
+                    goto(`?date=${dateStr}`, { keepFocus: true });
+                }
+            });
         }
     });
 
-    // Allow DatePicker to change selectValue to custom if used directly
-    const onDatePicked = (v: Date | undefined) => {
-        if (!v) {
-            return;
-        }
-        customDate = v;
-        const vStr = format(v, 'yyyy-MM-dd');
-        if (vStr === todayDateStr) {
-            selectValue = 'today';
-        } else if (vStr === tomorrowDateStr) {
-            selectValue = 'tomorrow';
-        } else {
-            selectValue = 'custom';
+    const prevDay = () => {
+        const [year, month, day] = currentDateStr.split('-').map(Number);
+        if (year && month && day) {
+            const date = new Date(year, month - 1, day);
+            const prev = subDays(date, 1);
+            // eslint-disable-next-line svelte/no-navigation-without-resolve
+            goto(`?date=${format(prev, 'yyyy-MM-dd')}`, { keepFocus: true });
         }
     };
 
-    $effect(() => {
-        if (customDate) {
-            onDatePicked(customDate);
+    const nextDay = () => {
+        const [year, month, day] = currentDateStr.split('-').map(Number);
+        if (year && month && day) {
+            const date = new Date(year, month - 1, day);
+            const next = addDays(date, 1);
+            // eslint-disable-next-line svelte/no-navigation-without-resolve
+            goto(`?date=${format(next, 'yyyy-MM-dd')}`, { keepFocus: true });
         }
-    });
+    };
 
     onMount(() => {
         hydrated = true;
@@ -124,6 +132,11 @@
         </div>
 
         <div class="flex items-center gap-2">
+            <Button variant="outline" size="icon" onclick={prevDay} class="h-10 w-10 shrink-0">
+                <ChevronLeft class="h-4 w-4" />
+                <span class="sr-only">Previous day</span>
+            </Button>
+
             <Select.Root type="single" bind:value={selectValue}>
                 <Select.Trigger class="w-[140px]">
                     {#if selectValue === 'today'}
@@ -146,6 +159,10 @@
                     <DatePicker bind:value={customDate} />
                 </div>
             {/if}
+            <Button variant="outline" size="icon" onclick={nextDay} class="h-10 w-10 shrink-0">
+                <ChevronRight class="h-4 w-4" />
+                <span class="sr-only">Next day</span>
+            </Button>
         </div>
     </div>
 
