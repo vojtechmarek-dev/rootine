@@ -2,6 +2,7 @@
     import Header from '@/components/layout/Header.svelte';
     import Navigation from '@/components/layout/Navigation.svelte';
     import CreateActivity from '@/components/activity/CreateActivity.svelte';
+    import { Toaster } from '$lib/components/ui/sonner';
     import type { LayoutData } from './$types';
 
     let { children, data } = $props<{
@@ -10,6 +11,7 @@
     }>();
 </script>
 
+<Toaster />
 <div class="flex min-h-screen flex-col bg-background">
     <!--
       Vaul "scale background" affects the element with `data-vaul-drawer-wrapper`.

@@ -14,11 +14,12 @@ export const load: PageServerLoad = async (event) => {
 
     const urlDate = event.url.searchParams.get('date');
     const targetDate = urlDate ? new Date(urlDate) : new Date();
-    const activities = await getDashboardActivities(session.user.id, targetDate);
+    const dashboardResult = await getDashboardActivities(session.user.id, targetDate);
 
     return {
         session,
-        activities,
+        activities: dashboardResult.activities,
+        errors: dashboardResult.errors,
     };
 };
 

@@ -14,7 +14,7 @@ function getTargetCount(activity: { type: string; config: Record<string, unknown
     return 1;
 }
 
-export async function getDashboardActivities(userId: string, targetDate: Date): Promise<DashboardActivity[]> {
+export async function getDashboardActivities(userId: string, targetDate: Date): Promise<{ activities: DashboardActivity[]; errors: Array<{ id: string; type: string; message: string }> }> {
     const userActivities = await db.query.activities.findMany({
         where: and(eq(activities.userId, userId), eq(activities.archived, false)),
         orderBy: [desc(activities.createdAt)],
@@ -26,6 +26,7 @@ export async function getDashboardActivities(userId: string, targetDate: Date): 
     });
 
     const dashboardActivities: DashboardActivity[] = [];
+    const errors: Array<{ id: string; type: string; message: string }> = [];
 
     for (const activity of userActivities) {
         const { logs: rawLogs, ...rawActivityData } = activity;
@@ -33,10 +34,9 @@ export async function getDashboardActivities(userId: string, targetDate: Date): 
         const validationResult = ActivitySchema.safeParse(rawActivityData);
 
         if (!validationResult.success) {
-            console.error(
-                `Activity Validation Failed (ID: ${activity.id}, Type: ${activity.type}):`,
-                formatZodErrorTree(validationResult.error)
-            );
+            const errStr = JSON.stringify(validationResult.error.flatten().fieldErrors, null, 2);
+            console.error(`Activity Validation Failed (ID: ${activity.id}, Type: ${activity.type}):`, errStr);
+            errors.push({ id: activity.id, type: activity.type, message: errStr });
             continue;
         }
 
@@ -73,5 +73,5 @@ export async function getDashboardActivities(userId: string, targetDate: Date): 
         });
     }
 
-    return dashboardActivities;
+    return { activities: dashboardActivities, errors };
 }

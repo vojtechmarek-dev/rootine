@@ -9,9 +9,9 @@ import { z } from 'zod';
 
 export const BaseActivitySchema = z.object({
     title: z.string().min(1, 'Title is required'),
-    description: z.string().optional(),
-    color: z.string().default('zinc'),
-    icon: z.string().default('circle'),
+    description: z.string().nullish(),
+    color: z.string().nullish().transform((v) => v ?? 'zinc'),
+    icon: z.string().nullish().transform((v) => v ?? 'circle'),
     startDate: z.coerce.date().default(() => new Date()),
     endDate: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.coerce.date().optional()),
     archived: z.preprocess((v) => v === 'true' || v === 'on' || v === '1', z.boolean().default(false)),
@@ -60,23 +60,31 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
 // Example: "Drink Water", Target: 3 liters
 export const HabitConfigSchema = ActivityConfig.extend({
     targetValue: z.coerce.number().min(1).default(1),
-    unit: z.string().optional().default('times'),
+    unit: z.string().nullish().transform((v) => v ?? 'times'),
 });
 
 // --- TYPE 2: PLANT (Interval Tracker) ---
 // Example: "Monstera", Water every 7 days
 export const PlantConfigSchema = ActivityConfig.extend({
-    location: z.string().optional(), // e.g., "Living Room"
-    species: z.string().optional(),
+    location: z.string().nullish(), // e.g., "Living Room"
+    species: z.string().nullish(),
     // We store dates as Strings in JSON, Zod validates they are ISO formatted
-    lastWatered: z.iso.datetime().optional(),
+    lastWatered: z.iso.datetime().nullish(),
 });
 
 // --- TYPE 3: WORKOUT (Complex Template) ---
 // Example: "Push Day", List of exercises to perform
 export const WorkoutConfigSchema = ActivityConfig.extend({
-    exercises: z.array(z.string()).default([]),
-    estimatedDurationMin: z.coerce.number().optional(),
+    exercises: z.array(
+        z.object({
+            id: z.string().default(() => crypto.randomUUID()),
+            name: z.string().min(1, 'Exercise name required'),
+            sets: z.coerce.number().min(1).default(3),
+            reps: z.coerce.number().min(1).default(10),
+            weight: z.coerce.number().nullish(),
+        })
+    ).default([]),
+    estimatedDurationMin: z.coerce.number().nullish(),
 });
 
 // ==========================================
