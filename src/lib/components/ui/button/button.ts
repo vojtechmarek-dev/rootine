@@ -6,6 +6,7 @@ export const buttonVariants = tv({
     variants: {
         variant: {
             default: 'bg-gradient-to-b from-primary to-primary-container text-primary-foreground shadow-ambient hover:opacity-90',
+            clay: 'bg-clay text-clay-foreground shadow-ambient hover:opacity-90',
             destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
             outline: 'bg-surface-container-lowest text-foreground shadow-ambient hover:bg-surface-container-low',
             secondary: 'bg-surface-container-low text-foreground hover:bg-surface-container-high',

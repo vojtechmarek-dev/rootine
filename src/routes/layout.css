@@ -8,7 +8,7 @@
 
 :root,
 html[data-theme='zinc'][data-mode='light'] {
-    --radius: 1rem;
+    --radius: 0.75rem;
     --background: #f8f9fa;
     --foreground: #012d1d;
     --card: #ffffff;
@@ -25,6 +25,10 @@ html[data-theme='zinc'][data-mode='light'] {
     --accent-foreground: #012d1d;
     --destructive: #3b1f00;
     --destructive-foreground: #ffffff;
+    --clay: #b85c38;
+    --clay-foreground: #ffffff;
+    --danger: #ba1a1a;
+    --danger-foreground: #ffffff;
     --border: #c1c8c2;
     --input: #ffffff;
     --ring: #ffdcbd;
@@ -77,6 +81,10 @@ html.dark {
     --accent-foreground: #f8f9fa;
     --destructive: #ffdcbd;
     --destructive-foreground: #3b1f00;
+    --clay: #d97757;
+    --clay-foreground: #1f0f08;
+    --danger: #ba1a1a;
+    --danger-foreground: #ffffff;
     --border: color-mix(in srgb, #c1c8c2 15%, transparent);
     --input: #11281e;
     --ring: #ffdcbd;
@@ -135,6 +143,10 @@ html.dark {
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
     --color-destructive: var(--destructive);
+    --color-clay: var(--clay);
+    --color-clay-foreground: var(--clay-foreground);
+    --color-danger: var(--danger);
+    --color-danger-foreground: var(--danger-foreground);
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);

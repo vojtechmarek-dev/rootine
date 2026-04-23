@@ -88,8 +88,8 @@
                         type="button"
                         class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full transition-colors
                         {schedule.days.includes(day)
-                            ? 'bg-secondary text-secondary-foreground shadow-ambient'
-                            : 'bg-secondary-fixed text-secondary hover:opacity-80'}"
+                            ? 'bg-clay text-clay-foreground shadow-ambient'
+                            : 'bg-surface-container-high text-muted-foreground hover:bg-surface-variant'}"
                         onclick={() => {
                             if (!isWeeklySchedule(schedule)) {
                                 return;

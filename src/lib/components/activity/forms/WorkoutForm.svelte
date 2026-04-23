@@ -59,20 +59,22 @@
                     <Field.Label>Exercises</Field.Label>
                     <div class="flex flex-col gap-4">
                         {#each data.config.exercises as exercise (exercise.id)}
-                            <div class="relative flex flex-col gap-3 rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
-                                <div class="flex items-start gap-2">
+                            <div
+                                class="relative flex flex-col gap-3 rounded-lg bg-surface-container-low p-4 text-foreground shadow-ambient"
+                            >
+                                <div class="flex items-center gap-2">
                                     <div class="flex-1">
                                         <Input
                                             type="text"
                                             placeholder="Exercise name (e.g. Bench Press)"
                                             bind:value={exercise.name}
-                                            class="font-medium"
+                                            class="bg-surface-container-high font-medium"
                                         />
                                     </div>
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        class="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                        class="shrink-0 text-danger hover:bg-danger/10 hover:text-danger"
                                         onclick={() => {
                                             data.config.exercises = data.config.exercises.filter((e) => e.id !== exercise.id);
                                         }}
@@ -83,16 +85,45 @@
                                 </div>
                                 <div class="grid grid-cols-3 gap-3">
                                     <div class="space-y-1">
-                                        <label class="text-xs font-medium leading-none text-muted-foreground" for="sets-{exercise.id}">Sets</label>
-                                        <Input id="sets-{exercise.id}" type="number" min="1" bind:value={exercise.sets} />
+                                        <label
+                                            class="text-xs leading-none font-semibold tracking-wide text-secondary uppercase dark:text-muted-foreground"
+                                            for="sets-{exercise.id}">Sets</label
+                                        >
+                                        <Input
+                                            id="sets-{exercise.id}"
+                                            type="number"
+                                            min="1"
+                                            bind:value={exercise.sets}
+                                            class="bg-surface-container-high"
+                                        />
                                     </div>
                                     <div class="space-y-1">
-                                        <label class="text-xs font-medium leading-none text-muted-foreground" for="reps-{exercise.id}">Reps</label>
-                                        <Input id="reps-{exercise.id}" type="number" min="1" bind:value={exercise.reps} />
+                                        <label
+                                            class="text-xs leading-none font-semibold tracking-wide text-secondary uppercase dark:text-muted-foreground"
+                                            for="reps-{exercise.id}">Reps</label
+                                        >
+                                        <Input
+                                            id="reps-{exercise.id}"
+                                            type="number"
+                                            min="1"
+                                            bind:value={exercise.reps}
+                                            class="bg-surface-container-high"
+                                        />
                                     </div>
                                     <div class="space-y-1">
-                                        <label class="text-xs font-medium leading-none text-muted-foreground" for="weight-{exercise.id}">Weight</label>
-                                        <Input id="weight-{exercise.id}" type="number" min="0" step="any" placeholder="lbs/kg" bind:value={exercise.weight} />
+                                        <label
+                                            class="text-xs leading-none font-semibold tracking-wide text-secondary uppercase dark:text-muted-foreground"
+                                            for="weight-{exercise.id}">Weight</label
+                                        >
+                                        <Input
+                                            id="weight-{exercise.id}"
+                                            type="number"
+                                            min="0"
+                                            step="any"
+                                            placeholder="lbs/kg"
+                                            bind:value={exercise.weight}
+                                            class="bg-surface-container-high"
+                                        />
                                     </div>
                                 </div>
                             </div>

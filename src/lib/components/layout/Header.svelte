@@ -63,7 +63,7 @@
                                 </div>
                             </div>
 
-                            <Button variant="destructive" class="w-full" onclick={handleSignOut}>
+                            <Button variant="danger" class="w-full" onclick={handleSignOut}>
                                 <LogOut class="mr-2 h-4 w-4" />
                                 Log out
                             </Button>

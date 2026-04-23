@@ -118,7 +118,8 @@
                     {@const Icon = FormDef.icon}
                     <div class="flex items-center justify-between gap-2" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
                         {#if activityDrawerState.data}
-                            <div class="w-9 shrink-0"></div> <!-- Placeholder to balance layout -->
+                            <div class="w-9 shrink-0"></div>
+                            <!-- Placeholder to balance layout -->
                         {:else}
                             <Button variant="ghost" size="icon" class="-ml-2 h-9 w-9 shrink-0 rounded-full" onclick={resetForm}>
                                 <ChevronLeft class="h-5 w-5" />
@@ -128,10 +129,11 @@
                         <div class="flex min-w-0 flex-1 items-center justify-center gap-2">
                             <Icon class="h-4 w-4 shrink-0" />
                             <span class="truncate text-lg font-semibold">
-                                {activityDrawerState.data ? 'Edit' : 'New'} {FormDef.label}
+                                {activityDrawerState.data ? 'Edit' : 'New'}
+                                {FormDef.label}
                             </span>
                         </div>
-                        <Button type="submit" size="sm" form={FORM_ID} class="shrink-0">Save</Button>
+                        <div class="w-9 shrink-0"></div>
                     </div>
                 {/if}
             </div>
@@ -163,10 +165,10 @@
                             FormComponent={FormDef.component}
                             onSuccess={() => closeActivityDrawer()}
                         />
-                        
+
                         {#if activityDrawerState.data && activityDrawerState.data.id}
-                            <form 
-                                method="POST" 
+                            <form
+                                method="POST"
                                 action="?/archiveActivity"
                                 class="mt-8"
                                 use:enhance={() => {
@@ -191,8 +193,17 @@
                 {/if}
             </div>
 
-            <Drawer.Footer class="shrink-0 p-4 pt-0">
-                <Drawer.Close class={buttonVariants({ variant: 'ghost' })}>Cancel</Drawer.Close>
+            <Drawer.Footer class="shrink-0 border-t border-border/50 p-4 ">
+                {#if view === 'menu'}
+                    <Drawer.Close class={buttonVariants({ variant: 'link' })}>Cancel</Drawer.Close>
+                {:else}
+                    <div class="flex gap-3">
+                        <Drawer.Close class={cn(buttonVariants({ variant: 'link' }), 'flex-1')}>Cancel</Drawer.Close>
+                        <Button type="submit" variant="default" form={FORM_ID} class="flex-2">
+                            {activityDrawerState.data ? 'Save Changes' : 'Create'}
+                        </Button>
+                    </div>
+                {/if}
             </Drawer.Footer>
         </div>
     </Drawer.Content>
