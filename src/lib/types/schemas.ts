@@ -96,17 +96,17 @@ export const WorkoutConfigSchema = ActivityConfig.extend({
 const ActivityConfigs = z.discriminatedUnion('type', [
     z.object({
         type: z.literal('habit'),
-        config: HabitConfigSchema,
+        config: z.preprocess((value) => value ?? {}, HabitConfigSchema),
         schedule: ScheduleSchema.default({ type: 'daily' }),
     }),
     z.object({
         type: z.literal('plant'),
-        config: PlantConfigSchema,
+        config: z.preprocess((value) => value ?? {}, PlantConfigSchema),
         schedule: ScheduleSchema.default({ type: 'interval', value: 7, unit: 'days' }),
     }),
     z.object({
         type: z.literal('workout'),
-        config: WorkoutConfigSchema,
+        config: z.preprocess((value) => value ?? {}, WorkoutConfigSchema),
         schedule: ScheduleSchema.default({ type: 'weekly', days: ['mon', 'wed', 'fri'] }),
     }),
 ]);

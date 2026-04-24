@@ -1,5 +1,6 @@
 <script lang="ts">
     import Dashboard from '@/components/activity/Dashboard.svelte';
+    import { toToastDescription } from '$lib/utils';
     import type { PageData } from './$types';
     import { toast } from 'svelte-sonner';
     import { onMount } from 'svelte';
@@ -12,8 +13,10 @@
     onMount(() => {
         if (data.errors && data.errors.length > 0) {
             for (const err of data.errors) {
+                const description = toToastDescription(`Activity ID: ${err.id}. ${err.message}`)
+                    ?? `Activity ID: ${err.id}. Invalid data.`;
                 toast.error(`Failed to load ${err.type} activity`, {
-                    description: `Activity ID: ${err.id}. Invalid data.`,
+                    description,
                     duration: 5000,
                 });
             }
