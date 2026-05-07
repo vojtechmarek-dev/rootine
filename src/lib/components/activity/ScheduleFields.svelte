@@ -33,8 +33,6 @@
 <Field.Group>
     <Field.Field>
         <Field.Label>Frequency</Field.Label>
-        <!-- Use hidden input for form submission if needed, but Shadcn Select usually needs manual handling or a hidden field -->
-        <input type="hidden" name="schedule.type" value={schedule.type} />
 
         <Select.Root type="single" value={selectedType} onValueChange={(value) => onTypeChange(value as Schedule['type'])}>
             <Select.Trigger class="w-full">
@@ -58,11 +56,10 @@
         <div class="flex gap-2">
             <Field.Field class="flex-1">
                 <Field.Label>Every</Field.Label>
-                <Input type="number" name="schedule.value" min="1" bind:value={schedule.value} />
+                <Input type="number" min="1" bind:value={schedule.value} />
             </Field.Field>
             <Field.Field class="w-1/3">
                 <Field.Label>Unit</Field.Label>
-                <input type="hidden" name="schedule.unit" value={schedule.unit} />
                 <Select.Root type="single" bind:value={schedule.unit}>
                     <Select.Trigger>
                         {schedule.unit === 'days' ? 'Days' : 'Hours'}
@@ -77,10 +74,6 @@
     {:else if schedule.type === 'weekly'}
         <Field.Field>
             <Field.Label>Days</Field.Label>
-            <!-- Hidden inputs to submit array values for server handling -->
-            {#each schedule.days as day (day)}
-                <input type="hidden" name="schedule.days" value={day} />
-            {/each}
 
             <div class="flex flex-wrap gap-2">
                 {#each WEEKDAYS as day (day)}

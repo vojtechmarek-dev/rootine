@@ -44,7 +44,6 @@
                     <Field.Label>Estimated Duration (min)</Field.Label>
                     <Input
                         type="number"
-                        name="config.estimatedDurationMin"
                         min="1"
                         placeholder="e.g. 45"
                         bind:value={data.config.estimatedDurationMin}
@@ -66,6 +65,7 @@
                                     <div class="flex-1">
                                         <Input
                                             type="text"
+                                            name="config.exercises.name"
                                             placeholder="Exercise name (e.g. Bench Press)"
                                             bind:value={exercise.name}
                                             class="bg-surface-container-high font-medium"

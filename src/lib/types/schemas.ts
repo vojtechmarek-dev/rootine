@@ -23,11 +23,8 @@ export const BaseActivitySchema = z.object({
 // These define "What is this activity?"
 // Stored in activities.config JSONB
 
-// Base config (currently empty as common props moved up, but kept for extensibility)
-export const ActivityConfig = z.object({
-    createdAt: z.date().optional(),
-    updatedAt: z.date().optional(),
-});
+// Base for type-specific JSONB `config` only. Row timestamps are `activities.createdAt` / `activities.updatedAt`.
+export const ActivityConfig = z.object({});
 
 // --- SCHEDULE SCHEMA ---
 // Unified scheduling for all activity types
@@ -126,6 +123,18 @@ export const UpdateActivitySchema = CreateActivitySchema.and(
     })
 );
 
+/** Single-field archive POST (`name="id"`). */
+export const ArchiveActivityFormSchema = z.object({
+    id: z.uuid('Invalid activity ID'),
+});
+
+/** Create / edit drawer: same shape as create, optional id when inserting. */
+export const DrawerActivitySchema = CreateActivitySchema.and(
+    z.object({
+        id: z.uuid().optional(),
+    })
+);
+
 // ==========================================
 // 5. THE MASTER ACTIVITY SCHEMA (For Reading from DB)
 // ==========================================
@@ -202,6 +211,8 @@ export const SessionSchema = z.object({
 
 export type Activity = z.infer<typeof ActivitySchema>;
 export type CreateActivity = z.infer<typeof CreateActivitySchema>;
+export type UpdateActivity = z.infer<typeof UpdateActivitySchema>;
+export type ArchiveActivityForm = z.infer<typeof ArchiveActivityFormSchema>;
 export type BaseActivity = z.infer<typeof BaseActivitySchema>;
 export type Schedule = z.infer<typeof ScheduleSchema>;
 export type HabitConfig = z.infer<typeof HabitConfigSchema>;
@@ -225,4 +236,21 @@ export type DashboardActivity = Activity & {
     logs?: Log[] | null;
 };
 
-export type ActivityFormData = CreateActivity & { id?: string };
+export type DrawerActivity = z.infer<typeof DrawerActivitySchema>;
+
+export type ActivityFormData = DrawerActivity;
+
+export function getEmptyDrawerActivity(): DrawerActivity {
+    return {
+        title: '',
+        description: undefined,
+        color: 'zinc',
+        icon: 'circle',
+        startDate: new Date(),
+        endDate: undefined,
+        archived: false,
+        type: 'habit',
+        config: { targetValue: 1, unit: 'times' },
+        schedule: { type: 'daily' },
+    };
+}
