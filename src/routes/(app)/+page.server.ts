@@ -14,12 +14,9 @@ export const load: PageServerLoad = async (event) => {
 
     const urlDate = event.url.searchParams.get('date');
     const targetDate = urlDate ? new Date(urlDate) : new Date();
-    const dashboardResult = await getDashboardActivities(session.user.id, targetDate);
-
     return {
         session,
-        activities: dashboardResult.activities,
-        errors: dashboardResult.errors,
+        dashboardPayload: getDashboardActivities(session.user.id, targetDate),
     };
 };
 

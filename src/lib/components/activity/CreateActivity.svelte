@@ -181,7 +181,7 @@
                                 }}
                             >
                                 <input type="hidden" name="id" value={activityDrawerState.data.id} />
-                                <Button type="submit" variant="destructive" class="w-full">
+                                <Button type="submit" variant="danger" class="w-full">
                                     Archive {FormDef.label}
                                 </Button>
                                 <p class="mt-2 text-center text-sm text-muted-foreground">

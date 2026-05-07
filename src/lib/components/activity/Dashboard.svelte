@@ -1,5 +1,6 @@
 <script lang="ts">
     import ActivityCard from '@/components/activity/ActivityCard.svelte';
+    import ActivitySkeletons from '@/components/activity/ActivitySkeletons.svelte';
     import { onMount, untrack } from 'svelte';
     import type { DashboardActivity } from '$lib/types/schemas';
     import type { Session } from '@auth/sveltekit';
@@ -14,9 +15,11 @@
     let {
         session,
         activities,
+        loading = false,
     }: {
         session: Session | null;
         activities: DashboardActivity[];
+        loading?: boolean;
     } = $props();
 
     const hasSessionUser = $derived(Boolean(session?.user));
@@ -35,6 +38,7 @@
 
     let selectValue = $state('today');
     let customDate = $state<Date | undefined>(undefined);
+    let expandedActivityId = $state<string | null>(null);
 
     // Sync selectValue and customDate based on URL
     $effect(() => {
@@ -42,10 +46,14 @@
 
         untrack(() => {
             if (dateStr === todayDateStr) {
-                if (selectValue !== 'custom') selectValue = 'today';
+                if (selectValue !== 'custom') {
+                    selectValue = 'today';
+                }
                 customDate = new Date();
             } else if (dateStr === tomorrowDateStr) {
-                if (selectValue !== 'custom') selectValue = 'tomorrow';
+                if (selectValue !== 'custom') {
+                    selectValue = 'tomorrow';
+                }
                 customDate = addDays(new Date(), 1);
             } else {
                 selectValue = 'custom';
@@ -116,6 +124,14 @@
     onMount(() => {
         hydrated = true;
     });
+
+    const toggleExpanded = (activityId: string) => {
+        if (expandedActivityId === activityId) {
+            expandedActivityId = null;
+            return;
+        }
+        expandedActivityId = activityId;
+    };
 </script>
 
 <div class="p-4">
@@ -166,7 +182,9 @@
         </div>
     </div>
 
-    {#if activities.length === 0}
+    {#if loading}
+        <ActivitySkeletons />
+    {:else if activities.length === 0}
         <div class="rounded-2xl bg-surface-container-lowest p-6">
             <p class="text-muted-foreground">Your activities will appear here.</p>
         </div>
@@ -174,7 +192,14 @@
         <div class="space-y-8">
             <div class="space-y-4">
                 {#each activities as activity (activity.id)}
-                    <ActivityCard {activity} canToggle={canToggleActivities} />
+                    <ActivityCard
+                        {activity}
+                        canToggle={canToggleActivities}
+                        isOpen={expandedActivityId === activity.id}
+                        onToggle={() => {
+                            toggleExpanded(activity.id);
+                        }}
+                    />
                 {/each}
             </div>
 

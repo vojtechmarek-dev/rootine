@@ -6,7 +6,7 @@
 
 <div class="space-y-4">
     {#each Array.from({ length: count }, (_, i) => i) as i (i)}
-        <div class="rounded-lg border border-border bg-card p-4 dark:border-border dark:bg-card">
+        <div class="rounded-2xl bg-surface-container-lowest p-4 shadow-ambient dark:ring-1 dark:ring-outline-variant/15">
             <div class="mb-3 flex items-center justify-between gap-3">
                 <Skeleton class="h-4 w-1/2" />
                 <Skeleton class="h-6 w-6 rounded-full" />

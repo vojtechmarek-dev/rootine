@@ -3,25 +3,48 @@
     import { toToastDescription } from '$lib/utils';
     import type { PageData } from './$types';
     import { toast } from 'svelte-sonner';
-    import { onMount } from 'svelte';
+    import { SvelteSet } from 'svelte/reactivity';
 
     let { data }: { data: PageData } = $props();
 
     const session = $derived(data.session);
-    const activities = $derived(data.activities);
+    const dashboardPayload = $derived(
+        data.dashboardPayload.then((payload) => {
+            notifyDataErrors(payload.errors);
+            return payload;
+        }),
+    );
+    const shownErrorSignatures = new SvelteSet<string>();
 
-    onMount(() => {
-        if (data.errors && data.errors.length > 0) {
-            for (const err of data.errors) {
-                const description = toToastDescription(`Activity ID: ${err.id}. ${err.message}`)
-                    ?? `Activity ID: ${err.id}. Invalid data.`;
-                toast.error(`Failed to load ${err.type} activity`, {
-                    description,
-                    duration: 5000,
-                });
-            }
+    const notifyDataErrors = (errors: Array<{ id: string; type: string; message: string }>) => {
+        const signature = JSON.stringify(errors);
+        if (errors.length === 0 || shownErrorSignatures.has(signature)) {
+            return;
         }
-    });
+
+        shownErrorSignatures.add(signature);
+
+        for (const err of errors) {
+            const description = toToastDescription(`Activity ID: ${err.id}. ${err.message}`)
+                ?? `Activity ID: ${err.id}. Invalid data.`;
+            toast.error(`Failed to load ${err.type} activity`, {
+                description,
+                duration: 5000,
+            });
+        }
+    };
 </script>
 
-<Dashboard {session} {activities} />
+{#await dashboardPayload}
+    <Dashboard {session} activities={[]} loading={true} />
+{:then dashboardPayload}
+    {@const activities = dashboardPayload.activities}
+    <Dashboard {session} {activities} />
+{:catch err}
+    <div class="p-4">
+        <div class="rounded-2xl bg-destructive/10 p-6 text-destructive">
+            <p class="font-medium">Could not load activities right now.</p>
+            <p class="mt-1 text-sm text-muted-foreground">{err instanceof Error ? err.message : 'Unknown error.'}</p>
+        </div>
+    </div>
+{/await}
