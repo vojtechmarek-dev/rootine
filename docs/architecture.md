@@ -25,6 +25,7 @@ sequenceDiagram
 
 ## Architectural Decisions
 
-All major architectural decisions are documented in the `docs/adr` folder.
+High-level tech choices are summarized in **`docs/decisions`** (numbered ADRs). PWA-focused notes live in **`docs/adr`**.
 
 - [ADR 001: Transition to Single Page Application (SPA) Mode for PWA](./adr/001-spa-mode-for-pwa.md)
+- [ADR 005: Why sveltekit-superforms](./decisions/005-why-sveltekit-superforms.md) — forms, Zod 4 integration, nested activity payloads
