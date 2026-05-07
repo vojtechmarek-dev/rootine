@@ -40,11 +40,11 @@
             <Field.Group>
                 <Field.Field>
                     <Field.Label>Species</Field.Label>
-                    <Input type="text" name="config.species" placeholder="e.g. Monstera Deliciosa" bind:value={data.config.species} />
+                    <Input type="text" placeholder="e.g. Monstera Deliciosa" bind:value={data.config.species} />
                 </Field.Field>
                 <Field.Field>
                     <Field.Label>Location</Field.Label>
-                    <Input type="text" name="config.location" placeholder="e.g. Living Room" bind:value={data.config.location} />
+                    <Input type="text" placeholder="e.g. Living Room" bind:value={data.config.location} />
                 </Field.Field>
 
                 <!-- Unified Schedule (Replaces waterIntervalDays) -->

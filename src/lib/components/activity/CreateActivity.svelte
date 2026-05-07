@@ -1,27 +1,40 @@
+<script module>
+    import { zod4Client } from 'sveltekit-superforms/adapters';
+    import { DrawerActivitySchema } from '$lib/types/schemas';
+
+    const drawerActivityValidator = zod4Client(DrawerActivitySchema);
+</script>
+
 <script lang="ts">
+    import type { Component } from 'svelte';
+    import { tick } from 'svelte';
     import * as Drawer from '$lib/components/ui/drawer';
     import { Button, buttonVariants } from '$lib/components/ui/button';
     import { Plus, ChevronLeft } from '@lucide/svelte';
-    import { cn } from '$lib/utils';
+    import { cn, toToastDescription } from '$lib/utils';
     import HabitForm, { meta as HabitMeta } from '$lib/components/activity/forms/HabitForm.svelte';
     import PlantForm, { meta as PlantMeta } from '$lib/components/activity/forms/PlantForm.svelte';
     import WorkoutForm, { meta as WorkoutMeta } from '$lib/components/activity/forms/WorkoutForm.svelte';
-    import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, ActivityFormData } from '$lib/types/schemas';
+    import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, ActivityFormData, DrawerActivity } from '$lib/types/schemas';
+    import { getEmptyDrawerActivity } from '$lib/types/schemas';
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
     import ActivityEditor from '$lib/components/activity/ActivityEditor.svelte';
     import { activityDrawerState, openActivityDrawer, closeActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import { enhance } from '$app/forms';
     import { untrack } from 'svelte';
+    import type { SuperValidated } from 'sveltekit-superforms';
+    import { superForm } from 'sveltekit-superforms/client';
+    import { toast } from 'svelte-sonner';
 
-    // The Activity Forms Registry
+    let { activityForm }: { activityForm: SuperValidated<DrawerActivity> } = $props();
+
     const ACTIVITY_FORMS = {
         habit: { component: HabitForm, ...HabitMeta },
         plant: { component: PlantForm, ...PlantMeta },
         workout: { component: WorkoutForm, ...WorkoutMeta },
     } as const;
 
-    // defaults
     const defaults = {
         habit: {
             config: { targetValue: 1, unit: 'times' } as HabitConfig,
@@ -37,53 +50,47 @@
         },
     };
 
-    const getInitialFormData = (): ActivityFormData => ({
-        title: '',
-        description: undefined,
-        color: 'zinc',
-        icon: 'circle',
-        startDate: new Date(),
-        endDate: undefined,
-        archived: false,
-        type: 'habit',
-        config: defaults.habit.config,
-        schedule: defaults.habit.schedule,
-    });
+    let formData = $state<ActivityFormData>(getEmptyDrawerActivity());
 
-    let formData = $state<ActivityFormData>(getInitialFormData());
+    /** `structuredClone` cannot copy Svelte `$state` proxies; snapshot first. */
+    function cloneFormPayload(source: DrawerActivity): ActivityFormData {
+        return structuredClone($state.snapshot(source));
+    }
 
     type ActivityType = Activity['type'];
 
     let view = $state<'menu' | ActivityType>('menu');
 
-    // Sync formData with activityDrawerState
-    $effect(() => {
-        const drawerOpen = activityDrawerState.isOpen;
-        const drawerData = activityDrawerState.data;
-
-        untrack(() => {
-            if (drawerOpen) {
-                if (drawerData) {
-                    // Edit Mode
-                    formData = structuredClone($state.snapshot(drawerData));
-                    view = formData.type;
-                } else if (!formData.id && formData.title === '') {
-                    // Ensure form is fresh for new creation if not already seeded
-                    formData = getInitialFormData();
-                    view = 'menu';
-                }
-            } else {
-                // Wait for drawer animation before resetting
-                setTimeout(() => {
-                    resetForm();
-                }, 300);
+    // svelte-ignore state_referenced_locally
+    const { form, enhance: superEnhance, reset } = superForm(activityForm, {
+        id: 'activity-drawer-form',
+        dataType: 'json',
+        resetForm: false,
+        validators: drawerActivityValidator,
+        async onSubmit() {
+            form.set(cloneFormPayload(formData), { taint: false });
+            await tick();
+        },
+        onUpdated({ form: f }) {
+            if (!f.posted) {
+                return;
             }
-        });
+            if (!f.valid) {
+                formData = cloneFormPayload(f.data as DrawerActivity);
+                toast.error('Could not save activity', {
+                    description: toToastDescription(f.errors),
+                });
+                return;
+            }
+            closeActivityDrawer();
+        },
     });
 
-    const resetForm = () => {
+    const resetEmpty = () => {
         view = 'menu';
-        formData = getInitialFormData();
+        const next = getEmptyDrawerActivity();
+        formData = next;
+        reset({ data: next });
     };
 
     const switchView = (newType: ActivityType) => {
@@ -91,9 +98,46 @@
         formData.config = { ...defaults[newType].config };
         formData.schedule = { ...defaults[newType].schedule };
         view = newType;
+        form.set(cloneFormPayload(formData), { taint: false });
     };
 
     const FORM_ID = 'create-activity-form';
+
+    $effect(() => {
+        const drawerOpen = activityDrawerState.isOpen;
+        const drawerData = activityDrawerState.data;
+
+        if (drawerOpen) {
+            untrack(() => {
+                if (drawerData) {
+                    const next = cloneFormPayload(drawerData);
+                    reset({ data: next });
+                    formData = next;
+                    view = next.type;
+                } else if (!formData.id && formData.title === '') {
+                    const next = getEmptyDrawerActivity();
+                    reset({ data: next });
+                    formData = next;
+                    view = 'menu';
+                }
+            });
+
+            /**
+             * Vaul binding can flicker open false briefly while opening/closing.
+             * Without clearing this timeout when we become open again, resetEmpty runs
+             * after an edit-open and resets the drawer to the "create menu" screen.
+             */
+            return;
+        }
+
+        const resetHandle = setTimeout(() => {
+            resetEmpty();
+        }, 300);
+
+        return () => {
+            clearTimeout(resetHandle);
+        };
+    });
 </script>
 
 <Drawer.Root bind:open={activityDrawerState.isOpen} repositionInputs={false}>
@@ -106,7 +150,6 @@
     </Drawer.Trigger>
     <Drawer.Content class="flex max-h-[90dvh] flex-col overflow-hidden">
         <div class="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col">
-            <!-- Fixed header: controls stay outside scroll -->
             <div class="shrink-0 px-4 pt-2 pb-3">
                 {#if view === 'menu'}
                     <Drawer.Header class="px-0 text-left">
@@ -119,9 +162,8 @@
                     <div class="flex items-center justify-between gap-2" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
                         {#if activityDrawerState.data}
                             <div class="w-9 shrink-0"></div>
-                            <!-- Placeholder to balance layout -->
                         {:else}
-                            <Button variant="ghost" size="icon" class="-ml-2 h-9 w-9 shrink-0 rounded-full" onclick={resetForm}>
+                            <Button variant="ghost" size="icon" class="-ml-2 h-9 w-9 shrink-0 rounded-full" onclick={resetEmpty}>
                                 <ChevronLeft class="h-5 w-5" />
                                 <span class="sr-only">Back</span>
                             </Button>
@@ -138,7 +180,6 @@
                 {/if}
             </div>
 
-            <!-- Scrollable area: only form / menu content -->
             <div class="flex-1 overflow-y-auto p-4">
                 {#if view === 'menu'}
                     <div class="grid grid-cols-3 gap-4" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
@@ -160,10 +201,10 @@
                     {@const FormDef = ACTIVITY_FORMS[view]}
                     <div class="h-full w-full" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
                         <ActivityEditor
-                            bind:data={formData}
+                            bind:formData
                             formId={FORM_ID}
-                            FormComponent={FormDef.component}
-                            onSuccess={() => closeActivityDrawer()}
+                            FormComponent={FormDef.component as Component<{ data: ActivityFormData }>}
+                            enhance={superEnhance}
                         />
 
                         {#if activityDrawerState.data && activityDrawerState.data.id}

@@ -28,6 +28,6 @@
     </div>
 
     <!-- Fixed Bottom Navigation -->
-    <CreateActivity />
+    <CreateActivity activityForm={data.activityForm} />
     <Navigation />
 </div>

@@ -5,6 +5,9 @@ import { createActivity } from '$lib/server/actions/createActivity';
 import { toggleActivity } from '$lib/server/actions/toggleActivity';
 import { updateActivity } from '$lib/server/actions/updateActivity';
 import { archiveActivity } from '$lib/server/actions/archiveActivity';
+import { DrawerActivitySchema, ArchiveActivityFormSchema, type UpdateActivity } from '$lib/types/schemas';
+import { superValidate, message } from 'sveltekit-superforms/server';
+import { zod4 } from 'sveltekit-superforms/adapters';
 
 export const load: PageServerLoad = async (event) => {
     const session = event.locals.session ?? (await event.locals.auth());
@@ -26,7 +29,27 @@ export const actions: Actions = {
         if (!session?.user?.id) {
             return fail(401, { message: 'Unauthorized' });
         }
-        return createActivity({ user: { id: session.user.id } }, await event.request.formData());
+
+        const form = await superValidate(event.request, zod4(DrawerActivitySchema));
+        if (!form.valid) {
+            return fail(400, { form });
+        }
+
+        if (form.data.id) {
+            return fail(400, { form });
+        }
+
+        const createPayload = { ...form.data };
+        if ('id' in createPayload) {
+            delete createPayload.id;
+        }
+
+        const outcome = await createActivity({ user: { id: session.user.id } }, createPayload);
+        if ('success' in outcome && outcome.success) {
+            return message(form, 'Activity created.');
+        }
+
+        return outcome;
     },
 
     toggleActivity: async (event) => {
@@ -45,7 +68,24 @@ export const actions: Actions = {
         if (!session?.user?.id) {
             return fail(401, { message: 'Unauthorized' });
         }
-        return updateActivity({ user: { id: session.user.id } }, await event.request.formData());
+
+        const form = await superValidate(event.request, zod4(DrawerActivitySchema));
+        if (!form.valid) {
+            return fail(400, { form });
+        }
+
+        if (!form.data.id) {
+            return fail(400, { form });
+        }
+
+        const updatePayload = form.data as UpdateActivity;
+
+        const outcome = await updateActivity({ user: { id: session.user.id } }, updatePayload);
+        if ('success' in outcome && outcome.success) {
+            return message(form, 'Activity updated.');
+        }
+
+        return outcome;
     },
 
     archiveActivity: async (event) => {
@@ -53,6 +93,12 @@ export const actions: Actions = {
         if (!session?.user?.id) {
             return fail(401, { message: 'Unauthorized' });
         }
-        return archiveActivity({ user: { id: session.user.id } }, await event.request.formData());
+
+        const form = await superValidate(event.request, zod4(ArchiveActivityFormSchema));
+        if (!form.valid) {
+            return fail(400, { form });
+        }
+
+        return archiveActivity({ user: { id: session.user.id } }, form.data.id);
     },
 };

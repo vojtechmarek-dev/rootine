@@ -40,11 +40,11 @@
             <Field.Group>
                 <Field.Field>
                     <Field.Label>Target Value</Field.Label>
-                    <Input type="number" name="config.targetValue" min="1" bind:value={data.config.targetValue} />
+                    <Input type="number" min="1" bind:value={data.config.targetValue} />
                 </Field.Field>
                 <Field.Field>
                     <Field.Label>Unit</Field.Label>
-                    <Input type="text" name="config.unit" placeholder="e.g. times" bind:value={data.config.unit} />
+                    <Input type="text" placeholder="e.g. times" bind:value={data.config.unit} />
                 </Field.Field>
 
                 <!-- Unified Schedule -->
