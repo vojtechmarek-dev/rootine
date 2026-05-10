@@ -103,12 +103,7 @@
 
 <!-- We explicitly enforce the dark theme for this immersive screen -->
 <div class="dark relative flex h-[100dvh] flex-col bg-background text-foreground">
-    <WorkoutHeader
-        {isPaused}
-        {secondsElapsed}
-        onTogglePause={togglePause}
-        onExit={handleExit}
-    />
+    <WorkoutHeader {isPaused} {secondsElapsed} onTogglePause={togglePause} onExit={handleExit} />
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto px-4 pt-8 pb-32">
@@ -117,7 +112,7 @@
                 <p class="mb-2 text-xs font-semibold tracking-widest text-clay uppercase">
                     Workout Progress &bull; {currentIndex === -1 ? exercises.length : currentIndex + 1} of {exercises.length}
                 </p>
-                <h1 class="font-serif text-5xl font-medium italic tracking-tight text-foreground">
+                <h1 class="font-serif text-5xl font-medium tracking-tight text-foreground italic">
                     {activity.title}
                 </h1>
             </div>
@@ -132,11 +127,7 @@
                         onComplete={() => handleComplete(i)}
                     />
                 {:else}
-                    <QueueExerciseCard
-                        {exercise}
-                        status={exerciseStates[i].status}
-                        onTap={() => handleQueueTap(i)}
-                    />
+                    <QueueExerciseCard {exercise} status={exerciseStates[i].status} onTap={() => handleQueueTap(i)} />
                 {/if}
             {/each}
 
@@ -149,7 +140,9 @@
     </main>
 
     <!-- Bottom Action Bar -->
-    <div class="fixed right-0 bottom-0 left-0 flex justify-center bg-gradient-to-t from-background via-background/90 to-transparent p-6 pt-12 pb-8">
+    <div
+        class="fixed right-0 bottom-0 left-0 flex justify-center bg-linear-to-t from-background via-background/90 to-transparent p-6 pt-12 pb-8"
+    >
         <form
             class="w-full max-w-md"
             method="POST"
