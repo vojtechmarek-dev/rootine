@@ -6,10 +6,12 @@
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
-    import { CalendarClock, CheckIcon, ChevronDown, Dumbbell, Pencil, Repeat, Sprout } from '@lucide/svelte';
+    import { CalendarClock, CheckIcon, ChevronDown, Dumbbell, Pencil, Repeat, Sprout, MoreHorizontal, Archive } from '@lucide/svelte';
     import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import type { ActivityFormData } from '$lib/types/schemas';
     import { cn, getActivityAccentClasses, getActivityTypeLabel } from '$lib/utils';
+    import * as Popover from '$lib/components/ui/popover';
+    import { buttonVariants } from '$lib/components/ui/button';
 
     const props = $props<{
         activity: DashboardActivity;
@@ -114,54 +116,108 @@
 
 <Card.Root
     class={cn(
-        'relative overflow-hidden border-l-4 border-l-transparent shadow-ambient dark:ring-1 dark:ring-outline-variant/15',
-        isCompleted ? 'bg-success/10' : undefined
+        'relative cursor-pointer overflow-hidden border-l-4 border-l-transparent shadow-ambient transition-all duration-200 active:scale-[0.99] dark:ring-1 dark:ring-outline-variant/15',
+        isCompleted ? 'bg-success/10' : undefined,
+        isOpen ? 'bg-muted/30' : 'hover:bg-muted/10'
     )}
+    onclick={() => {
+        if (onToggle) onToggle();
+    }}
 >
     <div class={cn('absolute inset-y-0 left-0 w-1', accent.bar)}></div>
     <Card.Header class="space-y-3">
-        <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0 space-y-2">
-                <div class="flex items-center gap-2">
-                    <TypeIcon class="h-4 w-4 text-muted-foreground" />
-                    <span class={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', accent.chip)}>
-                        {typeLabel}
+        <div class="min-w-0 space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <TypeIcon class="h-4 w-4 text-muted-foreground" />
+                <span class={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', accent.chip)}>
+                    {typeLabel}
+                </span>
+                {#if isCompleted}
+                    <span class="inline-flex items-center gap-1 rounded-full bg-success/20 px-2 py-0.5 text-xs font-medium text-success">
+                        <CheckIcon class="h-3 w-3" />
+                        Completed
                     </span>
-                </div>
-                <Card.Title class="truncate">{activity.title}</Card.Title>
-            </div>
-        </div>
-        <Card.Action>
-            <form method="POST" action="?/toggleActivity" use:enhance={handleToggle} class="flex w-full items-center justify-between gap-2">
-                <input type="hidden" name="activityId" value={activity.id} />
-                {#if isCompleted && lastAddedLogId}
-                    <input type="hidden" name="logId" value={lastAddedLogId} />
                 {/if}
+            </div>
+            <Card.Title class="truncate">{activity.title}</Card.Title>
+        </div>
+        <Card.Action class="flex flex-col items-end justify-between self-stretch">
+            <Popover.Root>
+                <Popover.Trigger
+                    class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), '-mt-2 -mr-2 h-9 w-9 text-muted-foreground')}
+                    onclick={(e) => e.stopPropagation()}
+                >
+                    <MoreHorizontal class="h-5 w-5" />
+                    <span class="sr-only">Actions</span>
+                </Popover.Trigger>
+                <Popover.Content class="w-44 p-1" align="end">
+                    <div class="flex flex-col gap-1">
+                        <Button
+                            variant="ghost"
+                            class="h-auto justify-start gap-3 px-3 py-2 text-sm font-normal"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                openActivityDrawer(activity as ActivityFormData);
+                            }}
+                        >
+                            <Pencil class="h-4 w-4" />
+                            Edit Activity
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            class="h-auto justify-start gap-3 px-3 py-2 text-sm font-normal"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                if (onToggle) onToggle();
+                            }}
+                        >
+                            <ChevronDown class={cn('h-4 w-4 transition-transform', isOpen ? 'rotate-180' : undefined)} />
+                            {isOpen ? 'Collapse' : 'Expand'} Details
+                        </Button>
+                        <div class="my-1 border-t"></div>
+                        <div
+                            class="contents"
+                            onclick={(e) => e.stopPropagation()}
+                            onkeydown={(e) => {
+                                if (e.key !== 'Enter' && e.key !== ' ') {
+                                    return;
+                                }
+                                e.stopPropagation();
+                            }}
+                            role="presentation"
+                        >
+                            <form method="POST" action="?/archiveActivity" use:enhance>
+                                <input type="hidden" name="id" value={activity.id} />
+                                <Button
+                                    type="submit"
+                                    variant="ghost"
+                                    class="h-auto w-full justify-start gap-3 px-3 py-2 text-sm font-normal text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                    <Archive class="h-4 w-4" />
+                                    Archive Activity
+                                </Button>
+                            </form>
+                        </div>
+                    </div>
+                </Popover.Content>
+            </Popover.Root>
 
-                <div class="flex items-center gap-2">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        class="h-8 w-8 shrink-0 text-muted-foreground"
-                        onclick={() => {
-                            if (onToggle) {
-                                onToggle();
-                            }
-                        }}
-                    >
-                        <ChevronDown class={cn('h-4 w-4 transition-transform', isOpen ? 'rotate-180' : undefined)} />
-                        <span class="sr-only">{isOpen ? 'Collapse details' : 'Expand details'}</span>
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="h-9 w-9 text-muted-foreground"
-                        onclick={() => openActivityDrawer(activity as ActivityFormData)}
-                    >
-                        <Pencil class="h-4 w-4" />
-                        <span class="sr-only">Edit Activity</span>
-                    </Button>
+            <div
+                class="contents"
+                onclick={(e) => e.stopPropagation()}
+                onkeydown={(e) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') {
+                        return;
+                    }
+                    e.stopPropagation();
+                }}
+                role="presentation"
+            >
+                <form method="POST" action="?/toggleActivity" use:enhance={handleToggle} class="mt-2 flex items-center justify-end">
+                    <input type="hidden" name="activityId" value={activity.id} />
+                    {#if isCompleted && lastAddedLogId}
+                        <input type="hidden" name="logId" value={lastAddedLogId} />
+                    {/if}
 
                     {#if !canToggle}
                         <Button
@@ -174,23 +230,22 @@
                             <CalendarClock class="h-4 w-4" />
                         </Button>
                     {:else if isCompleted}
-                        <div class="flex h-10 w-10 items-center justify-center rounded-md bg-success/20 text-success">
-                            <CheckIcon class="h-5 w-5" />
-                        </div>
                         <Button type="submit" name="action" value="undo" variant="secondary" class="h-10 px-4" disabled={isSubmitting}>
                             Undo
                         </Button>
+                    {:else if activity.type === 'workout'}
+                        <Button href="/workout/{activity.id}" variant="default" class="h-10 px-4">Start Workout</Button>
                     {:else}
                         <Button type="submit" name="action" value="complete" variant="default" class="h-10 px-4" disabled={isSubmitting}>
                             {activity.targetCount > 1 ? completionLabel : 'Done'}
                         </Button>
                     {/if}
-                </div>
-            </form>
+                </form>
+            </div>
         </Card.Action>
     </Card.Header>
     {#if isOpen}
-        <Card.Content class="space-y-3 border-t pt-3">
+        <Card.Content class="space-y-3 border-t pt-3" onclick={(e) => e.stopPropagation()}>
             <div class="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                 <div><span class="font-medium text-foreground">Type:</span> {typeLabel}</div>
                 <div><span class="font-medium text-foreground">Schedule:</span> {scheduleSummary}</div>
