@@ -2,7 +2,7 @@ import { sequence } from '@sveltejs/kit/hooks';
 import { handle as authHandle } from '$lib/server/auth';
 import { redirect, type Handle } from '@sveltejs/kit';
 
-const protectedRoutes = ['/', '/stats', '/profile'];
+const protectedRoutes = ['/', '/stats', '/profile', '/workout'];
 const authRoutes = ['/auth'];
 
 function matchesRoute(pathname: string, route: string): boolean {

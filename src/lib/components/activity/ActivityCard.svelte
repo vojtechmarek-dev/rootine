@@ -180,6 +180,10 @@
                         <Button type="submit" name="action" value="undo" variant="secondary" class="h-10 px-4" disabled={isSubmitting}>
                             Undo
                         </Button>
+                    {:else if activity.type === 'workout'}
+                        <Button href="/workout/{activity.id}" variant="default" class="h-10 px-4">
+                            Start Workout
+                        </Button>
                     {:else}
                         <Button type="submit" name="action" value="complete" variant="default" class="h-10 px-4" disabled={isSubmitting}>
                             {activity.targetCount > 1 ? completionLabel : 'Done'}
