@@ -116,7 +116,7 @@
 
 <Card.Root
     class={cn(
-        'relative overflow-hidden border-l-4 border-l-transparent shadow-ambient dark:ring-1 dark:ring-outline-variant/15 transition-all duration-200 cursor-pointer active:scale-[0.99]',
+        'relative cursor-pointer overflow-hidden border-l-4 border-l-transparent shadow-ambient transition-all duration-200 active:scale-[0.99] dark:ring-1 dark:ring-outline-variant/15',
         isCompleted ? 'bg-success/10' : undefined,
         isOpen ? 'bg-muted/30' : 'hover:bg-muted/10'
     )}
@@ -144,7 +144,7 @@
         <Card.Action class="flex flex-col items-end justify-between self-stretch">
             <Popover.Root>
                 <Popover.Trigger
-                    class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-9 w-9 text-muted-foreground -mr-2 -mt-2')}
+                    class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), '-mt-2 -mr-2 h-9 w-9 text-muted-foreground')}
                     onclick={(e) => e.stopPropagation()}
                 >
                     <MoreHorizontal class="h-5 w-5" />
@@ -154,7 +154,7 @@
                     <div class="flex flex-col gap-1">
                         <Button
                             variant="ghost"
-                            class="justify-start gap-3 px-3 py-2 text-sm font-normal h-auto"
+                            class="h-auto justify-start gap-3 px-3 py-2 text-sm font-normal"
                             onclick={(e) => {
                                 e.stopPropagation();
                                 openActivityDrawer(activity as ActivityFormData);
@@ -165,7 +165,7 @@
                         </Button>
                         <Button
                             variant="ghost"
-                            class="justify-start gap-3 px-3 py-2 text-sm font-normal h-auto"
+                            class="h-auto justify-start gap-3 px-3 py-2 text-sm font-normal"
                             onclick={(e) => {
                                 e.stopPropagation();
                                 if (onToggle) onToggle();
@@ -191,7 +191,7 @@
                                 <Button
                                     type="submit"
                                     variant="ghost"
-                                    class="w-full justify-start gap-3 px-3 py-2 text-sm font-normal h-auto text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    class="h-auto w-full justify-start gap-3 px-3 py-2 text-sm font-normal text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 >
                                     <Archive class="h-4 w-4" />
                                     Archive Activity
@@ -213,7 +213,7 @@
                 }}
                 role="presentation"
             >
-                <form method="POST" action="?/toggleActivity" use:enhance={handleToggle} class="flex items-center justify-end">
+                <form method="POST" action="?/toggleActivity" use:enhance={handleToggle} class="mt-2 flex items-center justify-end">
                     <input type="hidden" name="activityId" value={activity.id} />
                     {#if isCompleted && lastAddedLogId}
                         <input type="hidden" name="logId" value={lastAddedLogId} />
