@@ -18,11 +18,14 @@
 
     type ExerciseStatus = 'pending' | 'completed' | 'skipped';
 
+    /** Per-set log row; matches workout log JSON and `handleComplete` payload. */
+    type CompletedSet = { weight: number; reps: number };
+
     let exerciseStates = $state(
         exercises.map((e) => ({
             id: e.id,
             status: 'pending' as ExerciseStatus,
-            completedSets: [] as any[],
+            completedSets: [] as CompletedSet[],
         }))
     );
 
@@ -80,6 +83,7 @@
     }
 
     function handleExit() {
+        // eslint-disable-next-line svelte/no-navigation-without-resolve
         goto('/');
     }
 
@@ -101,8 +105,7 @@
     });
 </script>
 
-<!-- We explicitly enforce the dark theme for this immersive screen -->
-<div class="dark relative flex h-[100dvh] flex-col bg-background text-foreground">
+<div class="relative flex h-dvh flex-col bg-background text-foreground">
     <WorkoutHeader {isPaused} {secondsElapsed} onTogglePause={togglePause} onExit={handleExit} />
 
     <!-- Main Content -->
@@ -154,6 +157,7 @@
                     if (result.type === 'success') {
                         showSummary = true;
                         setTimeout(() => {
+                            // eslint-disable-next-line svelte/no-navigation-without-resolve
                             goto('/');
                         }, 2000);
                     } else {
