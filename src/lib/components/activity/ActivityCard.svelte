@@ -100,8 +100,14 @@
                 }
             }
 
-            await update();
-            optimisticLogCount = null;
+            // Don't invalidate the page — the dashboardPayload promise would be
+            // re-created, causing the skeleton to flash for a moment even though
+            // the optimistic UI already shows the correct log count.
+            // Also: do NOT reset optimisticLogCount here. Since the page data is
+            // not refreshed, activity.logCountToday is still the old value;
+            // nulling optimisticLogCount would silently revert the UI.
+            // It stays set until the next navigation triggers a fresh load.
+            await update({ invalidateAll: false });
         };
     };
 </script>
@@ -124,20 +130,6 @@
                 </div>
                 <Card.Title class="truncate">{activity.title}</Card.Title>
             </div>
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                class="h-8 w-8 shrink-0 text-muted-foreground"
-                onclick={() => {
-                    if (onToggle) {
-                        onToggle();
-                    }
-                }}
-            >
-                <ChevronDown class={cn('h-4 w-4 transition-transform', isOpen ? 'rotate-180' : undefined)} />
-                <span class="sr-only">{isOpen ? 'Collapse details' : 'Expand details'}</span>
-            </Button>
         </div>
         <Card.Action>
             <form method="POST" action="?/toggleActivity" use:enhance={handleToggle} class="flex w-full items-center justify-between gap-2">
@@ -147,6 +139,20 @@
                 {/if}
 
                 <div class="flex items-center gap-2">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        class="h-8 w-8 shrink-0 text-muted-foreground"
+                        onclick={() => {
+                            if (onToggle) {
+                                onToggle();
+                            }
+                        }}
+                    >
+                        <ChevronDown class={cn('h-4 w-4 transition-transform', isOpen ? 'rotate-180' : undefined)} />
+                        <span class="sr-only">{isOpen ? 'Collapse details' : 'Expand details'}</span>
+                    </Button>
                     <Button
                         variant="ghost"
                         size="icon"

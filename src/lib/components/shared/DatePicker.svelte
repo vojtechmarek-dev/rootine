@@ -35,7 +35,7 @@
             <Button
                 variant="outline"
                 size="lg"
-                class={cn('w-[280px] justify-start text-start font-normal', !value && 'text-muted-foreground')}
+                class={cn('w-full sm:w-[280px] justify-start text-start font-normal', !value && 'text-muted-foreground')}
                 {...props}
             >
                 <CalendarIcon class="me-2 size-4" />

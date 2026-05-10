@@ -147,38 +147,41 @@
             {/if}
         </div>
 
-        <div class="flex items-center gap-2">
-            <Button variant="outline" size="icon" onclick={prevDay} class="h-10 w-10 shrink-0">
-                <ChevronLeft class="h-4 w-4" />
-                <span class="sr-only">Previous day</span>
-            </Button>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div class="flex items-center gap-2">
+                <Button variant="outline" size="icon" onclick={prevDay} class="h-10 w-10 shrink-0">
+                    <ChevronLeft class="h-4 w-4" />
+                    <span class="sr-only">Previous day</span>
+                </Button>
 
-            <Select.Root type="single" bind:value={selectValue}>
-                <Select.Trigger class="w-[140px]">
-                    {#if selectValue === 'today'}
-                        Today
-                    {:else if selectValue === 'tomorrow'}
-                        Tomorrow
-                    {:else}
-                        Custom Date
-                    {/if}
-                </Select.Trigger>
-                <Select.Content>
-                    <Select.Item value="today">Today</Select.Item>
-                    <Select.Item value="tomorrow">Tomorrow</Select.Item>
-                    <Select.Item value="custom">Pick a date...</Select.Item>
-                </Select.Content>
-            </Select.Root>
+                <Select.Root type="single" bind:value={selectValue}>
+                    <Select.Trigger class="w-[140px]">
+                        {#if selectValue === 'today'}
+                            Today
+                        {:else if selectValue === 'tomorrow'}
+                            Tomorrow
+                        {:else}
+                            Custom Date
+                        {/if}
+                    </Select.Trigger>
+                    <Select.Content>
+                        <Select.Item value="today">Today</Select.Item>
+                        <Select.Item value="tomorrow">Tomorrow</Select.Item>
+                        <Select.Item value="custom">Pick a date...</Select.Item>
+                    </Select.Content>
+                </Select.Root>
+
+                <Button variant="outline" size="icon" onclick={nextDay} class="h-10 w-10 shrink-0">
+                    <ChevronRight class="h-4 w-4" />
+                    <span class="sr-only">Next day</span>
+                </Button>
+            </div>
 
             {#if selectValue === 'custom'}
-                <div class="animate-in zoom-in-95 fade-in">
+                <div class="animate-in zoom-in-95 fade-in w-full sm:w-auto">
                     <DatePicker bind:value={customDate} />
                 </div>
             {/if}
-            <Button variant="outline" size="icon" onclick={nextDay} class="h-10 w-10 shrink-0">
-                <ChevronRight class="h-4 w-4" />
-                <span class="sr-only">Next day</span>
-            </Button>
         </div>
     </div>
 
