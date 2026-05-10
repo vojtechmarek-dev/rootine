@@ -175,55 +175,73 @@
                             {isOpen ? 'Collapse' : 'Expand'} Details
                         </Button>
                         <div class="my-1 border-t"></div>
-                        <form method="POST" action="?/archiveActivity" use:enhance onclick={(e) => e.stopPropagation()}>
-                            <input type="hidden" name="id" value={activity.id} />
-                            <Button
-                                type="submit"
-                                variant="ghost"
-                                class="w-full justify-start gap-3 px-3 py-2 text-sm font-normal h-auto text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                                <Archive class="h-4 w-4" />
-                                Archive Activity
-                            </Button>
-                        </form>
+                        <div
+                            class="contents"
+                            onclick={(e) => e.stopPropagation()}
+                            onkeydown={(e) => {
+                                if (e.key !== 'Enter' && e.key !== ' ') {
+                                    return;
+                                }
+                                e.stopPropagation();
+                            }}
+                            role="presentation"
+                        >
+                            <form method="POST" action="?/archiveActivity" use:enhance>
+                                <input type="hidden" name="id" value={activity.id} />
+                                <Button
+                                    type="submit"
+                                    variant="ghost"
+                                    class="w-full justify-start gap-3 px-3 py-2 text-sm font-normal h-auto text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                    <Archive class="h-4 w-4" />
+                                    Archive Activity
+                                </Button>
+                            </form>
+                        </div>
                     </div>
                 </Popover.Content>
             </Popover.Root>
 
-            <form
-                method="POST"
-                action="?/toggleActivity"
-                use:enhance={handleToggle}
-                class="flex items-center justify-end"
+            <div
+                class="contents"
                 onclick={(e) => e.stopPropagation()}
+                onkeydown={(e) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') {
+                        return;
+                    }
+                    e.stopPropagation();
+                }}
+                role="presentation"
             >
-                <input type="hidden" name="activityId" value={activity.id} />
-                {#if isCompleted && lastAddedLogId}
-                    <input type="hidden" name="logId" value={lastAddedLogId} />
-                {/if}
+                <form method="POST" action="?/toggleActivity" use:enhance={handleToggle} class="flex items-center justify-end">
+                    <input type="hidden" name="activityId" value={activity.id} />
+                    {#if isCompleted && lastAddedLogId}
+                        <input type="hidden" name="logId" value={lastAddedLogId} />
+                    {/if}
 
-                {#if !canToggle}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        class="h-10 gap-2"
-                        disabled
-                        title="Activity completion is available only for today"
-                    >
-                        <CalendarClock class="h-4 w-4" />
-                    </Button>
-                {:else if isCompleted}
-                    <Button type="submit" name="action" value="undo" variant="secondary" class="h-10 px-4" disabled={isSubmitting}>
-                        Undo
-                    </Button>
-                {:else if activity.type === 'workout'}
-                    <Button href="/workout/{activity.id}" variant="default" class="h-10 px-4">Start Workout</Button>
-                {:else}
-                    <Button type="submit" name="action" value="complete" variant="default" class="h-10 px-4" disabled={isSubmitting}>
-                        {activity.targetCount > 1 ? completionLabel : 'Done'}
-                    </Button>
-                {/if}
-            </form>
+                    {#if !canToggle}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="h-10 gap-2"
+                            disabled
+                            title="Activity completion is available only for today"
+                        >
+                            <CalendarClock class="h-4 w-4" />
+                        </Button>
+                    {:else if isCompleted}
+                        <Button type="submit" name="action" value="undo" variant="secondary" class="h-10 px-4" disabled={isSubmitting}>
+                            Undo
+                        </Button>
+                    {:else if activity.type === 'workout'}
+                        <Button href="/workout/{activity.id}" variant="default" class="h-10 px-4">Start Workout</Button>
+                    {:else}
+                        <Button type="submit" name="action" value="complete" variant="default" class="h-10 px-4" disabled={isSubmitting}>
+                            {activity.targetCount > 1 ? completionLabel : 'Done'}
+                        </Button>
+                    {/if}
+                </form>
+            </div>
         </Card.Action>
     </Card.Header>
     {#if isOpen}

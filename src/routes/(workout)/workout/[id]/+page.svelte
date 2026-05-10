@@ -21,16 +21,29 @@
     /** Per-set log row; matches workout log JSON and `handleComplete` payload. */
     type CompletedSet = { weight: number; reps: number };
 
-    let exerciseStates = $state(
-        exercises.map((e) => ({
+    type ExerciseStateRow = {
+        id: string;
+        status: ExerciseStatus;
+        completedSets: CompletedSet[];
+    };
+
+    let exerciseStates = $state<ExerciseStateRow[]>([]);
+    let currentIndex = $state(0);
+
+    $effect.pre(() => {
+        const list = exercises;
+        exerciseStates = list.map((e) => ({
             id: e.id,
             status: 'pending' as ExerciseStatus,
             completedSets: [] as CompletedSet[],
-        }))
+        }));
+        currentIndex = 0;
+    });
+    let isAllProcessed = $derived(
+        exercises.length > 0 &&
+            exerciseStates.length === exercises.length &&
+            exerciseStates.every((e) => e.status !== 'pending')
     );
-
-    let currentIndex = $state(0);
-    let isAllProcessed = $derived(exercises.length > 0 && exerciseStates.every((e) => e.status !== 'pending'));
 
     // Timer
     let secondsElapsed = $state(0);
