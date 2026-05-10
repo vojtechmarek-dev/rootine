@@ -50,33 +50,21 @@
         },
     };
 
-    let formData = $state<ActivityFormData>(getEmptyDrawerActivity());
-
-    /** `structuredClone` cannot copy Svelte `$state` proxies; snapshot first. */
-    function cloneFormPayload(source: DrawerActivity): ActivityFormData {
-        return structuredClone($state.snapshot(source));
-    }
-
     type ActivityType = Activity['type'];
 
     let view = $state<'menu' | ActivityType>('menu');
 
     // svelte-ignore state_referenced_locally
-    const { form, enhance: superEnhance, reset } = superForm(activityForm, {
+    const { form, errors, enhance: superEnhance, reset } = superForm(activityForm, {
         id: 'activity-drawer-form',
         dataType: 'json',
         resetForm: false,
         validators: drawerActivityValidator,
-        async onSubmit() {
-            form.set(cloneFormPayload(formData), { taint: false });
-            await tick();
-        },
         onUpdated({ form: f }) {
             if (!f.posted) {
                 return;
             }
             if (!f.valid) {
-                formData = cloneFormPayload(f.data as DrawerActivity);
                 toast.error('Could not save activity', {
                     description: toToastDescription(f.errors),
                 });
@@ -88,17 +76,14 @@
 
     const resetEmpty = () => {
         view = 'menu';
-        const next = getEmptyDrawerActivity();
-        formData = next;
-        reset({ data: next });
+        reset({ data: getEmptyDrawerActivity() });
     };
 
     const switchView = (newType: ActivityType) => {
-        formData.type = newType;
-        formData.config = { ...defaults[newType].config };
-        formData.schedule = { ...defaults[newType].schedule };
+        $form.type = newType;
+        $form.config = { ...defaults[newType].config };
+        $form.schedule = { ...defaults[newType].schedule };
         view = newType;
-        form.set(cloneFormPayload(formData), { taint: false });
     };
 
     const FORM_ID = 'create-activity-form';
@@ -110,14 +95,10 @@
         if (drawerOpen) {
             untrack(() => {
                 if (drawerData) {
-                    const next = cloneFormPayload(drawerData);
-                    reset({ data: next });
-                    formData = next;
-                    view = next.type;
-                } else if (!formData.id && formData.title === '') {
-                    const next = getEmptyDrawerActivity();
-                    reset({ data: next });
-                    formData = next;
+                    reset({ data: structuredClone($state.snapshot(drawerData)) });
+                    view = drawerData.type;
+                } else if (!$form.id && $form.title === '') {
+                    reset({ data: getEmptyDrawerActivity() });
                     view = 'menu';
                 }
             });
@@ -201,9 +182,10 @@
                     {@const FormDef = ACTIVITY_FORMS[view]}
                     <div class="h-full w-full" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
                         <ActivityEditor
-                            bind:formData
+                            bind:formData={$form}
+                            errors={$errors}
                             formId={FORM_ID}
-                            FormComponent={FormDef.component as Component<{ data: ActivityFormData }>}
+                            FormComponent={FormDef.component as Component<{ data: ActivityFormData, errors?: any }>}
                             enhance={superEnhance}
                         />
 

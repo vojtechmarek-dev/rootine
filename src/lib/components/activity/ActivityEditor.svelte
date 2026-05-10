@@ -5,15 +5,18 @@
 
     type Props = {
         data: ActivityFormData;
+        errors?: any;
     };
 
     let {
         formData = $bindable(),
+        errors,
         FormComponent,
         formId = 'activity-form',
         enhance,
     }: {
         formData: ActivityFormData;
+        errors?: any;
         /** Rendered variant matches formData.type; each form exposes a narrower `data` subtype at runtime */
         FormComponent: Component<Props>;
         formId?: string;
@@ -25,5 +28,5 @@
 </script>
 
 <form id={formId} method="POST" {action} use:enhance>
-    <FormComponent bind:data={formData} />
+    <FormComponent bind:data={formData} {errors} />
 </form>

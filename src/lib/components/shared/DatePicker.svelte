@@ -14,20 +14,19 @@
 
     let { value = $bindable() }: { value: Date | undefined } = $props();
 
-    // 1. Separate the "View" (what month is visible) from the "Value" (what is selected)
+    // Separate the "View" (what month is visible) from the "Value" (what is selected).
     // We default the view to Today, but we don't default the selection.
     let placeholder = $state(today(getLocalTimeZone()));
 
-    const dateProxy = {
-        // Return undefined if no value, so the UI can show "Select a date"
-        get value(): DateValue | undefined {
-            return value ? toDateValue(value) : undefined;
-        },
-        // Handle the update
-        set value(newVal: DateValue | undefined) {
-            value = newVal ? toDate(newVal) : undefined;
-        },
-    };
+    // Read-only derived: JS Date → DateValue for the Calendar UI.
+    const calendarValue = $derived(value ? toDateValue(value) : undefined);
+
+    // Write-only callback: DateValue → JS Date back to the parent.
+    // Using onValueChange instead of bind:value avoids the infinite loop
+    // that occurred when clearing the date (undefined ↔ undefined cycle).
+    function handleValueChange(newVal: DateValue | undefined) {
+        value = newVal ? toDate(newVal) : undefined;
+    }
 </script>
 
 <Popover.Root>
@@ -45,6 +44,6 @@
         {/snippet}
     </Popover.Trigger>
     <Popover.Content class="w-auto p-0">
-        <Calendar bind:value={dateProxy.value} bind:placeholder type="single" initialFocus captionLayout="dropdown" />
+        <Calendar value={calendarValue} onValueChange={handleValueChange} bind:placeholder type="single" initialFocus captionLayout="dropdown" />
     </Popover.Content>
 </Popover.Root>

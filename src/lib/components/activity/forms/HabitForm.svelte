@@ -15,8 +15,10 @@
 
     let {
         data = $bindable(),
+        errors,
     }: {
         data: Extract<ActivityFormData, { type: 'habit' }>;
+        errors?: any;
     } = $props();
 </script>
 
@@ -34,6 +36,7 @@
                 bind:startDate={data.startDate}
                 bind:endDate={data.endDate}
                 bind:archived={data.archived}
+                errors={errors}
             />
 
             <!-- Habit Specific Fields -->
@@ -41,14 +44,16 @@
                 <Field.Field>
                     <Field.Label>Target Value</Field.Label>
                     <Input type="number" min="1" bind:value={data.config.targetValue} />
+                    <Field.Error errors={errors?.config?.targetValue} />
                 </Field.Field>
                 <Field.Field>
                     <Field.Label>Unit</Field.Label>
                     <Input type="text" placeholder="e.g. times" bind:value={data.config.unit} />
+                    <Field.Error errors={errors?.config?.unit} />
                 </Field.Field>
 
                 <!-- Unified Schedule -->
-                <ScheduleFields bind:schedule={data.schedule} />
+                <ScheduleFields bind:schedule={data.schedule} errors={errors?.schedule} />
             </Field.Group>
         </Field.Set>
     </Field.Group>

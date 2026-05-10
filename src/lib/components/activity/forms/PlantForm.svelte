@@ -15,8 +15,10 @@
 
     let {
         data = $bindable(),
+        errors,
     }: {
         data: Extract<ActivityFormData, { type: 'plant' }>;
+        errors?: any;
     } = $props();
 </script>
 
@@ -34,6 +36,7 @@
                 bind:startDate={data.startDate}
                 bind:endDate={data.endDate}
                 bind:archived={data.archived}
+                errors={errors}
             />
 
             <!-- Plant Specific Fields -->
@@ -41,14 +44,16 @@
                 <Field.Field>
                     <Field.Label>Species</Field.Label>
                     <Input type="text" placeholder="e.g. Monstera Deliciosa" bind:value={data.config.species} />
+                    <Field.Error errors={errors?.config?.species} />
                 </Field.Field>
                 <Field.Field>
                     <Field.Label>Location</Field.Label>
                     <Input type="text" placeholder="e.g. Living Room" bind:value={data.config.location} />
+                    <Field.Error errors={errors?.config?.location} />
                 </Field.Field>
 
                 <!-- Unified Schedule (Replaces waterIntervalDays) -->
-                <ScheduleFields bind:schedule={data.schedule} />
+                <ScheduleFields bind:schedule={data.schedule} errors={errors?.schedule} />
             </Field.Group>
         </Field.Set>
     </Field.Group>

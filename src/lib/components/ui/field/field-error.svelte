@@ -11,7 +11,7 @@
         ...restProps
     }: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
         children?: Snippet;
-        errors?: { message?: string }[];
+        errors?: ({ message?: string } | string)[];
     } = $props();
 
     const hasContent = $derived.by(() => {
@@ -22,15 +22,24 @@
         if (!errors) return false;
 
         // has an error but no message
-        if (errors.length === 1 && !errors[0]?.message) {
-            return false;
+        if (errors.length === 1) {
+            const err = errors[0];
+            if (typeof err !== 'string' && !err?.message) {
+                return false;
+            }
         }
 
         return true;
     });
 
     const isMultipleErrors = $derived(errors && errors.length > 1);
-    const singleErrorMessage = $derived(errors && errors.length === 1 && errors[0]?.message);
+    const singleErrorMessage = $derived.by(() => {
+        if (errors && errors.length === 1) {
+            const err = errors[0];
+            return typeof err === 'string' ? err : err?.message;
+        }
+        return null;
+    });
 </script>
 
 {#if hasContent}
@@ -42,7 +51,9 @@
         {:else if isMultipleErrors}
             <ul class="ms-4 flex list-disc flex-col gap-1">
                 {#each errors ?? [] as error, index (index)}
-                    {#if error?.message}
+                    {#if typeof error === 'string'}
+                        <li>{error}</li>
+                    {:else if error?.message}
                         <li>{error.message}</li>
                     {/if}
                 {/each}

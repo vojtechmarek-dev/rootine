@@ -5,7 +5,7 @@
     import { WEEKDAYS } from '$lib/constants';
     import type { Schedule } from '$lib/types/schemas';
 
-    let { schedule = $bindable() }: { schedule: Schedule } = $props();
+    let { schedule = $bindable(), errors }: { schedule: Schedule, errors?: any } = $props();
 
     // Helper to sync Select value with Schedule type
     let selectedType = $derived<Schedule['type']>(schedule.type);
@@ -50,6 +50,7 @@
                 <Select.Item value="interval" label="Repeating Interval" />
             </Select.Content>
         </Select.Root>
+        <Field.Error errors={errors?.type} />
     </Field.Field>
 
     {#if schedule.type === 'interval'}
@@ -57,6 +58,7 @@
             <Field.Field class="flex-1">
                 <Field.Label>Every</Field.Label>
                 <Input type="number" min="1" bind:value={schedule.value} />
+                <Field.Error errors={errors?.value} />
             </Field.Field>
             <Field.Field class="w-1/3">
                 <Field.Label>Unit</Field.Label>
@@ -69,6 +71,7 @@
                         <Select.Item value="hours" label="Hours" />
                     </Select.Content>
                 </Select.Root>
+                <Field.Error errors={errors?.unit} />
             </Field.Field>
         </div>
     {:else if schedule.type === 'weekly'}
@@ -101,6 +104,7 @@
                     </button>
                 {/each}
             </div>
+            <Field.Error errors={errors?.days} />
         </Field.Field>
     {/if}
 </Field.Group>

@@ -13,23 +13,25 @@
         startDate = $bindable(),
         endDate = $bindable(),
         archived = $bindable(),
-    }: BaseActivity = $props();
+        errors,
+    }: BaseActivity & { errors?: any } = $props();
 </script>
 
 <Field.Group>
     <Field.Field>
         <Field.Label>Title</Field.Label>
         <Input type="text" placeholder="e.g. Drink Water" bind:value={title} required />
+        <Field.Error errors={errors?.title} />
     </Field.Field>
 
     <Field.Field>
         <Field.Label>Description</Field.Label>
         <Input type="text" placeholder="e.g. Drink water 3 times a day" bind:value={description} />
+        <Field.Error errors={errors?.description} />
     </Field.Field>
     <Field.Field>
         <Field.Label>Start Date</Field.Label>
         <DatePicker bind:value={startDate} />
+        <Field.Error errors={errors?.startDate} />
     </Field.Field>
-
-
 </Field.Group>

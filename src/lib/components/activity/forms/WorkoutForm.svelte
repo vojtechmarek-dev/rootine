@@ -17,8 +17,10 @@
 
     let {
         data = $bindable(),
+        errors,
     }: {
         data: Extract<ActivityFormData, { type: 'workout' }>;
+        errors?: any;
     } = $props();
 </script>
 
@@ -36,6 +38,7 @@
                 bind:startDate={data.startDate}
                 bind:endDate={data.endDate}
                 bind:archived={data.archived}
+                errors={errors}
             />
 
             <!-- Workout Specific Fields -->
@@ -48,10 +51,11 @@
                         placeholder="e.g. 45"
                         bind:value={data.config.estimatedDurationMin}
                     />
+                    <Field.Error errors={errors?.config?.estimatedDurationMin} />
                 </Field.Field>
 
                 <!-- Unified Schedule -->
-                <ScheduleFields bind:schedule={data.schedule} />
+                <ScheduleFields bind:schedule={data.schedule} errors={errors?.schedule} />
 
                 <!-- Exercises -->
                 <Field.Field>
@@ -70,6 +74,7 @@
                                             bind:value={exercise.name}
                                             class="bg-surface-container-high font-medium"
                                         />
+                                        <Field.Error errors={errors?.config?.exercises?.[exercise.id]?.name} />
                                     </div>
                                     <Button
                                         variant="ghost"
@@ -96,6 +101,7 @@
                                             bind:value={exercise.sets}
                                             class="bg-surface-container-high"
                                         />
+                                        <Field.Error errors={errors?.config?.exercises?.[exercise.id]?.sets} />
                                     </div>
                                     <div class="space-y-1">
                                         <label
@@ -109,6 +115,7 @@
                                             bind:value={exercise.reps}
                                             class="bg-surface-container-high"
                                         />
+                                        <Field.Error errors={errors?.config?.exercises?.[exercise.id]?.reps} />
                                     </div>
                                     <div class="space-y-1">
                                         <label
@@ -124,6 +131,7 @@
                                             bind:value={exercise.weight}
                                             class="bg-surface-container-high"
                                         />
+                                        <Field.Error errors={errors?.config?.exercises?.[exercise.id]?.weight} />
                                     </div>
                                 </div>
                             </div>
@@ -142,6 +150,7 @@
                             <Plus class="mr-2 h-4 w-4" />
                             Add Exercise
                         </Button>
+                        <Field.Error errors={errors?.config?.exercises?._errors} />
                     </div>
                 </Field.Field>
             </Field.Group>
