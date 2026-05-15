@@ -45,7 +45,7 @@
             schedule: { type: 'interval', value: 7, unit: 'days' } as Schedule,
         },
         workout: {
-            config: { exercises: [] } as WorkoutConfig,
+            config: { exercises: [], workoutSets: [], rotation: [], useRotation: true } as WorkoutConfig,
             schedule: { type: 'weekly', days: ['mon', 'wed', 'fri'] } as Schedule,
         },
     };

@@ -71,17 +71,30 @@ export const PlantConfigSchema = ActivityConfig.extend({
 
 // --- TYPE 3: WORKOUT (Complex Template) ---
 // Example: "Push Day", List of exercises to perform
+export const ExerciseSchema = z.object({
+    id: z.string().default(() => crypto.randomUUID()),
+    name: z.string().min(1, 'Exercise name required'),
+    sets: z.coerce.number().min(1).default(3),
+    reps: z.coerce.number().min(1).default(10),
+    weight: z.coerce.number().nullish(),
+});
+
+// A named group of exercises (e.g. "Push Day") the habit cycles through.
+export const WorkoutSetSchema = z.object({
+    id: z.string().default(() => crypto.randomUUID()),
+    name: z.string().min(1, 'Set name required'),
+    exercises: z.array(ExerciseSchema).default([]),
+});
+
 export const WorkoutConfigSchema = ActivityConfig.extend({
-    exercises: z.array(
-        z.object({
-            id: z.string().default(() => crypto.randomUUID()),
-            name: z.string().min(1, 'Exercise name required'),
-            sets: z.coerce.number().min(1).default(3),
-            reps: z.coerce.number().min(1).default(10),
-            weight: z.coerce.number().nullish(),
-        })
-    ).default([]),
+    exercises: z.array(ExerciseSchema).default([]),
     estimatedDurationMin: z.coerce.number().nullish(),
+    // Named sets the habit rotates through. Empty for legacy single-list habits.
+    workoutSets: z.array(WorkoutSetSchema).default([]),
+    // Ordered WorkoutSet IDs defining the cycle, e.g. ["push","pull"].
+    rotation: z.array(z.string()).default([]),
+    // When false, no set is recommended/pre-selected at workout start.
+    useRotation: z.preprocess((v) => (v === undefined || v === null ? true : v === 'true' || v === 'on' || v === '1' || v === true), z.boolean().default(true)),
 });
 
 // ==========================================
@@ -165,22 +178,27 @@ export const PlantLogSchema = z.object({
     photoUrl: z.string().optional(),
 });
 
-// For workouts, the log is much richer than the config
+// For workouts, the log is much richer than the config.
+// Fields are lenient so a "skipped" log (no work performed) still validates.
 export const WorkoutLogSchema = z.object({
-    durationMin: z.number(),
+    durationMin: z.number().default(0),
+    // Which WorkoutSet was completed. null for habits without sets or skips.
+    setId: z.string().nullish().transform((v) => v ?? null),
     // We record exactly what was lifted
-    exercises: z.array(
-        z.object({
-            name: z.string(),
-            sets: z.array(
-                z.object({
-                    weight: z.number(),
-                    reps: z.number(),
-                    rpe: z.number().optional(), // Rate of Perceived Exertion (1-10)
-                })
-            ),
-        })
-    ),
+    exercises: z
+        .array(
+            z.object({
+                name: z.string(),
+                sets: z.array(
+                    z.object({
+                        weight: z.number(),
+                        reps: z.number(),
+                        rpe: z.number().optional(), // Rate of Perceived Exertion (1-10)
+                    })
+                ),
+            })
+        )
+        .default([]),
 });
 
 export const LogSchema = z.discriminatedUnion('type', [
@@ -188,6 +206,19 @@ export const LogSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('plant'), data: PlantLogSchema }),
     z.object({ type: z.literal('workout'), data: WorkoutLogSchema }),
 ]);
+
+// ==========================================
+// 4c. WEEK EXCEPTION (Schedule Shifting)
+// ==========================================
+// One record per shifted ISO week. Offsets a habit's weekly preferred
+// days for the remainder of that week. Expired/deleted after the week ends.
+
+export const WeekExceptionSchema = z.object({
+    id: z.uuid(),
+    habitId: z.uuid(),
+    weekOf: z.string().regex(/^\d{4}-W\d{2}$/, 'Invalid ISO week'), // e.g. "2025-W03"
+    shiftDays: z.coerce.number().int(),
+});
 
 export const UserSchema = z.object({
     id: z.uuid(),
@@ -218,8 +249,12 @@ export type Schedule = z.infer<typeof ScheduleSchema>;
 export type HabitConfig = z.infer<typeof HabitConfigSchema>;
 export type PlantConfig = z.infer<typeof PlantConfigSchema>;
 export type WorkoutConfig = z.infer<typeof WorkoutConfigSchema>;
+export type Exercise = z.infer<typeof ExerciseSchema>;
+export type WorkoutSet = z.infer<typeof WorkoutSetSchema>;
+export type WeekException = z.infer<typeof WeekExceptionSchema>;
 
 export type Log = z.infer<typeof LogSchema>;
+export type WorkoutLog = z.infer<typeof WorkoutLogSchema>;
 
 export type User = z.infer<typeof UserSchema>;
 export type Session = z.infer<typeof SessionSchema>;
@@ -229,11 +264,30 @@ export type Session = z.infer<typeof SessionSchema>;
 // ==========================================
 // Those types are used in the UI and are not stored in the database
 
+/** Runtime-derived rotation state for a workout habit card / picker. */
+export type WorkoutRotationView = {
+    /** Most recently completed set (null if none / orphaned). */
+    lastSetId: string | null;
+    lastSetName: string | null;
+    /** Days since the last completed workout (null if none). */
+    daysSinceLast: number | null;
+    /** Recommended set for the next workout (null when rotation disabled). */
+    currentSetId: string | null;
+    currentSetName: string | null;
+    /** The set after the recommended one (null when < 2 sets / disabled). */
+    nextSetId: string | null;
+    nextSetName: string | null;
+};
+
 export type DashboardActivity = Activity & {
     isCompleted: boolean;
     logCountToday: number;
     targetCount: number;
     logs?: Log[] | null;
+    /** Present only for workout habits that have sets defined. */
+    workoutRotation?: WorkoutRotationView | null;
+    /** True when a WeekException already shifts the current ISO week. */
+    weekShifted?: boolean;
 };
 
 export type DrawerActivity = z.infer<typeof DrawerActivitySchema>;
