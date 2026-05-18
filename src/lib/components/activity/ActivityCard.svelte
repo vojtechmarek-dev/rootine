@@ -6,27 +6,62 @@
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
-    import { CalendarClock, CheckIcon, ChevronDown, Dumbbell, Pencil, Repeat, Sprout, MoreHorizontal, Archive } from '@lucide/svelte';
+    import {
+        CalendarClock,
+        CalendarOff,
+        CheckIcon,
+        ChevronDown,
+        Dumbbell,
+        Pencil,
+        Repeat,
+        Sprout,
+        MoreHorizontal,
+        Archive,
+    } from '@lucide/svelte';
     import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import type { ActivityFormData } from '$lib/types/schemas';
     import { cn, getActivityAccentClasses, getActivityTypeLabel } from '$lib/utils';
     import * as Popover from '$lib/components/ui/popover';
     import { buttonVariants } from '$lib/components/ui/button';
+    import { toast } from 'svelte-sonner';
+    import SkipDayModal from '$lib/components/activity/workout/SkipDayModal.svelte';
 
     const props = $props<{
         activity: DashboardActivity;
         canToggle?: boolean;
+        isPast?: boolean;
         isOpen?: boolean;
         onToggle?: () => void;
     }>();
     const activity = $derived(props.activity);
     const canToggle = $derived(props.canToggle ?? true);
+    const isPast = $derived(props.isPast ?? false);
     const isOpen = $derived(props.isOpen ?? false);
     const onToggle = $derived(props.onToggle);
     const accent = $derived(getActivityAccentClasses(activity.color));
     const typeLabel = $derived(getActivityTypeLabel(activity.type));
 
     let isSubmitting = $state(false);
+    let skipModalOpen = $state(false);
+
+    // Sequence preview: shown only when rotation is enabled and sets exist.
+    const rotationView = $derived(activity.workoutRotation ?? null);
+    const showSequence = $derived(
+        activity.type === 'workout' &&
+            rotationView != null &&
+            (activity.config?.useRotation ?? true) !== false &&
+            (activity.config?.workoutSets?.length ?? 0) > 0 &&
+            rotationView.currentSetId != null
+    );
+
+    function onSkipClick() {
+        if (activity.weekShifted) {
+            toast('This week is already shifted.');
+            return;
+        }
+        skipModalOpen = true;
+    }
+
     /** Optimistic log count for today (null = use server value). */
     let optimisticLogCount = $state<number | null>(null);
     /** Last inserted log ID from server, used for undo so we delete the right log. */
@@ -137,9 +172,42 @@
                         <CheckIcon class="h-3 w-3" />
                         Completed
                     </span>
+                {:else if activity.isSkippedToday}
+                    <span
+                        class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                    >
+                        <CalendarOff class="h-3 w-3" />
+                        Skipped
+                    </span>
+                {:else if isPast && !isCompleted}
+                    <span
+                        class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive/70"
+                    >
+                        Missed
+                    </span>
                 {/if}
             </div>
             <Card.Title class="truncate">{activity.title}</Card.Title>
+
+            {#if showSequence && rotationView}
+                <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                    {#if rotationView.lastSetName}
+                        <span class="rounded-full bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground line-through">
+                            {rotationView.lastSetName}
+                        </span>
+                        <span class="text-xs text-muted-foreground" aria-hidden="true">→</span>
+                    {/if}
+                    <span class="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+                        {rotationView.currentSetName}
+                    </span>
+                    {#if rotationView.nextSetName}
+                        <span class="text-xs text-muted-foreground" aria-hidden="true">→</span>
+                        <span class="rounded-full bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
+                            {rotationView.nextSetName}
+                        </span>
+                    {/if}
+                </div>
+            {/if}
         </div>
         <Card.Action class="flex flex-col items-end justify-between self-stretch">
             <Popover.Root>
@@ -234,7 +302,19 @@
                             Undo
                         </Button>
                     {:else if activity.type === 'workout'}
-                        <Button href="/workout/{activity.id}" variant="default" class="h-10 px-4">Start Workout</Button>
+                        <div class="flex items-center gap-1">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                class="h-10 gap-1.5 px-3 text-muted-foreground"
+                                disabled={activity.isSkippedToday}
+                                onclick={onSkipClick}
+                            >
+                                <CalendarOff class="h-4 w-4" />
+                                Skip day
+                            </Button>
+                            <Button href="/workout/{activity.id}" variant="default" class="h-10 px-4">Start Workout</Button>
+                        </div>
                     {:else}
                         <Button type="submit" name="action" value="complete" variant="default" class="h-10 px-4" disabled={isSubmitting}>
                             {activity.targetCount > 1 ? completionLabel : 'Done'}
@@ -265,3 +345,7 @@
         </Card.Content>
     {/if}
 </Card.Root>
+
+{#if activity.type === 'workout'}
+    <SkipDayModal bind:open={skipModalOpen} {activity} />
+{/if}

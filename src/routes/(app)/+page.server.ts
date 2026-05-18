@@ -5,6 +5,7 @@ import { createActivity } from '$lib/server/actions/createActivity';
 import { toggleActivity } from '$lib/server/actions/toggleActivity';
 import { updateActivity } from '$lib/server/actions/updateActivity';
 import { archiveActivity } from '$lib/server/actions/archiveActivity';
+import { skipDay } from '$lib/server/actions/skipDay';
 import { DrawerActivitySchema, ArchiveActivityFormSchema, type UpdateActivity } from '$lib/types/schemas';
 import { superValidate, message } from 'sveltekit-superforms/server';
 import { zod4 } from 'sveltekit-superforms/adapters';
@@ -100,5 +101,14 @@ export const actions: Actions = {
         }
 
         return archiveActivity({ user: { id: session.user.id } }, form.data.id);
+    },
+
+    skipDay: async (event) => {
+        const session = await event.locals.auth();
+        if (!session?.user?.id) {
+            return fail(401, { message: 'Unauthorized' });
+        }
+
+        return skipDay({ user: { id: session.user.id } }, await event.request.formData());
     },
 };

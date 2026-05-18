@@ -7,10 +7,9 @@
 
 <script lang="ts">
     import type { Component } from 'svelte';
-    import { tick } from 'svelte';
     import * as Drawer from '$lib/components/ui/drawer';
     import { Button, buttonVariants } from '$lib/components/ui/button';
-    import { Plus, ChevronLeft } from '@lucide/svelte';
+    import { Plus, ChevronLeft, LoaderCircle } from '@lucide/svelte';
     import { cn, toToastDescription } from '$lib/utils';
     import HabitForm, { meta as HabitMeta } from '$lib/components/activity/forms/HabitForm.svelte';
     import PlantForm, { meta as PlantMeta } from '$lib/components/activity/forms/PlantForm.svelte';
@@ -45,7 +44,7 @@
             schedule: { type: 'interval', value: 7, unit: 'days' } as Schedule,
         },
         workout: {
-            config: { exercises: [] } as WorkoutConfig,
+            config: { exercises: [], workoutSets: [], rotation: [], useRotation: true } as WorkoutConfig,
             schedule: { type: 'weekly', days: ['mon', 'wed', 'fri'] } as Schedule,
         },
     };
@@ -55,7 +54,13 @@
     let view = $state<'menu' | ActivityType>('menu');
 
     // svelte-ignore state_referenced_locally
-    const { form, errors, enhance: superEnhance, reset } = superForm(activityForm, {
+    const {
+        form,
+        errors,
+        enhance: superEnhance,
+        reset,
+        submitting,
+    } = superForm(activityForm, {
         id: 'activity-drawer-form',
         dataType: 'json',
         resetForm: false,
@@ -185,7 +190,7 @@
                             bind:formData={$form}
                             errors={$errors}
                             formId={FORM_ID}
-                            FormComponent={FormDef.component as Component<{ data: ActivityFormData, errors?: any }>}
+                            FormComponent={FormDef.component as Component<{ data: ActivityFormData; errors?: any }>}
                             enhance={superEnhance}
                         />
 
@@ -222,8 +227,13 @@
                 {:else}
                     <div class="flex gap-3">
                         <Drawer.Close class={cn(buttonVariants({ variant: 'link' }), 'flex-1')}>Cancel</Drawer.Close>
-                        <Button type="submit" variant="default" form={FORM_ID} class="flex-2">
-                            {activityDrawerState.data ? 'Save Changes' : 'Create'}
+                        <Button type="submit" variant="default" form={FORM_ID} class="flex-2" disabled={$submitting}>
+                            {#if $submitting}
+                                <LoaderCircle class="size-4 animate-spin" />
+                                {activityDrawerState.data ? 'Saving…' : 'Creating…'}
+                            {:else}
+                                {activityDrawerState.data ? 'Save Changes' : 'Create'}
+                            {/if}
                         </Button>
                     </div>
                 {/if}

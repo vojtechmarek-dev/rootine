@@ -2,10 +2,11 @@ import type { PageServerLoad, Actions } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { activities, logs } from '$lib/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { WorkoutConfigSchema, WorkoutLogSchema } from '$lib/types/schemas';
 import { z } from 'zod';
-import { parseISO } from 'date-fns';
+import { differenceInDays, parseISO, startOfDay } from 'date-fns';
+import { getRotationPosition } from '$lib/workout-rotation';
 
 export const load: PageServerLoad = async (event) => {
     const session = event.locals.session;
@@ -30,11 +31,48 @@ export const load: PageServerLoad = async (event) => {
     // Parse the config to ensure it's typed properly
     const config = WorkoutConfigSchema.parse(activity.config);
 
+    // Derive rotation position from the most recent completed log carrying a
+    // setId. Sequence position is never stored.
+    let lastSetId: string | null = null;
+    let lastSetName: string | null = null;
+    let daysSinceLast: number | null = null;
+
+    if (config.workoutSets.length > 0) {
+        const completedLogs = await db.query.logs.findMany({
+            where: and(eq(logs.activityId, activityId), eq(logs.status, 'completed')),
+            orderBy: [desc(logs.date)],
+        });
+        for (const log of completedLogs) {
+            const sid = (log.data as { setId?: unknown })?.setId;
+            if (typeof sid === 'string' && sid.length > 0) {
+                // Orphaned set (deleted) → treat as no prior log.
+                if (config.workoutSets.some((s) => s.id === sid)) {
+                    lastSetId = sid;
+                    lastSetName = config.workoutSets.find((s) => s.id === sid)?.name ?? null;
+                    daysSinceLast = differenceInDays(startOfDay(new Date()), startOfDay(log.date));
+                }
+                break;
+            }
+        }
+    }
+
+    let recommendedSetId: string | null = null;
+    if (config.useRotation && config.rotation.length > 0) {
+        const pos = getRotationPosition(config.rotation, lastSetId);
+        if (pos) {
+            recommendedSetId = config.rotation[pos.currentIndex] ?? null;
+        }
+    }
+
     return {
         activity: {
             ...activity,
             config,
         },
+        sets: config.workoutSets,
+        useRotation: config.useRotation,
+        recommendedSetId,
+        lastSet: lastSetId ? { id: lastSetId, name: lastSetName, daysSinceLast } : null,
     };
 };
 

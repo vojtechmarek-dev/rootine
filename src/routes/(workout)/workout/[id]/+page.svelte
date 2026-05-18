@@ -11,10 +11,39 @@
     import ActiveExerciseCard from '$lib/components/activity/workout/ActiveExerciseCard.svelte';
     import QueueExerciseCard from '$lib/components/activity/workout/QueueExerciseCard.svelte';
     import WorkoutSummary from '$lib/components/activity/workout/WorkoutSummary.svelte';
+    import WorkoutSetPicker from '$lib/components/activity/workout/WorkoutSetPicker.svelte';
 
     let { data } = $props();
     let activity = $derived(data.activity);
-    let exercises = $derived(activity.config.exercises ?? []);
+    const sets = $derived(data.sets ?? []);
+
+    // Whether the set picker step is shown before focus mode (spec §5):
+    // skip it when there are no sets, or rotation is off and only one set.
+    const needPicker = $derived(sets.length > 0 && !(data.useRotation === false && sets.length <= 1));
+
+    let selectedSetId = $state<string | null>(null);
+    let phase = $state<'pick' | 'focus'>('focus');
+
+    // Initialise selection/phase from server-derived rotation each load.
+    $effect.pre(() => {
+        if (sets.length === 0) {
+            selectedSetId = null;
+            phase = 'focus';
+        } else if (needPicker) {
+            selectedSetId = data.recommendedSetId ?? (sets.length === 1 ? sets[0].id : null);
+            phase = 'pick';
+        } else {
+            // Single set, rotation off → auto-select, straight to focus.
+            selectedSetId = sets[0].id;
+            phase = 'focus';
+        }
+    });
+
+    // Exercises driving focus mode: the chosen set's list, or the legacy
+    // top-level list for habits with no sets.
+    let exercises = $derived(
+        sets.length > 0 ? (sets.find((s) => s.id === selectedSetId)?.exercises ?? []) : (activity.config.exercises ?? [])
+    );
 
     type ExerciseStatus = 'pending' | 'completed' | 'skipped';
 
@@ -114,10 +143,22 @@
         return JSON.stringify({
             durationMin: Math.round(secondsElapsed / 60),
             exercises: completed,
+            setId: selectedSetId,
         });
     });
 </script>
 
+{#if phase === 'pick'}
+    <WorkoutSetPicker
+        title={activity.title}
+        {sets}
+        recommendedSetId={data.recommendedSetId ?? null}
+        lastSet={data.lastSet ?? null}
+        bind:selectedSetId
+        onConfirm={() => (phase = 'focus')}
+        onExit={handleExit}
+    />
+{:else}
 <div class="relative flex h-dvh flex-col bg-background text-foreground">
     <WorkoutHeader {isPaused} {secondsElapsed} onTogglePause={togglePause} onExit={handleExit} />
 
@@ -199,3 +240,4 @@
 
     <WorkoutSummary show={showSummary} />
 </div>
+{/if}
