@@ -9,7 +9,7 @@ import {
     type WeekException,
     type WorkoutRotationView,
 } from '$lib/types/schemas';
-import { eq, desc, and, between, inArray, gte, lt } from 'drizzle-orm';
+import { eq, desc, and, between, inArray, gte } from 'drizzle-orm';
 import { formatZodErrorTree } from '$lib/utils';
 import { differenceInDays, endOfDay, startOfDay } from 'date-fns';
 import { isScheduledForDate } from '$lib/scheduler';
@@ -105,12 +105,6 @@ export async function getDashboardActivities(
           })
         : [];
 
-    // Clean up expired exceptions in the background so they don't accumulate.
-    if (activityIds.length) {
-        db.delete(weekExceptions)
-            .where(and(inArray(weekExceptions.habitId, activityIds), lt(weekExceptions.weekOf, currentWeek)))
-            .catch(() => {});
-    }
     const exceptions: WeekException[] = [];
     for (const row of rawExceptions) {
         const parsed = WeekExceptionSchema.safeParse(row);
