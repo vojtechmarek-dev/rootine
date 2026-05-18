@@ -6,7 +6,18 @@
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
-    import { CalendarClock, CalendarOff, CheckIcon, ChevronDown, Dumbbell, Pencil, Repeat, Sprout, MoreHorizontal, Archive } from '@lucide/svelte';
+    import {
+        CalendarClock,
+        CalendarOff,
+        CheckIcon,
+        ChevronDown,
+        Dumbbell,
+        Pencil,
+        Repeat,
+        Sprout,
+        MoreHorizontal,
+        Archive,
+    } from '@lucide/svelte';
     import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import type { ActivityFormData } from '$lib/types/schemas';
     import { cn, getActivityAccentClasses, getActivityTypeLabel } from '$lib/utils';
@@ -18,11 +29,13 @@
     const props = $props<{
         activity: DashboardActivity;
         canToggle?: boolean;
+        isPast?: boolean;
         isOpen?: boolean;
         onToggle?: () => void;
     }>();
     const activity = $derived(props.activity);
     const canToggle = $derived(props.canToggle ?? true);
+    const isPast = $derived(props.isPast ?? false);
     const isOpen = $derived(props.isOpen ?? false);
     const onToggle = $derived(props.onToggle);
     const accent = $derived(getActivityAccentClasses(activity.color));
@@ -159,6 +172,19 @@
                         <CheckIcon class="h-3 w-3" />
                         Completed
                     </span>
+                {:else if activity.isSkippedToday}
+                    <span
+                        class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                    >
+                        <CalendarOff class="h-3 w-3" />
+                        Skipped
+                    </span>
+                {:else if isPast && !isCompleted}
+                    <span
+                        class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive/70"
+                    >
+                        Missed
+                    </span>
                 {/if}
             </div>
             <Card.Title class="truncate">{activity.title}</Card.Title>
@@ -281,6 +307,7 @@
                                 type="button"
                                 variant="ghost"
                                 class="h-10 gap-1.5 px-3 text-muted-foreground"
+                                disabled={activity.isSkippedToday}
                                 onclick={onSkipClick}
                             >
                                 <CalendarOff class="h-4 w-4" />

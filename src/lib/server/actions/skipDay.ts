@@ -51,7 +51,7 @@ export async function skipDay(session: SessionWithUser, formData: FormData) {
     // mode === 'shift'
     const weekOf = isoWeekOf(new Date());
 
-    // Edge case §6: at most one shift per habit per week. Bail early if one
+    // Edge case: at most one shift per habit per week. Bail early if one
     // already exists; the DB unique constraint is the hard backstop.
     const existing = await db.query.weekExceptions.findFirst({
         where: and(eq(weekExceptions.habitId, activityId), eq(weekExceptions.weekOf, weekOf)),

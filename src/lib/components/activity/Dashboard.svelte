@@ -35,6 +35,7 @@
     // Default to today if no date in URL
     const currentDateStr = $derived(page.url.searchParams.get('date') || todayDateStr);
     const canToggleActivities = $derived(currentDateStr === todayDateStr);
+    const isPastDate = $derived(currentDateStr < todayDateStr);
 
     let selectValue = $state('today');
     let customDate = $state<Date | undefined>(undefined);
@@ -198,6 +199,7 @@
                     <ActivityCard
                         {activity}
                         canToggle={canToggleActivities}
+                        isPast={isPastDate}
                         isOpen={expandedActivityId === activity.id}
                         onToggle={() => {
                             toggleExpanded(activity.id);

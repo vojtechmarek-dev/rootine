@@ -55,7 +55,7 @@ function buildWorkoutRotation(
         nextSetName: null,
     };
 
-    // No recommendation when rotation is disabled (edge case: §6).
+    // No recommendation when rotation is disabled
     if (!useRotation || rotation.length === 0) {
         return view;
     }
@@ -149,8 +149,10 @@ export async function getDashboardActivities(
 
         const targetCount = getTargetCount(parsedActivity);
         // Skipped logs record an intent, not a completion — don't count them.
-        const logCountToday = rawLogs.filter((l) => l.status !== 'skipped').length;
+        const completedLogs = rawLogs.filter((l) => l.status !== 'skipped');
+        const logCountToday = completedLogs.length;
         const isCompleted = logCountToday >= targetCount;
+        const isSkippedToday = logCountToday === 0 && rawLogs.some((l) => l.status === 'skipped');
 
         const parsedLogs: Log[] = rawLogs
             .map((log) => {
@@ -177,6 +179,7 @@ export async function getDashboardActivities(
             logCountToday,
             targetCount,
             logs: parsedLogs,
+            isSkippedToday,
             workoutRotation,
             weekShifted: shiftedHabitIds.has(activity.id),
         });

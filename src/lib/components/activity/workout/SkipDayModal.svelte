@@ -3,7 +3,7 @@
     import { Button } from '$lib/components/ui/button';
     import { enhance } from '$app/forms';
     import { toast } from 'svelte-sonner';
-    import { CalendarOff, CalendarClock } from '@lucide/svelte';
+    import { CalendarOff, CalendarClock, LoaderCircle } from '@lucide/svelte';
     import type { DashboardActivity } from '$lib/types/schemas';
     import { shiftWeekdays } from '$lib/workout-rotation';
 
@@ -117,7 +117,12 @@
             <AlertDialog.Footer>
                 <Button type="button" variant="ghost" onclick={() => (open = false)} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" variant="default" disabled={isSubmitting}>
-                    {isSubmitting ? 'Working…' : 'Confirm'}
+                    {#if isSubmitting}
+                        <LoaderCircle class="size-4 animate-spin" />
+                        Working…
+                    {:else}
+                        Confirm
+                    {/if}
                 </Button>
             </AlertDialog.Footer>
         </form>

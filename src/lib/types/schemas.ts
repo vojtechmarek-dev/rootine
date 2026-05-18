@@ -284,6 +284,8 @@ export type DashboardActivity = Activity & {
     logCountToday: number;
     targetCount: number;
     logs?: Log[] | null;
+    /** True when at least one log for this period has status "skipped". */
+    isSkippedToday: boolean;
     /** Present only for workout habits that have sets defined. */
     workoutRotation?: WorkoutRotationView | null;
     /** True when a WeekException already shifts the current ISO week. */
