@@ -9,7 +9,7 @@ import {
     type WeekException,
     type WorkoutRotationView,
 } from '$lib/types/schemas';
-import { eq, desc, and, between, inArray } from 'drizzle-orm';
+import { eq, desc, and, between, inArray, gte, lt } from 'drizzle-orm';
 import { formatZodErrorTree } from '$lib/utils';
 import { differenceInDays, endOfDay, startOfDay } from 'date-fns';
 import { isScheduledForDate } from '$lib/scheduler';
@@ -89,14 +89,28 @@ export async function getDashboardActivities(
 
     const activityIds = userActivities.map((a) => a.id);
 
-    // WeekExceptions for the target's ISO week. The scheduler applies the shift;
-    // we also expose `weekShifted` so the card can suppress the shift action.
+    // WeekExceptions for the target's ISO week. Only apply for the current or
+    // future ISO week — past-week exceptions are expired and should not affect
+    // historical schedule views. The weekOf text field sorts lexicographically
+    // (e.g. "2025-W03" < "2025-W10" < "2026-W01"), so gte works correctly.
     const targetWeek = isoWeekOf(targetDate);
+    const currentWeek = isoWeekOf(new Date());
     const rawExceptions = activityIds.length
         ? await db.query.weekExceptions.findMany({
-              where: and(inArray(weekExceptions.habitId, activityIds), eq(weekExceptions.weekOf, targetWeek)),
+              where: and(
+                  inArray(weekExceptions.habitId, activityIds),
+                  eq(weekExceptions.weekOf, targetWeek),
+                  gte(weekExceptions.weekOf, currentWeek)
+              ),
           })
         : [];
+
+    // Clean up expired exceptions in the background so they don't accumulate.
+    if (activityIds.length) {
+        db.delete(weekExceptions)
+            .where(and(inArray(weekExceptions.habitId, activityIds), lt(weekExceptions.weekOf, currentWeek)))
+            .catch(() => {});
+    }
     const exceptions: WeekException[] = [];
     for (const row of rawExceptions) {
         const parsed = WeekExceptionSchema.safeParse(row);
