@@ -23,6 +23,10 @@ sequenceDiagram
     end
 ```
 
+## Features
+
+- [Workout Habits — Flexible Scheduling & Set Sequencing](./features/workout-habits.md) — week shifting, named sets, rotation logic, skip modal, set picker
+
 ## Architectural Decisions
 
 High-level tech choices are summarized in **`docs/decisions`** (numbered ADRs). PWA-focused notes live in **`docs/adr`**.
