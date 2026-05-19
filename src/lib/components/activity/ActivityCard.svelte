@@ -302,7 +302,7 @@
                             Undo
                         </Button>
                     {:else if activity.type === 'workout'}
-                        <div class="flex items-center gap-1">
+                        <div class="flex flex-col items-end gap-1 sm:flex-row sm:items-center">
                             <Button
                                 type="button"
                                 variant="ghost"
