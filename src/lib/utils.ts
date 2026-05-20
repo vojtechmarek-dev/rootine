@@ -9,10 +9,7 @@ export function formatZodErrorTree(error: z.ZodError): string {
 
 const DEFAULT_TOAST_DESCRIPTION_LENGTH = 220;
 
-export function toToastDescription(
-    value: unknown,
-    maxLength = DEFAULT_TOAST_DESCRIPTION_LENGTH
-): string | undefined {
+export function toToastDescription(value: unknown, maxLength = DEFAULT_TOAST_DESCRIPTION_LENGTH): string | undefined {
     if (!value) {
         return undefined;
     }

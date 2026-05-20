@@ -53,11 +53,18 @@
                         type="button"
                         class={cn(
                             'flex w-full items-center gap-4 rounded-2xl border p-4 text-left shadow-ambient transition-all active:scale-[0.99]',
-                            isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-outline-variant/25 bg-surface-container-low hover:bg-muted/20'
+                            isSelected
+                                ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                                : 'border-outline-variant/25 bg-surface-container-low hover:bg-muted/20'
                         )}
                         onclick={() => (selectedSetId = set.id)}
                     >
-                        <div class={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', isSelected ? 'bg-primary text-primary-foreground' : 'bg-surface-container-high text-muted-foreground')}>
+                        <div
+                            class={cn(
+                                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                                isSelected ? 'bg-primary text-primary-foreground' : 'bg-surface-container-high text-muted-foreground'
+                            )}
+                        >
                             {#if isSelected}
                                 <Check class="h-5 w-5" />
                             {:else}
@@ -82,7 +89,9 @@
         </div>
     </main>
 
-    <div class="fixed right-0 bottom-0 left-0 flex flex-col items-center gap-2 bg-linear-to-t from-background via-background/90 to-transparent p-6 pt-12 pb-8">
+    <div
+        class="fixed right-0 bottom-0 left-0 flex flex-col items-center gap-2 bg-linear-to-t from-background via-background/90 to-transparent p-6 pt-12 pb-8"
+    >
         <Button
             type="button"
             variant="clay"

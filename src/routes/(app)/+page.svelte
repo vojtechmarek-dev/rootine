@@ -12,7 +12,7 @@
         data.dashboardPayload.then((payload) => {
             notifyDataErrors(payload.errors);
             return payload;
-        }),
+        })
     );
     const shownErrorSignatures = new SvelteSet<string>();
 
@@ -25,8 +25,7 @@
         shownErrorSignatures.add(signature);
 
         for (const err of errors) {
-            const description = toToastDescription(`Activity ID: ${err.id}. ${err.message}`)
-                ?? `Activity ID: ${err.id}. Invalid data.`;
+            const description = toToastDescription(`Activity ID: ${err.id}. ${err.message}`) ?? `Activity ID: ${err.id}. Invalid data.`;
             toast.error(`Failed to load ${err.type} activity`, {
                 description,
                 duration: 5000,

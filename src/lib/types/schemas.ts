@@ -10,8 +10,14 @@ import { z } from 'zod';
 export const BaseActivitySchema = z.object({
     title: z.string().min(1, 'Title is required'),
     description: z.string().nullish(),
-    color: z.string().nullish().transform((v) => v ?? 'zinc'),
-    icon: z.string().nullish().transform((v) => v ?? 'circle'),
+    color: z
+        .string()
+        .nullish()
+        .transform((v) => v ?? 'zinc'),
+    icon: z
+        .string()
+        .nullish()
+        .transform((v) => v ?? 'circle'),
     startDate: z.coerce.date().default(() => new Date()),
     endDate: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.coerce.date().optional()),
     archived: z.preprocess((v) => v === 'true' || v === 'on' || v === '1', z.boolean().default(false)),
@@ -57,7 +63,10 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
 // Example: "Drink Water", Target: 3 liters
 export const HabitConfigSchema = ActivityConfig.extend({
     targetValue: z.coerce.number().min(1).default(1),
-    unit: z.string().nullish().transform((v) => v ?? 'times'),
+    unit: z
+        .string()
+        .nullish()
+        .transform((v) => v ?? 'times'),
 });
 
 // --- TYPE 2: PLANT (Interval Tracker) ---
@@ -94,7 +103,10 @@ export const WorkoutConfigSchema = ActivityConfig.extend({
     // Ordered WorkoutSet IDs defining the cycle, e.g. ["push","pull"].
     rotation: z.array(z.string()).default([]),
     // When false, no set is recommended/pre-selected at workout start.
-    useRotation: z.preprocess((v) => (v === undefined || v === null ? true : v === 'true' || v === 'on' || v === '1' || v === true), z.boolean().default(true)),
+    useRotation: z.preprocess(
+        (v) => (v === undefined || v === null ? true : v === 'true' || v === 'on' || v === '1' || v === true),
+        z.boolean().default(true)
+    ),
 });
 
 // ==========================================
@@ -183,7 +195,10 @@ export const PlantLogSchema = z.object({
 export const WorkoutLogSchema = z.object({
     durationMin: z.number().default(0),
     // Which WorkoutSet was completed. null for habits without sets or skips.
-    setId: z.string().nullish().transform((v) => v ?? null),
+    setId: z
+        .string()
+        .nullish()
+        .transform((v) => v ?? null),
     // We record exactly what was lifted
     exercises: z
         .array(

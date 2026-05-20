@@ -5,7 +5,7 @@
     import { WEEKDAYS } from '$lib/constants';
     import type { Schedule } from '$lib/types/schemas';
 
-    let { schedule = $bindable(), errors }: { schedule: Schedule, errors?: any } = $props();
+    let { schedule = $bindable(), errors }: { schedule: Schedule; errors?: any } = $props();
 
     // Helper to sync Select value with Schedule type
     let selectedType = $derived<Schedule['type']>(schedule.type);

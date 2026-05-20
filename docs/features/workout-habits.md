@@ -39,11 +39,11 @@ erDiagram
 
 `WorkoutConfig` (inside `activities.config` JSONB) carries:
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `workoutSets` | `WorkoutSet[]` | `[]` | Ordered list of named sets. Empty for legacy single-list habits. |
-| `rotation` | `string[]` | `[]` | Ordered `WorkoutSet` IDs defining the cycle, e.g. `["push","pull"]`. |
-| `useRotation` | `boolean` | `true` | When `false`, no set is recommended at workout start — user always picks manually. |
+| Field         | Type           | Default | Description                                                                        |
+| ------------- | -------------- | ------- | ---------------------------------------------------------------------------------- |
+| `workoutSets` | `WorkoutSet[]` | `[]`    | Ordered list of named sets. Empty for legacy single-list habits.                   |
+| `rotation`    | `string[]`     | `[]`    | Ordered `WorkoutSet` IDs defining the cycle, e.g. `["push","pull"]`.               |
+| `useRotation` | `boolean`      | `true`  | When `false`, no set is recommended at workout start — user always picks manually. |
 
 `WorkoutSet` shape:
 
@@ -57,8 +57,8 @@ erDiagram
 
 `WorkoutLog.data` (inside `logs.data` JSONB) gains:
 
-| Field | Type | Description |
-|---|---|---|
+| Field   | Type             | Description                                                                           |
+| ------- | ---------------- | ------------------------------------------------------------------------------------- |
 | `setId` | `string \| null` | Which `WorkoutSet` was completed. `null` for habits without sets or for skipped logs. |
 
 Sequence position is **never stored** — derived at runtime from the last completed log.
@@ -89,7 +89,7 @@ flowchart TD
 
 ### Clamping decision
 
-A shift past the end of the week is **clamped to Sunday** (last entry of `WEEKDAYS = ['mon'…'sun']`). Saturday is *not* the boundary — clamping there silently collapses distinct days (e.g. Fri + Sat both become Sat, dropping one scheduled day).
+A shift past the end of the week is **clamped to Sunday** (last entry of `WEEKDAYS = ['mon'…'sun']`). Saturday is _not_ the boundary — clamping there silently collapses distinct days (e.g. Fri + Sat both become Sat, dropping one scheduled day).
 
 ```mermaid
 block-beta
@@ -100,12 +100,12 @@ block-beta
   end
 ```
 
-| Input | Shift | Output |
-|---|---|---|
-| `mon, wed, fri` | +1 | `tue, thu, sat` |
-| `wed, fri, sat` | +1 | `thu, sat, sun` |
-| `fri, sat` | +1 | `sat, sun` |
-| `sat, sun` | +1 | `sun` *(genuine boundary collapse)* |
+| Input           | Shift | Output                              |
+| --------------- | ----- | ----------------------------------- |
+| `mon, wed, fri` | +1    | `tue, thu, sat`                     |
+| `wed, fri, sat` | +1    | `thu, sat, sun`                     |
+| `fri, sat`      | +1    | `sat, sun`                          |
+| `sat, sun`      | +1    | `sun` _(genuine boundary collapse)_ |
 
 ### Exception lifecycle
 
@@ -141,11 +141,11 @@ flowchart TD
     G --> H([return lastIndex / currentIndex / nextIndex])
 ```
 
-| Scenario | currentIndex |
-|---|---|
-| No prior log | `0` |
-| `lastSetId` at index `i` | `(i + 1) % rotation.length` |
-| `lastSetId` is orphaned (set deleted) | `0` (fallback) |
+| Scenario                              | currentIndex                |
+| ------------------------------------- | --------------------------- |
+| No prior log                          | `0`                         |
+| `lastSetId` at index `i`              | `(i + 1) % rotation.length` |
+| `lastSetId` is orphaned (set deleted) | `0` (fallback)              |
 
 Skipped logs are **invisible to rotation** — only completed logs with a non-null `setId` advance the sequence. This means the sequence self-heals if logs are deleted or sets are reordered.
 
@@ -233,14 +233,14 @@ flowchart LR
 
 ## Edge Cases
 
-| Scenario | Behaviour |
-|---|---|
-| Skip without shift | Log with `status: "skipped"`. Rotation unaffected — skips invisible to sequence logic. |
-| Shift week, already worked out | Exception applies to remaining days; past completed logs unaffected. |
-| Shift pushes day past Sunday | Clamped to Sunday (see Clamping decision). |
-| Shift when already shifted | Server 409; toast "This week is already shifted." |
-| `useRotation` off | Set picker still shows (unless ≤1 set); no Recommended badge or pre-selection. |
-| Orphaned `setId` (set deleted) | Treated as no prior log — rotation falls back to index 0. |
-| Duplicate `WeekException` | Prevented by unique constraint `(habitId, weekOf)`. |
-| Past-week exception | Filtered by `weekOf >= currentWeek`; old records cleaned up in background. |
-| Future date on dashboard | "Missed" chip not shown — requires `isPast` prop to be true. |
+| Scenario                       | Behaviour                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------- |
+| Skip without shift             | Log with `status: "skipped"`. Rotation unaffected — skips invisible to sequence logic. |
+| Shift week, already worked out | Exception applies to remaining days; past completed logs unaffected.                   |
+| Shift pushes day past Sunday   | Clamped to Sunday (see Clamping decision).                                             |
+| Shift when already shifted     | Server 409; toast "This week is already shifted."                                      |
+| `useRotation` off              | Set picker still shows (unless ≤1 set); no Recommended badge or pre-selection.         |
+| Orphaned `setId` (set deleted) | Treated as no prior log — rotation falls back to index 0.                              |
+| Duplicate `WeekException`      | Prevented by unique constraint `(habitId, weekOf)`.                                    |
+| Past-week exception            | Filtered by `weekOf >= currentWeek`; old records cleaned up in background.             |
+| Future date on dashboard       | "Missed" chip not shown — requires `isPast` prop to be true.                           |

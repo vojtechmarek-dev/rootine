@@ -36,7 +36,7 @@
                 bind:startDate={data.startDate}
                 bind:endDate={data.endDate}
                 bind:archived={data.archived}
-                errors={errors}
+                {errors}
             />
 
             <!-- Plant Specific Fields -->

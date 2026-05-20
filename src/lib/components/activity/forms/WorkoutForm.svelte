@@ -38,19 +38,14 @@
                 bind:startDate={data.startDate}
                 bind:endDate={data.endDate}
                 bind:archived={data.archived}
-                errors={errors}
+                {errors}
             />
 
             <!-- Workout Specific Fields -->
             <Field.Group>
                 <Field.Field>
                     <Field.Label>Estimated Duration (min)</Field.Label>
-                    <Input
-                        type="number"
-                        min="1"
-                        placeholder="e.g. 45"
-                        bind:value={data.config.estimatedDurationMin}
-                    />
+                    <Input type="number" min="1" placeholder="e.g. 45" bind:value={data.config.estimatedDurationMin} />
                     <Field.Error errors={errors?.config?.estimatedDurationMin} />
                 </Field.Field>
 
@@ -60,7 +55,9 @@
                 <!-- Default exercises (used when no sets are defined) -->
                 <Field.Field>
                     <Field.Label>Exercises</Field.Label>
-                    <Field.Description>Used when this habit has no sets. With sets defined, each set has its own exercises.</Field.Description>
+                    <Field.Description
+                        >Used when this habit has no sets. With sets defined, each set has its own exercises.</Field.Description
+                    >
                     <ExerciseListEditor bind:exercises={data.config.exercises} errors={errors?.config?.exercises} />
                 </Field.Field>
 

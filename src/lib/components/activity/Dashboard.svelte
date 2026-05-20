@@ -179,7 +179,7 @@
             </div>
 
             {#if selectValue === 'custom'}
-                <div class="animate-in zoom-in-95 fade-in w-full sm:w-auto">
+                <div class="w-full animate-in zoom-in-95 fade-in sm:w-auto">
                     <DatePicker bind:value={customDate} />
                 </div>
             {/if}

@@ -153,9 +153,7 @@
                                         // propagates through the $bindable chain (superforms
                                         // data isn't a deep $state proxy, so an in-place
                                         // `set.exercises = …` write goes unobserved).
-                                        workoutSets = workoutSets.map((s) =>
-                                            s.id === set.id ? { ...s, exercises: value } : s
-                                        );
+                                        workoutSets = workoutSets.map((s) => (s.id === set.id ? { ...s, exercises: value } : s));
                                     }
                                 }
                                 errors={errors?.[set.id]?.exercises}

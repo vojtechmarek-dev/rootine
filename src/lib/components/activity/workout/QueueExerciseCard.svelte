@@ -28,7 +28,7 @@
     <div class="flex items-center justify-between">
         <div class="flex flex-col text-left">
             <span class="font-medium text-foreground">{exercise.name}</span>
-            <span class="text-xs text-muted-foreground mt-0.5">{exercise.sets} Sets &bull; {exercise.reps} Reps</span>
+            <span class="mt-0.5 text-xs text-muted-foreground">{exercise.sets} Sets &bull; {exercise.reps} Reps</span>
         </div>
         {#if status === 'completed'}
             <Check class="h-5 w-5" />

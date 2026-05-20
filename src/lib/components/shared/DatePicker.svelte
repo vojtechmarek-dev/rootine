@@ -35,7 +35,7 @@
             <Button
                 variant="outline"
                 size="lg"
-                class={cn('w-full sm:w-[280px] justify-start text-start font-normal', !value && 'text-muted-foreground')}
+                class={cn('w-full justify-start text-start font-normal sm:w-[280px]', !value && 'text-muted-foreground')}
                 {...props}
             >
                 <CalendarIcon class="me-2 size-4" />
@@ -44,6 +44,13 @@
         {/snippet}
     </Popover.Trigger>
     <Popover.Content class="w-auto p-0">
-        <Calendar value={calendarValue} onValueChange={handleValueChange} bind:placeholder type="single" initialFocus captionLayout="dropdown" />
+        <Calendar
+            value={calendarValue}
+            onValueChange={handleValueChange}
+            bind:placeholder
+            type="single"
+            initialFocus
+            captionLayout="dropdown"
+        />
     </Popover.Content>
 </Popover.Root>

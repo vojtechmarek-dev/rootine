@@ -24,15 +24,11 @@
 
     <!-- Top accent bar with progress dots -->
     <div class="relative z-10 flex items-center gap-2 px-6 pt-5 pb-2">
-        {#each Array.from({ length: totalExercises }) as _, i}
+        {#each Array.from({ length: totalExercises }), i (i)}
             <div
                 class={[
                     'h-1 rounded-full transition-all duration-300',
-                    i < index
-                        ? 'flex-none w-4 bg-success/60'
-                        : i === index
-                          ? 'flex-1 bg-clay'
-                          : 'flex-none w-4 bg-outline-variant/30',
+                    i < index ? 'w-4 flex-none bg-success/60' : i === index ? 'flex-1 bg-clay' : 'w-4 flex-none bg-outline-variant/30',
                 ].join(' ')}
             ></div>
         {/each}
@@ -40,11 +36,11 @@
 
     <div class="relative z-10 px-6 pb-6">
         <!-- Exercise name + index label -->
-        <div class="mb-6 mt-3">
+        <div class="mt-3 mb-6">
             <p class="mb-1 text-xs font-semibold tracking-widest text-clay/80 uppercase">
                 Exercise {index + 1} of {totalExercises}
             </p>
-            <h2 class="font-sans text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
+            <h2 class="font-sans text-4xl leading-tight font-bold tracking-tight text-foreground sm:text-5xl">
                 {exercise.name}
             </h2>
         </div>
@@ -57,9 +53,9 @@
                     <BarChart2 class="h-3 w-3" /> Sets & Reps
                 </span>
                 <div class="flex items-baseline gap-1">
-                    <span class="font-sans text-5xl font-bold tabular-nums text-foreground">{exercise.sets}</span>
+                    <span class="font-sans text-5xl font-bold text-foreground tabular-nums">{exercise.sets}</span>
                     <span class="pb-1 text-2xl font-light text-muted-foreground">×</span>
-                    <span class="font-sans text-5xl font-bold tabular-nums text-foreground">{exercise.reps}</span>
+                    <span class="font-sans text-5xl font-bold text-foreground tabular-nums">{exercise.reps}</span>
                 </div>
             </div>
 
@@ -74,7 +70,7 @@
                     </div>
                 {:else}
                     <div class="flex items-baseline gap-1">
-                        <span class="font-sans text-5xl font-bold tabular-nums text-foreground">{exercise.weight}</span>
+                        <span class="font-sans text-5xl font-bold text-foreground tabular-nums">{exercise.weight}</span>
                         <span class="pb-1 text-xl font-medium text-muted-foreground">kg</span>
                     </div>
                 {/if}
