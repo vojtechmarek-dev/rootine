@@ -63,6 +63,8 @@
         "@auth/core": "^0.41.1",
         "@auth/drizzle-adapter": "^1.11.1",
         "@auth/sveltekit": "^1.11.1",
+        "@fontsource-variable/inter": "^5.2.8",
+        "@fontsource-variable/newsreader": "^5.2.10",
         "@neondatabase/serverless": "^1.0.2",
         "@vite-pwa/sveltekit": "^1.1.0",
         "clsx": "^2.1.1",
