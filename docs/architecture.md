@@ -1,0 +1,35 @@
+# Architecture
+
+## Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant PWA as SvelteKit PWA (SPA)
+    participant IDB as IndexedDB
+    participant API as Vercel Serverless
+    participant DB as Neon Postgres
+
+    User->>PWA: Clicks "Complete Habit"
+    PWA->>IDB: Save "Pending Action"
+    PWA->>User: Update UI (Green)
+    PWA->>API: Try Sync
+    alt Online
+        API->>DB: INSERT Log
+        API-->>PWA: 200 OK
+        PWA->>IDB: Remove Pending Action
+    else Offline
+        PWA-->>PWA: Keep in IDB (Retry later)
+    end
+```
+
+## Features
+
+- [Workout Habits — Flexible Scheduling & Set Sequencing](./features/workout-habits.md) — week shifting, named sets, rotation logic, skip modal, set picker
+
+## Architectural Decisions
+
+High-level tech choices are summarized in **`docs/decisions`** (numbered ADRs). PWA-focused notes live in **`docs/adr`**.
+
+- [ADR 001: Transition to Single Page Application (SPA) Mode for PWA](./adr/001-spa-mode-for-pwa.md)
+- [ADR 005: Why sveltekit-superforms](./decisions/005-why-sveltekit-superforms.md) — forms, Zod 4 integration, nested activity payloads

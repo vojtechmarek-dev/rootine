@@ -1,15 +1,6 @@
 import type { AdapterAccount } from '@auth/core/adapters';
 import { relations } from 'drizzle-orm';
-import {
-    pgTable,
-    uuid,
-    text,
-    timestamp,
-    integer,
-    primaryKey,
-    jsonb,
-    boolean,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, primaryKey, jsonb, boolean, unique } from 'drizzle-orm/pg-core';
 
 // =========================================
 // 1. THE AUTHENTICATION TABLES
@@ -46,7 +37,7 @@ export const accounts = pgTable(
 );
 
 // This links sessions to our users
-export const sessions = pgTable('sessions', {
+export const sessions = pgTable('session', {
     sessionToken: text('sessionToken').primaryKey(),
     userId: uuid('userId')
         .notNull()
@@ -95,6 +86,8 @@ export const activities = pgTable('activity', {
     icon: text('icon').default('circle'), // Lucide icon name
 
     archived: boolean('archived').default(false).notNull(),
+    startDate: timestamp('start_date').defaultNow().notNull(),
+    endDate: timestamp('end_date', { mode: 'date' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -119,6 +112,26 @@ export const logs = pgTable('log', {
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Schedule shifts. One row per shifted ISO week per habit.
+// Apply shiftDays to the habit's weekly preferred days for that week only.
+// Expire/delete once the week has passed.
+export const weekExceptions = pgTable(
+    'week_exception',
+    {
+        id: uuid('id').defaultRandom().primaryKey(),
+        habitId: uuid('habitId')
+            .notNull()
+            .references(() => activities.id, { onDelete: 'cascade' }),
+        // ISO week string, e.g. "2025-W03"
+        weekOf: text('week_of').notNull(),
+        // Integer day offset (spec scope: +1)
+        shiftDays: integer('shift_days').notNull(),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+    },
+    // At most one shift per habit per week (edge case 6).
+    (table) => [unique('week_exception_habit_week_unique').on(table.habitId, table.weekOf)]
+);
+
 // =========================================
 // 3. RELATIONS (For Drizzle Queries)
 // =========================================
@@ -133,6 +146,14 @@ export const activitiesRelations = relations(activities, ({ one, many }) => ({
         references: [users.id],
     }),
     logs: many(logs),
+    weekExceptions: many(weekExceptions),
+}));
+
+export const weekExceptionsRelations = relations(weekExceptions, ({ one }) => ({
+    activity: one(activities, {
+        fields: [weekExceptions.habitId],
+        references: [activities.id],
+    }),
 }));
 
 export const logsRelations = relations(logs, ({ one }) => ({

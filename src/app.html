@@ -3,9 +3,113 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#F8F9FA" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0B1C14" media="(prefers-color-scheme: dark)" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+<script>
+            // Prevent FOUC (Flash of Unstyled Content): Apply theme before body renders
+            !(function () {
+                try {
+                    const d = document.documentElement,
+                        c = localStorage.getItem('rootine.theme.mode'),
+                        m = c === 'light' || c === 'dark' || c === 'system' ? c : 'system',
+                        p = localStorage.getItem('rootine.theme.preset') === 'zinc' ? 'zinc' : 'zinc',
+                        s = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+                        r = m === 'system' ? s : m;
+                    d.dataset.theme = p;
+                    d.dataset.mode = r;
+                    d.classList.toggle('dark', r === 'dark');
+                    d.style.colorScheme = r;
+                } catch (e) {}
+            })();
+        </script>
+        <style>
+            /* Splash screen styles */
+            #app-splash {
+                position: fixed;
+                inset: 0;
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f8f9fa;
+                color: #012d1d;
+                opacity: 0;
+                pointer-events: none;
+                /* Delay the splash screen by 100ms so it doesn't flash on fast loads */
+                animation: splash-fade-in 300ms ease-out 100ms forwards;
+            }
+
+            .dark #app-splash {
+                background: #0b1c14;
+                color: #f8f9fa;
+            }
+
+            #app-splash[data-hidden='true'] {
+                display: none !important;
+                animation: none !important;
+            }
+
+            .app-splash-content {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .app-splash-spinner {
+                width: 2rem;
+                height: 2rem;
+                border-radius: 9999px;
+                border: 2px solid #d4d4d8;
+                border-top-color: #52525b;
+                animation: app-splash-spin 900ms linear infinite;
+            }
+
+            .dark .app-splash-spinner {
+                border-color: #3f3f46;
+                border-top-color: #e4e4e7;
+            }
+
+            .app-splash-label {
+                margin: 0;
+                font-size: 0.875rem;
+                font-weight: 500;
+                letter-spacing: 0.01em;
+            }
+
+            @keyframes splash-fade-in {
+                to {
+                    opacity: 1;
+                    pointer-events: auto;
+                }
+            }
+
+            @keyframes app-splash-spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .app-splash-spinner {
+                    animation: none;
+                }
+            }
+        </style>
         %sveltekit.head%
     </head>
+
     <body data-sveltekit-preload-data="hover">
+        <div id="app-splash" aria-hidden="true">
+            <div class="app-splash-content">
+                <div class="app-splash-spinner"></div>
+                <p class="app-splash-label">Waking up Rootine...</p>
+            </div>
+        </div>
         <div style="display: contents">%sveltekit.body%</div>
     </body>
 </html>

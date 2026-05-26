@@ -1,0 +1,336 @@
+openapi: 3.1.0
+info:
+    title: Rootine API
+    description: |
+        API documentation for Rootine, a PWA Habit Tracker. The app uses SvelteKit Form Actions for mutations.
+        Authenticated requests require a valid session cookie.
+    version: 0.1.0
+    contact:
+        name: Rootine
+
+servers:
+    - url: /
+      description: App root (protected routes under (app) layout)
+
+tags:
+    - name: Activities
+      description: Activity (habit, plant, workout) management
+    - name: Auth
+      description: Authentication (handled by Auth.js)
+
+paths:
+    /:
+        post:
+            operationId: createActivity
+            summary: Create an activity
+            description: |
+                SvelteKit Form Action. Creates a new activity (habit, plant, or workout) for the authenticated user.
+                Submit as `application/x-www-form-urlencoded` with `_action=createActivity`.
+            tags:
+                - Activities
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/x-www-form-urlencoded:
+                        schema:
+                            type: object
+                            required:
+                                - _action
+                                - type
+                                - title
+                            properties:
+                                _action:
+                                    type: string
+                                    enum: [createActivity]
+                                    description: SvelteKit form action name
+                                type:
+                                    type: string
+                                    enum: [habit, plant, workout]
+                                    description: Activity type (discriminator)
+                                title:
+                                    type: string
+                                    minLength: 1
+                                description:
+                                    type: string
+                                color:
+                                    type: string
+                                    default: zinc
+                                icon:
+                                    type: string
+                                    default: circle
+                                startDate:
+                                    type: string
+                                    format: date-time
+                                    description: ISO 8601 date
+                                endDate:
+                                    type: string
+                                    format: date-time
+                                    description: ISO 8601 date, optional
+                                # Schedule
+                                schedule_type:
+                                    type: string
+                                    enum: [daily, interval, weekly]
+                                    description: Required for explicit schedule
+                                schedule_value:
+                                    type: number
+                                    description: For schedule_type=interval
+                                schedule_unit:
+                                    type: string
+                                    enum: [days, hours]
+                                    description: For schedule_type=interval
+                                schedule_days:
+                                    type: array
+                                    items:
+                                        type: string
+                                        enum: [mon, tue, wed, thu, fri, sat, sun]
+                                    description: For schedule_type=weekly, repeat param for each day
+                                # Legacy/fallback
+                                period:
+                                    type: string
+                                    enum: [weekly]
+                                waterIntervalDays:
+                                    type: number
+                                    description: Legacy plant watering interval
+                                # Habit config
+                                targetValue:
+                                    type: number
+                                    minimum: 1
+                                    default: 1
+                                unit:
+                                    type: string
+                                    default: times
+                                # Plant config
+                                location:
+                                    type: string
+                                species:
+                                    type: string
+                                # Workout config
+                                estimatedDurationMin:
+                                    type: number
+            responses:
+                '200':
+                    description: Success (returns redirect or success payload)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    success:
+                                        type: boolean
+                '400':
+                    description: Validation error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: string
+                                    errors:
+                                        type: object
+                                        additionalProperties:
+                                            type: array
+                                            items:
+                                                type: string
+                                    values:
+                                        type: object
+                '401':
+                    description: Unauthorized (no session)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: string
+                '500':
+                    description: Server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: string
+
+components:
+    securitySchemes:
+        cookieAuth:
+            type: apiKey
+            in: cookie
+            name: authjs.session-token
+            description: Session cookie from Auth.js (SvelteKitAuth)
+
+    schemas:
+        Activity:
+            oneOf:
+                - $ref: '#/components/schemas/HabitActivity'
+                - $ref: '#/components/schemas/PlantActivity'
+                - $ref: '#/components/schemas/WorkoutActivity'
+            discriminator:
+                propertyName: type
+
+        HabitActivity:
+            type: object
+            required: [type, title]
+            properties:
+                type:
+                    type: string
+                    enum: [habit]
+                title:
+                    type: string
+                description:
+                    type: string
+                color:
+                    type: string
+                icon:
+                    type: string
+                startDate:
+                    type: string
+                    format: date-time
+                endDate:
+                    type: string
+                    format: date-time
+                config:
+                    $ref: '#/components/schemas/HabitConfig'
+                schedule:
+                    $ref: '#/components/schemas/Schedule'
+
+        PlantActivity:
+            type: object
+            required: [type, title]
+            properties:
+                type:
+                    type: string
+                    enum: [plant]
+                title:
+                    type: string
+                description:
+                    type: string
+                color:
+                    type: string
+                icon:
+                    type: string
+                startDate:
+                    type: string
+                    format: date-time
+                endDate:
+                    type: string
+                    format: date-time
+                config:
+                    $ref: '#/components/schemas/PlantConfig'
+                schedule:
+                    $ref: '#/components/schemas/Schedule'
+
+        WorkoutActivity:
+            type: object
+            required: [type, title]
+            properties:
+                type:
+                    type: string
+                    enum: [workout]
+                title:
+                    type: string
+                description:
+                    type: string
+                color:
+                    type: string
+                icon:
+                    type: string
+                startDate:
+                    type: string
+                    format: date-time
+                endDate:
+                    type: string
+                    format: date-time
+                config:
+                    $ref: '#/components/schemas/WorkoutConfig'
+                schedule:
+                    $ref: '#/components/schemas/Schedule'
+
+        Schedule:
+            oneOf:
+                - $ref: '#/components/schemas/ScheduleDaily'
+                - $ref: '#/components/schemas/ScheduleWeekly'
+                - $ref: '#/components/schemas/ScheduleInterval'
+            discriminator:
+                propertyName: type
+
+        ScheduleDaily:
+            type: object
+            required: [type]
+            properties:
+                type:
+                    type: string
+                    enum: [daily]
+                times:
+                    type: array
+                    items:
+                        type: string
+                    description: Optional time strings e.g. ["09:00"]
+
+        ScheduleWeekly:
+            type: object
+            required: [type, days]
+            properties:
+                type:
+                    type: string
+                    enum: [weekly]
+                days:
+                    type: array
+                    items:
+                        type: string
+                        enum: [mon, tue, wed, thu, fri, sat, sun]
+                times:
+                    type: array
+                    items:
+                        type: string
+
+        ScheduleInterval:
+            type: object
+            required: [type, value, unit]
+            properties:
+                type:
+                    type: string
+                    enum: [interval]
+                value:
+                    type: number
+                    minimum: 1
+                unit:
+                    type: string
+                    enum: [days, hours]
+
+        HabitConfig:
+            type: object
+            properties:
+                targetValue:
+                    type: number
+                    minimum: 1
+                    default: 1
+                unit:
+                    type: string
+                    default: times
+
+        PlantConfig:
+            type: object
+            properties:
+                location:
+                    type: string
+                species:
+                    type: string
+                lastWatered:
+                    type: string
+                    format: date-time
+
+        WorkoutConfig:
+            type: object
+            properties:
+                exercises:
+                    type: array
+                    items:
+                        type: string
+                    default: []
+                estimatedDurationMin:
+                    type: number

@@ -11,7 +11,8 @@ export default defineConfig({
             manifest: {
                 name: 'Rootine',
                 short_name: 'Rootine',
-                theme_color: '#18181b',
+                theme_color: '#fafafa',
+                background_color: '#fafafa',
             },
         }),
     ],
@@ -31,5 +32,9 @@ export default defineConfig({
                 },
             },
         ],
+    },
+    server: {
+        port: 8007,
+        host: true,
     },
 });
