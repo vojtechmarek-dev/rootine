@@ -1,0 +1,36 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended",
+        ":automergeMinor",
+        ":rebaseStalePrs",
+        ":dependencyDashboard"
+    ],
+    "schedule": [
+        "before 5am on the first day of the month"
+    ],
+    "timezone": "UTC",
+    "packageRules": [
+        {
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "pin",
+                "digest"
+            ],
+            "automerge": true,
+            "automergeType": "pr"
+        },
+        {
+            "matchUpdateTypes": [
+                "minor",
+                "patch"
+            ],
+            "groupName": "all non-major dependencies",
+            "groupSlug": "all-non-major",
+            "matchPackageNames": [
+                "*"
+            ]
+        }
+    ]
+}
