@@ -30,12 +30,17 @@
         activity: DashboardActivity;
         canToggle?: boolean;
         isPast?: boolean;
+        viewDate?: string;
         isOpen?: boolean;
         onToggle?: () => void;
     }>();
     const activity = $derived(props.activity);
     const canToggle = $derived(props.canToggle ?? true);
     const isPast = $derived(props.isPast ?? false);
+    // The dashboard's currently-viewed date (yyyy-MM-dd). Threaded into the
+    // toggle action and the workout link so a make-up logs against this day.
+    const viewDate = $derived(props.viewDate ?? '');
+    const dateQuery = $derived(viewDate ? `&date=${viewDate}` : '');
     const isOpen = $derived(props.isOpen ?? false);
     const onToggle = $derived(props.onToggle);
     const accent = $derived(getActivityAccentClasses(activity.color));
@@ -281,7 +286,7 @@
                 }}
                 role="presentation"
             >
-                <form method="POST" action="?/toggleActivity" use:enhance={handleToggle} class="mt-2 flex items-center justify-end">
+                <form method="POST" action="?/toggleActivity{dateQuery}" use:enhance={handleToggle} class="mt-2 flex items-center justify-end">
                     <input type="hidden" name="activityId" value={activity.id} />
                     {#if isCompleted && lastAddedLogId}
                         <input type="hidden" name="logId" value={lastAddedLogId} />
@@ -293,7 +298,7 @@
                             variant="outline"
                             class="h-10 gap-2"
                             disabled
-                            title="Activity completion is available only for today"
+                            title="You can only complete today or a missed day earlier this week"
                         >
                             <CalendarClock class="h-4 w-4" />
                         </Button>
@@ -303,17 +308,21 @@
                         </Button>
                     {:else if activity.type === 'workout'}
                         <div class="flex flex-col items-end gap-1 sm:flex-row sm:items-center">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                class="h-10 gap-1.5 px-3 text-muted-foreground"
-                                disabled={activity.isSkippedToday}
-                                onclick={onSkipClick}
-                            >
-                                <CalendarOff class="h-4 w-4" />
-                                Skip day
+                            {#if !isPast}
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    class="h-10 gap-1.5 px-3 text-muted-foreground"
+                                    disabled={activity.isSkippedToday}
+                                    onclick={onSkipClick}
+                                >
+                                    <CalendarOff class="h-4 w-4" />
+                                    Skip day
+                                </Button>
+                            {/if}
+                            <Button href="/workout/{activity.id}?date={viewDate}" variant="default" class="h-10 px-4">
+                                {isPast ? 'Make up' : 'Start Workout'}
                             </Button>
-                            <Button href="/workout/{activity.id}" variant="default" class="h-10 px-4">Start Workout</Button>
                         </div>
                     {:else}
                         <Button type="submit" name="action" value="complete" variant="default" class="h-10 px-4" disabled={isSubmitting}>

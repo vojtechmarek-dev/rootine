@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 import { logs } from '$lib/server/db/schema';
 import { eq, and, between, desc } from 'drizzle-orm';
 import { startOfDay, endOfDay, isToday, isValid } from 'date-fns';
+import { isBackfillableDate } from '$lib/utils/date';
 
 type SessionWithUser = { user: { id: string } };
 
@@ -11,8 +12,9 @@ export async function toggleActivity(_session: SessionWithUser, formData: FormDa
         return fail(400, { message: 'Invalid dashboard date' });
     }
 
-    if (!isToday(targetDate)) {
-        return fail(403, { message: 'Activity completion is only available for today' });
+    // Allow today or a missed day earlier this ISO week (make-up / backfill).
+    if (!isBackfillableDate(targetDate)) {
+        return fail(403, { message: 'Completion is only available for today or a missed day earlier this week' });
     }
 
     const activityId = formData.get('activityId') as string;
@@ -22,7 +24,11 @@ export async function toggleActivity(_session: SessionWithUser, formData: FormDa
         return fail(400, { message: 'Invalid action' });
     }
 
-    const logDate = new Date();
+    // Date the log against the viewed day: "now" for today, otherwise the start
+    // of the target day so it falls inside the dashboard's per-day read window.
+    const logDate = isToday(targetDate) ? new Date() : startOfDay(targetDate);
+    const dayStart = startOfDay(targetDate);
+    const dayEnd = endOfDay(targetDate);
 
     try {
         if (action === 'complete') {
@@ -45,7 +51,7 @@ export async function toggleActivity(_session: SessionWithUser, formData: FormDa
                 await db.delete(logs).where(eq(logs.id, logId));
             } else {
                 const mostRecent = await db.query.logs.findFirst({
-                    where: and(eq(logs.activityId, activityId), between(logs.date, startOfDay(logDate), endOfDay(logDate))),
+                    where: and(eq(logs.activityId, activityId), between(logs.date, dayStart, dayEnd)),
                     orderBy: [desc(logs.date)],
                 });
 

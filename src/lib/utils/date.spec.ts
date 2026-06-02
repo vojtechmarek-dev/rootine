@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CalendarDate } from '@internationalized/date';
-import { toDate, toDateValue, toDateRequired } from './date';
+import { toDate, toDateValue, toDateRequired, isBackfillableDate } from './date';
 
 describe('toDateValue', () => {
     it('returns undefined for null/undefined', () => {
@@ -59,5 +59,42 @@ describe('toDateRequired', () => {
 
     it('returns an Invalid Date for an unparseable string', () => {
         expect(Number.isNaN(toDateRequired('nope').getTime())).toBe(true);
+    });
+});
+
+describe('isBackfillableDate', () => {
+    // Wed 27 May 2026. ISO week = Mon 25 May .. Sun 31 May.
+    const now = new Date(2026, 4, 27, 12, 0, 0);
+
+    it('allows today', () => {
+        expect(isBackfillableDate(new Date(2026, 4, 27), now)).toBe(true);
+    });
+
+    it('allows today regardless of time of day', () => {
+        expect(isBackfillableDate(new Date(2026, 4, 27, 23, 30), now)).toBe(true);
+    });
+
+    it('allows a past day in the current ISO week', () => {
+        expect(isBackfillableDate(new Date(2026, 4, 26), now)).toBe(true); // Tue
+    });
+
+    it('allows Monday (start) of the current ISO week', () => {
+        expect(isBackfillableDate(new Date(2026, 4, 25), now)).toBe(true);
+    });
+
+    it('rejects Sunday of the previous ISO week', () => {
+        expect(isBackfillableDate(new Date(2026, 4, 24), now)).toBe(false);
+    });
+
+    it('rejects a far past date', () => {
+        expect(isBackfillableDate(new Date(2026, 3, 1), now)).toBe(false); // 1 Apr
+    });
+
+    it('rejects tomorrow', () => {
+        expect(isBackfillableDate(new Date(2026, 4, 28), now)).toBe(false);
+    });
+
+    it('rejects future days even within the same ISO week', () => {
+        expect(isBackfillableDate(new Date(2026, 4, 31), now)).toBe(false); // Sun, same week
     });
 });
