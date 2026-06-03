@@ -2,7 +2,7 @@
     import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
     import { Button } from '$lib/components/ui/button';
     import { enhance } from '$app/forms';
-    import { toast } from 'svelte-sonner';
+    import { toastError, toastSuccess } from '$lib/toast';
     import { CalendarOff, CalendarClock, LoaderCircle } from '@lucide/svelte';
     import type { DashboardActivity } from '$lib/types/schemas';
     import { shiftWeekdays } from '$lib/workout-rotation';
@@ -53,14 +53,14 @@
                 return async ({ result, update }) => {
                     isSubmitting = false;
                     if (result.type === 'success') {
-                        toast.success(mode === 'shift' ? 'This week shifted by 1 day.' : 'Workout skipped for today.');
+                        toastSuccess(mode === 'shift' ? 'This week shifted by 1 day.' : 'Workout skipped for today.');
                         open = false;
                         await update();
                     } else if (result.type === 'failure') {
-                        toast.error((result.data?.message as string) ?? 'Could not skip the workout.');
+                        toastError((result.data?.message as string) ?? 'Could not skip the workout.', { detail: result.data });
                         await update({ reset: false });
                     } else {
-                        toast.error('Could not skip the workout.');
+                        toastError('Could not skip the workout.', { detail: result });
                     }
                 };
             }}

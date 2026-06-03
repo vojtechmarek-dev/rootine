@@ -1,8 +1,7 @@
 <script lang="ts">
     import Dashboard from '@/components/activity/Dashboard.svelte';
-    import { toToastDescription } from '$lib/utils';
+    import { toastError } from '$lib/toast';
     import type { PageData } from './$types';
-    import { toast } from 'svelte-sonner';
     import { SvelteSet } from 'svelte/reactivity';
 
     let { data }: { data: PageData } = $props();
@@ -25,9 +24,9 @@
         shownErrorSignatures.add(signature);
 
         for (const err of errors) {
-            const description = toToastDescription(`Activity ID: ${err.id}. ${err.message}`) ?? `Activity ID: ${err.id}. Invalid data.`;
-            toast.error(`Failed to load ${err.type} activity`, {
-                description,
+            toastError(`Failed to load ${err.type} activity`, {
+                description: 'Some saved data could not be read. Other activities are unaffected.',
+                detail: `Activity ID: ${err.id}. ${err.message}`,
                 duration: 5000,
             });
         }

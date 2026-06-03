@@ -3,6 +3,7 @@
     import Navigation from '@/components/layout/Navigation.svelte';
     import CreateActivity from '@/components/activity/CreateActivity.svelte';
     import { Toaster } from '$lib/components/ui/sonner';
+    import NavigationProgress from '@/components/shared/NavigationProgress.svelte';
     import type { LayoutData } from './$types';
 
     let { children, data } = $props<{
@@ -11,6 +12,7 @@
     }>();
 </script>
 
+<NavigationProgress />
 <Toaster />
 <div class="flex min-h-screen flex-col bg-background">
     <!--
