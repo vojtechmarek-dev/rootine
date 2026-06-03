@@ -10,7 +10,8 @@
     import * as Drawer from '$lib/components/ui/drawer';
     import { Button, buttonVariants } from '$lib/components/ui/button';
     import { ChevronLeft, LoaderCircle } from '@lucide/svelte';
-    import { cn, toToastDescription } from '$lib/utils';
+    import { cn } from '$lib/utils';
+    import { toastError } from '$lib/toast';
     import HabitForm, { meta as HabitMeta } from '$lib/components/activity/forms/HabitForm.svelte';
     import PlantForm, { meta as PlantMeta } from '$lib/components/activity/forms/PlantForm.svelte';
     import WorkoutForm, { meta as WorkoutMeta } from '$lib/components/activity/forms/WorkoutForm.svelte';
@@ -19,12 +20,12 @@
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
     import ActivityEditor from '$lib/components/activity/ActivityEditor.svelte';
+    import ProgressBar from '$lib/components/shared/ProgressBar.svelte';
     import { activityDrawerState, closeActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import { enhance } from '$app/forms';
     import { untrack } from 'svelte';
     import type { SuperValidated } from 'sveltekit-superforms';
     import { superForm } from 'sveltekit-superforms/client';
-    import { toast } from 'svelte-sonner';
 
     let { activityForm }: { activityForm: SuperValidated<DrawerActivity> } = $props();
 
@@ -70,8 +71,9 @@
                 return;
             }
             if (!f.valid) {
-                toast.error('Could not save activity', {
-                    description: toToastDescription(f.errors),
+                toastError('Could not save activity', {
+                    description: 'Please check the highlighted fields and try again.',
+                    detail: f.errors,
                 });
                 return;
             }
@@ -215,6 +217,9 @@
             </div>
 
             <Drawer.Footer class="shrink-0 border-t border-border/50 p-4 ">
+                {#if $submitting && view !== 'menu'}
+                    <ProgressBar class="mb-2" />
+                {/if}
                 {#if view === 'menu'}
                     <Drawer.Close class={buttonVariants({ variant: 'link' })}>Cancel</Drawer.Close>
                 {:else}

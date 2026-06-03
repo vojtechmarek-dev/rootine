@@ -1,5 +1,7 @@
 import { getLocalTimeZone } from '@internationalized/date';
 import { CalendarDate, type DateValue } from '@internationalized/date';
+import { isAfter, startOfDay } from 'date-fns';
+import { isoWeekOf } from '$lib/workout-rotation';
 
 /**
  * Converts a JS Date to a CalendarDate (YYYY-MM-DD)
@@ -52,4 +54,26 @@ export function toDateRequired(val: unknown): Date {
         return new Date(NaN); // Force return Invalid Date so Zod catches it
     }
     return d;
+}
+
+/**
+ * Whether a completion may be logged for `date` ("make-up" / backfill window).
+ *
+ * A date is backfillable when it is **today**, or it is **in the past AND
+ * within the current ISO week** (Mon–Sun containing today). Future days are
+ * never backfillable. Comparison is day-granular and uses local fields via
+ * `startOfDay`; ISO-week bucketing uses {@link isoWeekOf} (RRRR-WII), so the
+ * same week number in a different year does not match.
+ */
+export function isBackfillableDate(date: Date, now: Date = new Date()): boolean {
+    const day = startOfDay(date);
+    const today = startOfDay(now);
+
+    if (isAfter(day, today)) {
+        return false; // future
+    }
+    if (day.getTime() === today.getTime()) {
+        return true; // today
+    }
+    return isoWeekOf(day) === isoWeekOf(today); // past, same ISO week only
 }

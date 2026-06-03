@@ -194,6 +194,8 @@ export const PlantLogSchema = z.object({
 // Fields are lenient so a "skipped" log (no work performed) still validates.
 export const WorkoutLogSchema = z.object({
     durationMin: z.number().default(0),
+    // Exact elapsed seconds — kept alongside durationMin for finer-grained reports.
+    durationSec: z.number().default(0),
     // Which WorkoutSet was completed. null for habits without sets or skips.
     setId: z
         .string()

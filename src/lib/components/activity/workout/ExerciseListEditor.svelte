@@ -13,6 +13,15 @@
         // Zod error tree keyed by exercise id (matches legacy WorkoutForm shape).
         errors?: any;
     } = $props();
+
+    // Editing a field must REASSIGN the array, not mutate an element in place.
+    // The parent threads `exercises` through a $bindable getter/setter that only
+    // fires on assignment (superforms data isn't a deep $state proxy), so an
+    // in-place `exercise.name = …` would never propagate up and the edit would be
+    // lost on save. Each input therefore binds through `patch`.
+    function patch(id: string, changes: Partial<Exercise>) {
+        exercises = exercises.map((e) => (e.id === id ? { ...e, ...changes } : e));
+    }
 </script>
 
 <div class="flex flex-col gap-4">
@@ -23,7 +32,7 @@
                     <Input
                         type="text"
                         placeholder="Exercise name (e.g. Bench Press)"
-                        bind:value={exercise.name}
+                        bind:value={() => exercise.name, (v) => patch(exercise.id, { name: v })}
                         class="bg-surface-container-high font-medium"
                     />
                     <Field.Error errors={errors?.[exercise.id]?.name} />
@@ -46,7 +55,13 @@
                         class="text-xs leading-none font-semibold tracking-wide text-secondary uppercase dark:text-muted-foreground"
                         for="sets-{exercise.id}">Sets</label
                     >
-                    <Input id="sets-{exercise.id}" type="number" min="1" bind:value={exercise.sets} class="bg-surface-container-high" />
+                    <Input
+                        id="sets-{exercise.id}"
+                        type="number"
+                        min="1"
+                        bind:value={() => exercise.sets, (v) => patch(exercise.id, { sets: v })}
+                        class="bg-surface-container-high"
+                    />
                     <Field.Error errors={errors?.[exercise.id]?.sets} />
                 </div>
                 <div class="space-y-1">
@@ -54,7 +69,13 @@
                         class="text-xs leading-none font-semibold tracking-wide text-secondary uppercase dark:text-muted-foreground"
                         for="reps-{exercise.id}">Reps</label
                     >
-                    <Input id="reps-{exercise.id}" type="number" min="1" bind:value={exercise.reps} class="bg-surface-container-high" />
+                    <Input
+                        id="reps-{exercise.id}"
+                        type="number"
+                        min="1"
+                        bind:value={() => exercise.reps, (v) => patch(exercise.id, { reps: v })}
+                        class="bg-surface-container-high"
+                    />
                     <Field.Error errors={errors?.[exercise.id]?.reps} />
                 </div>
                 <div class="space-y-1">
@@ -68,7 +89,7 @@
                         min="0"
                         step="any"
                         placeholder="lbs/kg"
-                        bind:value={exercise.weight}
+                        bind:value={() => exercise.weight, (v) => patch(exercise.id, { weight: v })}
                         class="bg-surface-container-high"
                     />
                     <Field.Error errors={errors?.[exercise.id]?.weight} />

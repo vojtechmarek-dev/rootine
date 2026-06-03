@@ -11,6 +11,7 @@
     import { ChevronLeft, ChevronRight } from '@lucide/svelte';
     import * as Select from '$lib/components/ui/select/index.js';
     import DatePicker from '$lib/components/shared/DatePicker.svelte';
+    import { isBackfillableDate } from '$lib/utils/date';
 
     let {
         session,
@@ -34,8 +35,17 @@
 
     // Default to today if no date in URL
     const currentDateStr = $derived(page.url.searchParams.get('date') || todayDateStr);
-    const canToggleActivities = $derived(currentDateStr === todayDateStr);
     const isPastDate = $derived(currentDateStr < todayDateStr);
+
+    // Parse the viewed date in LOCAL time (mirror the URL-sync effect below).
+    const parsedCurrentDate = $derived.by(() => {
+        const [year, month, day] = currentDateStr.split('-').map(Number);
+        return year && month && day ? new Date(year, month - 1, day) : new Date();
+    });
+
+    // Completion is allowed for today or a missed day earlier this ISO week
+    // (make-up / backfill). The server enforces the same window.
+    const canCompleteActivities = $derived(isBackfillableDate(parsedCurrentDate));
 
     let selectValue = $state('today');
     let customDate = $state<Date | undefined>(undefined);
@@ -198,8 +208,9 @@
                 {#each activities as activity (activity.id)}
                     <ActivityCard
                         {activity}
-                        canToggle={canToggleActivities}
+                        canToggle={canCompleteActivities}
                         isPast={isPastDate}
+                        viewDate={currentDateStr}
                         isOpen={expandedActivityId === activity.id}
                         onToggle={() => {
                             toggleExpanded(activity.id);

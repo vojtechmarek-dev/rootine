@@ -7,13 +7,17 @@
     import InfoIcon from '@lucide/svelte/icons/info';
     import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 
-    let { ...restProps }: SonnerProps = $props();
+    let { richColors = true, closeButton = true, position = 'top-center', ...restProps }: SonnerProps = $props();
 </script>
 
 <Sonner
     theme={mode.current}
     class="toaster group"
+    {richColors}
+    {closeButton}
+    {position}
     style="--normal-bg: var(--color-popover); --normal-text: var(--color-popover-foreground); --normal-border: var(--color-border);"
+    toastOptions={{ classes: { description: 'whitespace-pre-wrap break-words text-xs opacity-90' } }}
     {...restProps}
 >
     {#snippet loadingIcon()}

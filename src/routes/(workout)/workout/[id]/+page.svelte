@@ -5,13 +5,14 @@
     import { onDestroy, onMount } from 'svelte';
     import { cn } from '$lib/utils';
     import { page } from '$app/state';
-    import { toast } from 'svelte-sonner';
+    import { toastError } from '$lib/toast';
 
     import WorkoutHeader from '$lib/components/activity/workout/WorkoutHeader.svelte';
     import ActiveExerciseCard from '$lib/components/activity/workout/ActiveExerciseCard.svelte';
     import QueueExerciseCard from '$lib/components/activity/workout/QueueExerciseCard.svelte';
     import WorkoutSummary from '$lib/components/activity/workout/WorkoutSummary.svelte';
     import WorkoutSetPicker from '$lib/components/activity/workout/WorkoutSetPicker.svelte';
+    import ProgressBar from '$lib/components/shared/ProgressBar.svelte';
     import TimerWorker from '$lib/workers/timerWorker.ts?worker';
 
     let { data } = $props();
@@ -79,20 +80,47 @@
     let worker: Worker | null = null;
     let isPaused = $state(false);
     let secondsElapsed = $state(0);
+    // The clock runs only between "entered focus mode" and "workout finished".
+    let timerRunning = $state(false);
 
     onMount(() => {
         worker = new TimerWorker();
         worker.onmessage = (event) => {
             secondsElapsed = event.data;
         };
-        worker.postMessage('start');
+        // Skip the picker step → start counting immediately. Otherwise wait until
+        // the user confirms a set (see onConfirm) so the clock doesn't run while
+        // they're still choosing.
+        if (phase === 'focus') {
+            startTimer();
+        }
     });
 
     onDestroy(() => {
         worker?.terminate();
     });
 
+    function startTimer() {
+        if (timerRunning || !worker) {
+            return;
+        }
+        timerRunning = true;
+        worker.postMessage('start');
+    }
+
+    function stopTimer() {
+        if (!timerRunning) {
+            return;
+        }
+        timerRunning = false;
+        isPaused = false;
+        worker?.postMessage('stop');
+    }
+
     function togglePause() {
+        if (!timerRunning) {
+            return;
+        }
         isPaused = !isPaused;
         worker?.postMessage('pause');
     }
@@ -139,6 +167,7 @@
 
         return JSON.stringify({
             durationMin: Math.round(secondsElapsed / 60),
+            durationSec: secondsElapsed,
             exercises: completed,
             setId: selectedSetId,
         });
@@ -152,7 +181,10 @@
         recommendedSetId={data.recommendedSetId ?? null}
         lastSet={data.lastSet ?? null}
         bind:selectedSetId
-        onConfirm={() => (phase = 'focus')}
+        onConfirm={() => {
+            phase = 'focus';
+            startTimer();
+        }}
         onExit={handleExit}
     />
 {:else}
@@ -195,7 +227,7 @@
 
         <!-- Bottom Action Bar -->
         <div
-            class="fixed right-0 bottom-0 left-0 flex justify-center bg-linear-to-t from-background via-background/90 to-transparent p-6 pt-12 pb-8"
+            class="fixed right-0 bottom-0 left-0 z-20 flex justify-center border-t border-border/50 bg-background px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)]"
         >
             <form
                 class="w-full max-w-md"
@@ -203,6 +235,10 @@
                 action="?/complete"
                 use:enhance={() => {
                     isSubmitting = true;
+                    // Freeze the clock the moment they finish — the elapsed time is
+                    // already serialised into logData above, so the API call no
+                    // longer ticks the visible timer up.
+                    stopTimer();
                     return async ({ update, result }) => {
                         isSubmitting = false;
                         if (result.type === 'success') {
@@ -212,8 +248,11 @@
                                 goto('/');
                             }, 2000);
                         } else {
-                            toast.error('Failed to finish workout');
                             console.error('Submission result:', result);
+                            toastError('Failed to finish workout', {
+                                description: 'Your session was not saved. Please try again.',
+                                detail: result,
+                            });
                             await update();
                         }
                     };
@@ -230,8 +269,11 @@
                     )}
                     disabled={!isAllProcessed || isSubmitting || exercises.length === 0}
                 >
-                    {isSubmitting ? 'Finishing...' : 'Finish Workout'}
+                    {isSubmitting ? 'Finishing…' : 'Finish Workout'}
                 </Button>
+                {#if isSubmitting}
+                    <ProgressBar class="mt-3" />
+                {/if}
             </form>
         </div>
 

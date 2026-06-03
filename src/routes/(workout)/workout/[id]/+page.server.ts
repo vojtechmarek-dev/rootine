@@ -7,6 +7,7 @@ import { WorkoutConfigSchema, WorkoutLogSchema } from '$lib/types/schemas';
 import { z } from 'zod';
 import { differenceInDays, parseISO, startOfDay } from 'date-fns';
 import { getRotationPosition } from '$lib/workout-rotation';
+import { isBackfillableDate } from '$lib/utils/date';
 
 export const load: PageServerLoad = async (event) => {
     const session = event.locals.session;
@@ -114,6 +115,15 @@ export const actions: Actions = {
 
         const { logData, targetDate } = parsed.data;
 
+        // Use provided targetDate, or fallback to current date.
+        const date = targetDate ? parseISO(targetDate) : new Date();
+
+        // Only today or a missed day earlier this ISO week may be logged
+        // (make-up / backfill window). Enforced here, not just in the UI.
+        if (!isBackfillableDate(date)) {
+            return fail(403, { message: 'You can only log a workout for today or a missed day earlier this week' });
+        }
+
         // Ensure activity belongs to user
         const activityId = event.params.id;
         const activity = await db.query.activities.findFirst({
@@ -123,9 +133,6 @@ export const actions: Actions = {
         if (!activity) {
             return fail(404, { message: 'Activity not found' });
         }
-
-        // Use provided targetDate, or fallback to current date
-        const date = targetDate ? parseISO(targetDate) : new Date();
 
         await db.insert(logs).values({
             activityId,

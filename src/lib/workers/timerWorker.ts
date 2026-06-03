@@ -8,6 +8,8 @@ self.onmessage = (event) => {
         startTimer();
     } else if (task === 'pause') {
         togglePause();
+    } else if (task === 'stop') {
+        stopTimer();
     }
 };
 
@@ -23,4 +25,9 @@ function startTimer() {
 
 function togglePause() {
     isPaused = !isPaused;
+}
+
+function stopTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    isPaused = false;
 }

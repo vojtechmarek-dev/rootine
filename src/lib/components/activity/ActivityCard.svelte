@@ -30,12 +30,17 @@
         activity: DashboardActivity;
         canToggle?: boolean;
         isPast?: boolean;
+        viewDate?: string;
         isOpen?: boolean;
         onToggle?: () => void;
     }>();
     const activity = $derived(props.activity);
     const canToggle = $derived(props.canToggle ?? true);
     const isPast = $derived(props.isPast ?? false);
+    // The dashboard's currently-viewed date (yyyy-MM-dd). Threaded into the
+    // toggle action and the workout link so a make-up logs against this day.
+    const viewDate = $derived(props.viewDate ?? '');
+    const dateQuery = $derived(viewDate ? `&date=${viewDate}` : '');
     const isOpen = $derived(props.isOpen ?? false);
     const onToggle = $derived(props.onToggle);
     const accent = $derived(getActivityAccentClasses(activity.color));
@@ -43,6 +48,9 @@
 
     let isSubmitting = $state(false);
     let skipModalOpen = $state(false);
+    // Controlled so menu actions can dismiss it. On mobile the popover otherwise
+    // stays mounted and overlays the edit drawer it just opened.
+    let menuOpen = $state(false);
 
     // Sequence preview: shown only when rotation is enabled and sets exist.
     const rotationView = $derived(activity.workoutRotation ?? null);
@@ -210,7 +218,7 @@
             {/if}
         </div>
         <Card.Action class="flex flex-col items-end justify-between self-stretch">
-            <Popover.Root>
+            <Popover.Root bind:open={menuOpen}>
                 <Popover.Trigger
                     class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), '-mt-2 -mr-2 h-9 w-9 text-muted-foreground')}
                     onclick={(e) => e.stopPropagation()}
@@ -225,6 +233,7 @@
                             class="h-auto justify-start gap-3 px-3 py-2 text-sm font-normal"
                             onclick={(e) => {
                                 e.stopPropagation();
+                                menuOpen = false;
                                 openActivityDrawer(activity as ActivityFormData);
                             }}
                         >
@@ -236,6 +245,7 @@
                             class="h-auto justify-start gap-3 px-3 py-2 text-sm font-normal"
                             onclick={(e) => {
                                 e.stopPropagation();
+                                menuOpen = false;
                                 if (onToggle) onToggle();
                             }}
                         >
@@ -281,7 +291,12 @@
                 }}
                 role="presentation"
             >
-                <form method="POST" action="?/toggleActivity" use:enhance={handleToggle} class="mt-2 flex items-center justify-end">
+                <form
+                    method="POST"
+                    action="?/toggleActivity{dateQuery}"
+                    use:enhance={handleToggle}
+                    class="mt-2 flex items-center justify-end"
+                >
                     <input type="hidden" name="activityId" value={activity.id} />
                     {#if isCompleted && lastAddedLogId}
                         <input type="hidden" name="logId" value={lastAddedLogId} />
@@ -293,7 +308,7 @@
                             variant="outline"
                             class="h-10 gap-2"
                             disabled
-                            title="Activity completion is available only for today"
+                            title="You can only complete today or a missed day earlier this week"
                         >
                             <CalendarClock class="h-4 w-4" />
                         </Button>
@@ -303,17 +318,21 @@
                         </Button>
                     {:else if activity.type === 'workout'}
                         <div class="flex flex-col items-end gap-1 sm:flex-row sm:items-center">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                class="h-10 gap-1.5 px-3 text-muted-foreground"
-                                disabled={activity.isSkippedToday}
-                                onclick={onSkipClick}
-                            >
-                                <CalendarOff class="h-4 w-4" />
-                                Skip day
+                            {#if !isPast}
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    class="h-10 gap-1.5 px-3 text-muted-foreground"
+                                    disabled={activity.isSkippedToday}
+                                    onclick={onSkipClick}
+                                >
+                                    <CalendarOff class="h-4 w-4" />
+                                    Skip day
+                                </Button>
+                            {/if}
+                            <Button href="/workout/{activity.id}?date={viewDate}" variant="default" class="h-10 px-4">
+                                {isPast ? 'Make up' : 'Start Workout'}
                             </Button>
-                            <Button href="/workout/{activity.id}" variant="default" class="h-10 px-4">Start Workout</Button>
                         </div>
                     {:else}
                         <Button type="submit" name="action" value="complete" variant="default" class="h-10 px-4" disabled={isSubmitting}>

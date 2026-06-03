@@ -110,7 +110,15 @@
                             <Input
                                 type="text"
                                 placeholder="Set name (e.g. Push Day)"
-                                bind:value={set.name}
+                                bind:value={
+                                    () => set.name,
+                                    (v) => {
+                                        // Reassign the array so the rename propagates through the
+                                        // $bindable chain — an in-place `set.name = v` goes unobserved
+                                        // (superforms data isn't a deep $state proxy).
+                                        workoutSets = workoutSets.map((s) => (s.id === set.id ? { ...s, name: v } : s));
+                                    }
+                                }
                                 class="bg-surface-container-high font-medium"
                             />
                             <Field.Error errors={errors?.[set.id]?.name} />

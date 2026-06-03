@@ -187,6 +187,60 @@ flowchart TD
     I --> J[Next visit derives\nrecommended from log]
 ```
 
+### Make up a missed day (backfill)
+
+When life interrupts a routine (illness, travel), the user can return on a day that
+isn't in the schedule and find no card — historically a lockout, because the
+dashboard only renders scheduled cards and completion was gated to _today_ only.
+
+The fix leans on the existing derived model: **logs are truth, the schedule only
+recommends, and rotation self-heals.** Completion is allowed for **today, or a
+missed day earlier in the _current ISO week_** (the make-up / backfill window).
+The physical session can happen on any later day — it is simply recorded against
+the missed scheduled slot via the dashboard date navigator.
+
+```mermaid
+flowchart TD
+    A([Open dashboard]) --> B[Navigate to a missed day\nvia date picker / prev arrow]
+    B --> C{isBackfillableDate?\ntoday OR past-in-current-ISO-week}
+    C -- no --> D[Action disabled\nclock button + Missed chip]
+    C -- yes, workout --> E["'Make up' → /workout/[id]?date=…"]
+    C -- yes, habit/plant --> F[Done button enabled]
+    E --> G[Focus mode → complete\nlog dated to the chosen day]
+    F --> H[toggleActivity logs to the chosen day]
+    G --> I([Rotation continues from this log])
+    H --> I
+```
+
+The window is a single pure function shared by the client gate and **both** server
+actions (`toggleActivity`, workout `complete`) so the UI and the authorization
+never drift:
+
+```ts
+// src/lib/utils/date.ts
+isBackfillableDate(date, now = new Date()): boolean
+// today → true; future → false; past → only if isoWeekOf(date) === isoWeekOf(now)
+```
+
+Notes:
+
+- **Log date.** A backfilled log is dated to `startOfDay(targetDate)` so it lands
+  in the dashboard's per-day read window (`between(startOfDay, endOfDay)`). Today
+  still logs at `now`. The `targetDate` is threaded through the workout link
+  (`/workout/[id]?date=…`) and the toggle action (`?/toggleActivity&date=…`).
+- **What happens next is already solved.** Rotation derives from the last
+  _completed_ log (skips invisible, orphans self-heal), so a made-up session
+  advances the sequence with no re-shift.
+- **Other habits are unaffected.** A weekly "chain" is one activity's
+  `schedule.days`; `WeekException` is per-habit. Completing one activity never
+  cascades to another.
+- **Optional re-shift.** If the user also wants the _remaining_ days of this week
+  to move, the existing **Skip day → "Shift this week +1 day"** control (today's
+  card) writes the same `WeekException` for the current ISO week. No separate
+  prompt — the schedule is left as-is by default and self-resets next Monday.
+- **Skip on past days is hidden** — a skip writes a log dated `now`, which is
+  meaningless for a past day.
+
 ### Dashboard data flow
 
 ```mermaid
@@ -244,3 +298,8 @@ flowchart LR
 | Duplicate `WeekException`      | Prevented by unique constraint `(habitId, weekOf)`.                                    |
 | Past-week exception            | Filtered by `weekOf >= currentWeek`; old records cleaned up in background.             |
 | Future date on dashboard       | "Missed" chip not shown — requires `isPast` prop to be true.                           |
+| Backfill within current week   | Allowed: workout "Make up" / habit "Done" enabled; log dated to that day.              |
+| Backfill outside current week  | Action disabled in UI; server returns `403` (`isBackfillableDate` guard).              |
+| Backfill a future day          | Never backfillable; blocked in UI and server.                                          |
+| Undo a backfilled completion   | Targets the chosen day's log range (or the precise `logId`), not today's.              |
+| Make up then shift             | Optional: existing Skip day → "Shift this week" moves the remaining days.              |
