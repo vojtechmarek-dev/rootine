@@ -227,7 +227,7 @@
 
         <!-- Bottom Action Bar -->
         <div
-            class="fixed right-0 bottom-0 left-0 flex justify-center border-t border-border/50 bg-background px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)]"
+            class="fixed right-0 bottom-0 left-0 z-20 flex justify-center border-t border-border/50 bg-background px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)]"
         >
             <form
                 class="w-full max-w-md"
