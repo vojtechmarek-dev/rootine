@@ -1,103 +1,57 @@
-// Disables access to DOM typings like `HTMLElement` which are not available
-// inside a service worker and instantiates the correct globals
+// Custom service worker — VitePWA `injectManifest` strategy. See ADR 006.
+//
+// We author the worker here so app-specific logic (e.g. push notifications)
+// lives in our own code, while workbox injects the precache manifest at build
+// time via `self.__WB_MANIFEST`. SvelteKit compiles this file; VitePWA registers
+// it (registerSW.js). SvelteKit's own auto-registration is disabled in
+// svelte.config.js (kit.serviceWorker.register = false), so only one worker runs.
+
 /// <reference no-default-lib="true"/>
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
-// Ensures that the `$service-worker` import has proper type definitions
-/// <reference types="@sveltejs/kit" />
+import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
 
-// Only necessary if you have an import from `$env/static/public`
-/// <reference types="../.svelte-kit/ambient.d.ts" />
+declare const self: ServiceWorkerGlobalScope & {
+    __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
+};
 
-import { build, files, version } from '$service-worker';
+// Precache all build assets (hashed by workbox); drop stale precaches on activate.
+precacheAndRoute(self.__WB_MANIFEST);
+cleanupOutdatedCaches();
 
-// This gives `self` the correct types
-const self = globalThis.self as unknown as ServiceWorkerGlobalScope;
-
-// Create a unique cache name for this deployment
-const CACHE = `cache-${version}`;
-
-const ASSETS = [
-    ...build, // the app itself
-    ...files, // everything in `static`
-];
-
-self.addEventListener('install', (event) => {
-    // Create a new cache and add all files to it
-    async function addFilesToCache() {
-        const cache = await caches.open(CACHE);
-        await cache.addAll(ASSETS);
-    }
-
-    event.waitUntil(addFilesToCache());
-});
-
-self.addEventListener('activate', (event) => {
-    // Remove previous cached data from disk
-    async function deleteOldCaches() {
-        for (const key of await caches.keys()) {
-            if (key !== CACHE) await caches.delete(key);
-        }
-    }
-
-    event.waitUntil(deleteOldCaches());
-});
-
-self.addEventListener('fetch', (event) => {
-    // ignore POST requests etc
-    if (event.request.method !== 'GET') {
-        return;
-    }
-
-    async function respond() {
-        const url = new URL(event.request.url);
-        const cache = await caches.open(CACHE);
-
-        // `build`/`files` can always be served from the cache
-        if (ASSETS.includes(url.pathname)) {
-            const response = await cache.match(url.pathname);
-
-            if (response) {
-                return response;
-            }
-        }
-
-        // for everything else, try the network first, but
-        // fall back to the cache if we're offline
-        try {
-            const response = await fetch(event.request);
-
-            // if we're offline, fetch can return a value that is not a Response
-            // instead of throwing - and we can't pass this non-Response to respondWith
-            if (!(response instanceof Response)) {
-                throw new Error('invalid response from fetch');
-            }
-
-            if (response.status === 200 && !response.headers.get('cache-control')?.includes('no-store')) {
-                cache.put(event.request, response.clone());
-            }
-
-            return response;
-        } catch (err) {
-            const response = await cache.match(event.request);
-
-            if (response) {
-                return response;
-            }
-
-            // if there's no cache, then just error out
-            // there is nothing we can do to respond to this request
-            throw err;
-        }
-    }
-
-    event.respondWith(respond());
-});
-
-// Listen for messages from the client
+// 'prompt' update flow: the page posts this when the user accepts the update
+// (see detectServiceWorkerUpdate in src/routes/+layout.svelte).
 self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
+    if (event.data?.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
+});
+
+// --- Push notifications (scaffold) ---------------------------------------
+// Client side still needs: request permission, subscribe via PushManager, and
+// send the subscription to the server. This handles delivery + click.
+
+self.addEventListener('push', (event) => {
+    let payload: { title?: string; body?: string; url?: string } = {};
+    try {
+        payload = event.data?.json() ?? {};
+    } catch {
+        payload = { body: event.data?.text() };
+    }
+
+    event.waitUntil(
+        self.registration.showNotification(payload.title ?? 'Rootine', {
+            body: payload.body,
+            icon: '/pwa-192x192.png',
+            badge: '/pwa-64x64.png',
+            data: payload.url ? { url: payload.url } : undefined,
+        })
+    );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = (event.notification.data as { url?: string } | undefined)?.url ?? '/';
+    event.waitUntil(self.clients.openWindow(url));
 });
