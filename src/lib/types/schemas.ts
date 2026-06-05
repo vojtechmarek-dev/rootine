@@ -235,6 +235,7 @@ export const WeekExceptionSchema = z.object({
     habitId: z.uuid(),
     weekOf: z.string().regex(/^\d{4}-W\d{2}$/, 'Invalid ISO week'), // e.g. "2025-W03"
     shiftDays: z.coerce.number().int(),
+    createdAt: z.coerce.date(),
 });
 
 export const UserSchema = z.object({

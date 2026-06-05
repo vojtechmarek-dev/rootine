@@ -10,7 +10,7 @@ type SessionWithUser = { user: { id: string } };
  * Handle the dashboard "Skip day" action for a workout habit.
  *
  *  - mode "skip":  log today as skipped (no setId). Rotation is unaffected —
- *                  skips are invisible to sequence logic (spec §6).
+ *                  skips are invisible to sequence logic.
  *  - mode "shift": create a +1 WeekException for the current ISO week. The
  *                  scheduler offsets the remaining preferred days this week.
  */
