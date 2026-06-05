@@ -1,8 +1,10 @@
 <script lang="ts">
     import ActivityCard from '@/components/activity/ActivityCard.svelte';
     import ActivitySkeletons from '@/components/activity/ActivitySkeletons.svelte';
+    import GardenWidget from '@/components/root-system/GardenWidget.svelte';
     import { onMount, untrack } from 'svelte';
     import type { DashboardActivity } from '$lib/types/schemas';
+    import type { GardenData } from '$lib/server/garden';
     import type { Session } from '@auth/sveltekit';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
@@ -16,10 +18,12 @@
     let {
         session,
         activities,
+        gardenData = null,
         loading = false,
     }: {
         session: Session | null;
         activities: DashboardActivity[];
+        gardenData?: Promise<GardenData> | null;
         loading?: boolean;
     } = $props();
 
@@ -195,6 +199,12 @@
             {/if}
         </div>
     </div>
+
+    {#if gardenData}
+        <div class="mb-8">
+            <GardenWidget data={gardenData} />
+        </div>
+    {/if}
 
     {#if loading}
         <ActivitySkeletons />

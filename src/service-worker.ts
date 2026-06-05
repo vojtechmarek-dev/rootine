@@ -33,7 +33,7 @@ self.addEventListener('message', (event) => {
 // send the subscription to the server. This handles delivery + click.
 
 self.addEventListener('push', (event) => {
-    let payload: { title?: string; body?: string; url?: string } = {};
+    let payload: { title?: string; body?: string; url?: string };
     try {
         payload = event.data?.json() ?? {};
     } catch {

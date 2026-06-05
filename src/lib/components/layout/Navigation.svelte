@@ -2,11 +2,12 @@
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { resolve } from '$app/paths';
-    import { ChartBar, House, User } from '@lucide/svelte';
+    import { ChartBar, House, Sprout, User } from '@lucide/svelte';
     import { Button } from '$lib/components/ui/button/index.js';
 
     const navItems = [
         { href: '/', label: 'Dashboard', disabled: false, icon: House },
+        { href: '/garden', label: 'Garden', disabled: false, icon: Sprout },
         { href: '/stats', label: 'Stats', disabled: true, icon: ChartBar },
         { href: '/profile', label: 'Profile', disabled: true, icon: User },
     ] as const;
