@@ -62,7 +62,7 @@ function applyWeekException(activity: Activity, target: Date, exceptions: WeekEx
 
     const week = isoWeekOf(target);
     const exception = exceptions.find((e) => e.habitId === activity.id && e.weekOf === week);
-    if (!exception || exception.shiftDays === 0) {
+    if (!exception || exception.shiftDays === 0 || target < startOfDay(exception.createdAt)) {
         return activity.schedule;
     }
 
