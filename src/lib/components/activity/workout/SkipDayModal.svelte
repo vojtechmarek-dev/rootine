@@ -30,7 +30,6 @@
     const today = new Date();
 
     const affectedDays = WEEKDAYS.slice(today.getDay() - 1);
-    console.log('Affected days:', affectedDays);
 
     const originalDays = $derived(activity.schedule.type === 'weekly' ? activity.schedule.days : []);
 

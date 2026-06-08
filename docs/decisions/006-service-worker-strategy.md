@@ -43,11 +43,9 @@ Use **`strategies: 'injectManifest'`** with `@vite-pwa/sveltekit` as the single 
   (`detectServiceWorkerUpdate` in `src/routes/+layout.svelte` posts `SKIP_WAITING`).
 - The web manifest lives **only** in `vite.config.ts` (icons + screenshots inlined);
   `static/manifest.webmanifest` was deleted. Single source of truth.
-- `devOptions.enabled = false` — the worker does **not** run in `vite dev`. We originally
-  enabled it (to test SW features without build/preview), but with `registerType: 'prompt'`
-  every code change produced a new *waiting* SW while the old one kept serving a stale app;
-  newly-added routes then hard-reloaded to the cold-start splash until a manual refresh.
-  Test SW features via `npm run preview` instead. The production SW + prompt UX are unchanged.
+- `devOptions.enabled = true` so the worker runs in `vite dev` — SW features (push, caching)
+  are testable without a full `build` + `preview`. It is off by default upstream to avoid
+  interfering with HMR; we opt in because we actively develop SW behaviour.
 
 ## Consequences
 
@@ -58,8 +56,7 @@ Use **`strategies: 'injectManifest'`** with `@vite-pwa/sveltekit` as the single 
 - **Push notifications are now possible** — handlers live in our `src/service-worker.ts`.
 - **Proper precache** of all client chunks via workbox replaces the old network-first worker
   (which risked serving stale API data).
-- **No stale-SW friction in dev** — the worker is off under `vite dev`, so new routes/chunks
-  load immediately; SW behaviour is verified via `npm run preview`.
+- **Dev-testable SW** without build/preview.
 
 ### Negative / Gotchas
 

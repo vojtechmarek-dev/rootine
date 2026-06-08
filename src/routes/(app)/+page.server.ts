@@ -1,7 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { getDashboardActivities } from '$lib/server/dashboard';
-import { getGardenData } from '$lib/server/garden';
 import { createActivity } from '$lib/server/actions/createActivity';
 import { toggleActivity } from '$lib/server/actions/toggleActivity';
 import { updateActivity } from '$lib/server/actions/updateActivity';
@@ -22,8 +21,6 @@ export const load: PageServerLoad = async (event) => {
     return {
         session,
         dashboardPayload: getDashboardActivities(session.user.id, targetDate),
-        // Streamed: the garden widget resolves independently of the activity list.
-        gardenData: getGardenData(session.user.id),
     };
 };
 

@@ -34,10 +34,10 @@
 </script>
 
 {#await dashboardPayload}
-    <Dashboard {session} activities={[]} gardenData={data.gardenData} loading={true} />
+    <Dashboard {session} activities={[]} loading={true} />
 {:then dashboardPayload}
     {@const activities = dashboardPayload.activities}
-    <Dashboard {session} {activities} gardenData={data.gardenData} />
+    <Dashboard {session} {activities} />
 {:catch err}
     <div class="p-4">
         <div class="rounded-2xl bg-destructive/10 p-6 text-destructive">

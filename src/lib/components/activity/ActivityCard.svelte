@@ -19,7 +19,6 @@
         Archive,
     } from '@lucide/svelte';
     import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
-    import { bumpHabitGrowth } from '$lib/state/garden.svelte';
     import type { ActivityFormData } from '$lib/types/schemas';
     import { cn, getActivityAccentClasses, getActivityTypeLabel } from '$lib/utils';
     import * as Popover from '$lib/components/ui/popover';
@@ -76,6 +75,23 @@
     /** Last inserted log ID from server, used for undo so we delete the right log. */
     let lastAddedLogId = $state<string | null>(null);
 
+    // Micro-reward: a little "+1" floats up from the button on completion, paired
+    // with a light haptic tap — immediate in-flow feedback (no separate widget).
+    let rewardSeq = 0;
+    let rewards = $state<{ id: number; label: string }[]>([]);
+    function popReward(label = '+1') {
+        const id = ++rewardSeq;
+        rewards = [...rewards, { id, label }];
+        setTimeout(() => (rewards = rewards.filter((r) => r.id !== id)), 850);
+    }
+    function haptic() {
+        try {
+            navigator.vibrate?.(12);
+        } catch {
+            /* vibrate unsupported — ignore */
+        }
+    }
+
     const logCountToday = $derived(optimisticLogCount ?? activity.logCountToday);
     const isCompleted = $derived(logCountToday >= activity.targetCount);
     const completionLabel = $derived(`${logCountToday}/${activity.targetCount}`);
@@ -122,23 +138,19 @@
 
         isSubmitting = true;
 
-        // Optimistically grow / shrink this habit's root in the garden widget.
-        let gardenDelta = 0;
         if (action === 'complete') {
             optimisticLogCount = currentCount + 1;
-            gardenDelta = 1;
+            haptic();
+            popReward();
         } else if (action === 'undo') {
             optimisticLogCount = Math.max(0, currentCount - 1);
-            gardenDelta = -1;
         }
-        if (gardenDelta) bumpHabitGrowth(activity.id, gardenDelta);
 
         return async ({ update, result }) => {
             isSubmitting = false;
 
             if (result.type === 'failure' || result.type === 'error') {
                 optimisticLogCount = null;
-                if (gardenDelta) bumpHabitGrowth(activity.id, -gardenDelta); // revert
                 await update();
                 return;
             }
@@ -302,11 +314,20 @@
                     method="POST"
                     action="?/toggleActivity{dateQuery}"
                     use:enhance={handleToggle}
-                    class="mt-2 flex items-center justify-end"
+                    class="relative mt-2 flex items-center justify-end"
                 >
                     <input type="hidden" name="activityId" value={activity.id} />
                     {#if isCompleted && lastAddedLogId}
                         <input type="hidden" name="logId" value={lastAddedLogId} />
+                    {/if}
+
+                    <!-- Floating "+1" micro-reward, anchored above the action button. -->
+                    {#if rewards.length}
+                        <div class="pointer-events-none absolute right-2 bottom-full flex flex-col items-end">
+                            {#each rewards as r (r.id)}
+                                <span class="reward-float text-success">{r.label}</span>
+                            {/each}
+                        </div>
                     {/if}
 
                     {#if !canToggle}
@@ -375,3 +396,33 @@
 {#if activity.type === 'workout'}
     <SkipDayModal bind:open={skipModalOpen} {activity} />
 {/if}
+
+<style>
+    /* Micro-reward: float up + fade. Colour comes from the `text-success` class. */
+    .reward-float {
+        font-weight: 700;
+        font-size: 0.9rem;
+        line-height: 1;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+        animation: reward-float 0.85s cubic-bezier(0.22, 0.61, 0.2, 1) forwards;
+    }
+    @keyframes reward-float {
+        0% {
+            transform: translateY(6px) scale(0.9);
+            opacity: 0;
+        }
+        25% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-26px) scale(1.05);
+            opacity: 0;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .reward-float {
+            animation-duration: 0.4s;
+            transform: none;
+        }
+    }
+</style>
