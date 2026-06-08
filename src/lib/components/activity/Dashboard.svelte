@@ -4,7 +4,7 @@
     import GardenWidget from '@/components/root-system/GardenWidget.svelte';
     import { onMount, untrack } from 'svelte';
     import type { DashboardActivity } from '$lib/types/schemas';
-    import type { GardenData } from '$lib/server/garden';
+    import type { GardenData } from '$lib/types/garden';
     import type { Session } from '@auth/sveltekit';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
@@ -147,6 +147,21 @@
         }
         expandedActivityId = activityId;
     };
+
+    // Click-through from the garden: /?focus=<id> expands and scrolls to that card.
+    let lastFocused = $state<string | null>(null);
+    $effect(() => {
+        const focus = page.url.searchParams.get('focus');
+        const ids = activities.map((a) => a.id); // track activities
+        if (!focus || focus === lastFocused || !ids.includes(focus)) return;
+        untrack(() => {
+            lastFocused = focus;
+            expandedActivityId = focus;
+            requestAnimationFrame(() => {
+                document.getElementById(`activity-${focus}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+    });
 </script>
 
 <div class="p-4">
@@ -216,16 +231,18 @@
         <div class="space-y-8">
             <div class="space-y-4">
                 {#each activities as activity (activity.id)}
-                    <ActivityCard
-                        {activity}
-                        canToggle={canCompleteActivities}
-                        isPast={isPastDate}
-                        viewDate={currentDateStr}
-                        isOpen={expandedActivityId === activity.id}
-                        onToggle={() => {
-                            toggleExpanded(activity.id);
-                        }}
-                    />
+                    <div id="activity-{activity.id}" style="scroll-margin-top: 5rem">
+                        <ActivityCard
+                            {activity}
+                            canToggle={canCompleteActivities}
+                            isPast={isPastDate}
+                            viewDate={currentDateStr}
+                            isOpen={expandedActivityId === activity.id}
+                            onToggle={() => {
+                                toggleExpanded(activity.id);
+                            }}
+                        />
+                    </div>
                 {/each}
             </div>
 

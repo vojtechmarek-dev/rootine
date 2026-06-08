@@ -1,6 +1,8 @@
 <script lang="ts">
     import Garden from '$lib/components/root-system/Garden.svelte';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { goto } from '$app/navigation';
+    import { dev } from '$app/environment';
     import { Flame, Sprout, Trophy, Maximize } from '@lucide/svelte';
     import type { PageData } from './$types';
 
@@ -9,11 +11,45 @@
 
     let garden = $state<{ fitToView: () => void } | undefined>();
 
+    // ── dev-only overrides (showcasing / debugging) ──────────────────────────
+    let revealAll = $state(false);
+    let useGrowthOverride = $state(false);
+    let growthPerHabit = $state(8);
+    let curOverride = $state<number | null>(null);
+    let longOverride = $state<number | null>(null);
+    let totalOverride = $state<number | null>(null);
+
+    // Effective habits fed to the visualization (dev overrides applied).
+    const effHabits = $derived(
+        dev && revealAll
+            ? g.habits.map((h) => ({ ...h, growth: 200 }))
+            : dev && useGrowthOverride
+              ? g.habits.map((h) => ({ ...h, growth: growthPerHabit }))
+              : g.habits
+    );
+    const effTotal = $derived(effHabits.reduce((sum, h) => sum + h.growth, 0));
+
+    const statCur = $derived(curOverride ?? g.currentStreak);
+    const statLong = $derived(longOverride ?? g.longestStreak);
+    const statTotal = $derived(totalOverride ?? g.totalCompletions);
+
     const stats = $derived([
-        { label: 'Current streak', value: g.currentStreak, suffix: g.currentStreak === 1 ? 'day' : 'days', icon: Flame, tone: 'text-orange-400' },
-        { label: 'Longest streak', value: g.longestStreak, suffix: g.longestStreak === 1 ? 'day' : 'days', icon: Trophy, tone: 'text-amber-400' },
-        { label: 'Completions', value: g.totalCompletions, suffix: 'logged', icon: Sprout, tone: 'text-secondary' },
+        { label: 'Current streak', value: statCur, icon: Flame, tone: 'text-orange-400' },
+        { label: 'Longest streak', value: statLong, icon: Trophy, tone: 'text-amber-400' },
+        { label: 'Completions', value: statTotal, icon: Sprout, tone: 'text-secondary' },
     ]);
+
+    // Click a root → jump to that activity. Workouts have a detail route; other
+    // types open focused on the dashboard.
+    function onselect(activityId: string, type: string) {
+        if (type === 'workout') {
+            // eslint-disable-next-line svelte/no-navigation-without-resolve
+            goto(`/workout/${activityId}`);
+        } else {
+            // eslint-disable-next-line svelte/no-navigation-without-resolve
+            goto(`/?focus=${activityId}`);
+        }
+    }
 </script>
 
 <div class="flex flex-col gap-4 p-4">
@@ -37,11 +73,77 @@
         {/each}
     </div>
 
-    <div class="relative h-[60vh] overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2118] to-[#120c06]">
-        <Garden bind:this={garden} seed={g.seed} growth={g.growth} interactive={true} />
-    </div>
+    {#if dev}
+        <!-- Dev-only debug panel: stripped from production builds. -->
+        <fieldset
+            class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3 text-sm"
+        >
+            <legend class="px-1 text-xs font-semibold tracking-wide text-amber-500/80 uppercase">Dev · debug</legend>
 
-    <p class="text-center text-xs text-muted-foreground">
-        Every completed activity grows your roots. Keep your streak alive to grow faster — drag to pan, scroll to zoom.
-    </p>
+            <label class="flex items-center gap-2">
+                <input type="checkbox" bind:checked={revealAll} />
+                Reveal whole system
+            </label>
+
+            <label class="flex items-center gap-2 {revealAll ? 'opacity-40' : ''}">
+                <input type="checkbox" bind:checked={useGrowthOverride} disabled={revealAll} />
+                Growth / habit
+                <input type="range" min="0" max="40" bind:value={growthPerHabit} disabled={revealAll || !useGrowthOverride} />
+                <span class="w-6 tabular-nums">{growthPerHabit}</span>
+            </label>
+
+            <label class="flex items-center gap-1">
+                <Flame class="h-3.5 w-3.5 text-orange-400" />
+                <input
+                    type="number"
+                    class="w-16 rounded border border-outline-variant/30 bg-transparent px-1 py-0.5"
+                    placeholder={String(g.currentStreak)}
+                    bind:value={curOverride}
+                />
+            </label>
+            <label class="flex items-center gap-1">
+                <Trophy class="h-3.5 w-3.5 text-amber-400" />
+                <input
+                    type="number"
+                    class="w-16 rounded border border-outline-variant/30 bg-transparent px-1 py-0.5"
+                    placeholder={String(g.longestStreak)}
+                    bind:value={longOverride}
+                />
+            </label>
+            <label class="flex items-center gap-1">
+                <Sprout class="h-3.5 w-3.5 text-secondary" />
+                <input
+                    type="number"
+                    class="w-16 rounded border border-outline-variant/30 bg-transparent px-1 py-0.5"
+                    placeholder={String(g.totalCompletions)}
+                    bind:value={totalOverride}
+                />
+            </label>
+
+            <Button
+                variant="ghost"
+                size="sm"
+                onclick={() => {
+                    revealAll = false;
+                    useGrowthOverride = false;
+                    curOverride = longOverride = totalOverride = null;
+                }}
+            >
+                Reset
+            </Button>
+        </fieldset>
+    {/if}
+
+    {#if g.habits.length === 0}
+        <div class="rounded-2xl bg-surface-container-lowest p-6 text-center text-muted-foreground">
+            Create an activity and start completing it — your roots grow from here.
+        </div>
+    {:else}
+        <div class="relative h-[60vh] overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2118] to-[#120c06]">
+            <Garden bind:this={garden} seed={g.seed} habits={effHabits} totalGrowth={effTotal} interactive={true} {onselect} />
+        </div>
+        <p class="text-center text-xs text-muted-foreground">
+            Each root is one habit; it grows as you complete it. Tap a root to open it. Drag to pan, scroll to zoom.
+        </p>
+    {/if}
 </div>

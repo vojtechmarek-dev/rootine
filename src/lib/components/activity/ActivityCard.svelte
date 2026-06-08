@@ -19,6 +19,7 @@
         Archive,
     } from '@lucide/svelte';
     import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
+    import { bumpHabitGrowth } from '$lib/state/garden.svelte';
     import type { ActivityFormData } from '$lib/types/schemas';
     import { cn, getActivityAccentClasses, getActivityTypeLabel } from '$lib/utils';
     import * as Popover from '$lib/components/ui/popover';
@@ -121,17 +122,23 @@
 
         isSubmitting = true;
 
+        // Optimistically grow / shrink this habit's root in the garden widget.
+        let gardenDelta = 0;
         if (action === 'complete') {
             optimisticLogCount = currentCount + 1;
+            gardenDelta = 1;
         } else if (action === 'undo') {
             optimisticLogCount = Math.max(0, currentCount - 1);
+            gardenDelta = -1;
         }
+        if (gardenDelta) bumpHabitGrowth(activity.id, gardenDelta);
 
         return async ({ update, result }) => {
             isSubmitting = false;
 
             if (result.type === 'failure' || result.type === 'error') {
                 optimisticLogCount = null;
+                if (gardenDelta) bumpHabitGrowth(activity.id, -gardenDelta); // revert
                 await update();
                 return;
             }

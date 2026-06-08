@@ -1,19 +1,32 @@
 <script lang="ts">
     import Garden from './Garden.svelte';
-    import type { GardenData } from '$lib/server/garden';
+    import type { GardenData, GardenHabit } from '$lib/types/garden';
+    import { gardenProgress, resetGardenProgress } from '$lib/state/garden.svelte';
     import { Flame, Sprout, Maximize2 } from '@lucide/svelte';
-    import { goto } from '$app/navigation';
     import { resolve } from '$app/paths';
 
     // The dashboard streams this in, so accept the promise and resolve it here —
     // the garden never blocks the activity list.
     let { data }: { data: Promise<GardenData> } = $props();
+
+    // Fresh server data arrives → drop optimistic deltas so we don't double-count.
+    $effect(() => {
+        data; // eslint-disable-line -- track promise identity; a new load = a new promise
+        resetGardenProgress();
+    });
+
+    /** Apply optimistic completion deltas on top of the server counts. */
+    function withOptimism(habits: GardenHabit[]): GardenHabit[] {
+        const d = gardenProgress.deltas;
+        return habits.map((h) => ({ ...h, growth: Math.max(0, h.growth + (d[h.id] ?? 0)) }));
+    }
 </script>
 
 <div class="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2118] to-[#120c06] text-[#f3e9da]">
     {#await data}
         <div class="h-52 w-full animate-pulse bg-white/5"></div>
     {:then garden}
+        {@const habits = withOptimism(garden.habits)}
         <div class="flex items-center justify-between px-4 pt-4">
             <div class="flex items-center gap-2">
                 <Sprout class="h-4 w-4 text-[#a9e08a]" />
@@ -25,19 +38,14 @@
             </div>
         </div>
 
-        <button
-            type="button"
-            class="group relative block h-44 w-full"
-            aria-label="Expand garden"
-            onclick={() => goto(resolve('/garden'))}
-        >
-            <Garden seed={garden.seed} growth={garden.growth} interactive={false} />
+        <a href={resolve('/garden')} class="group relative block h-44 w-full" aria-label="Expand garden">
+            <Garden seed={garden.seed} {habits} interactive={false} />
             <span
                 class="pointer-events-none absolute right-3 bottom-3 flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 text-xs opacity-70 backdrop-blur transition group-hover:opacity-100"
             >
                 <Maximize2 class="h-3 w-3" /> Expand
             </span>
-        </button>
+        </a>
     {:catch}
         <div class="p-4 text-sm text-[#c9bba6]">Garden unavailable right now.</div>
     {/await}

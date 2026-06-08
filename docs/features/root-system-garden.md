@@ -1,54 +1,91 @@
 # Root System — Gamified Garden
 
-A single procedural "plant" that grows as the user completes activities. The root
-system below the soil is the reward surface; the more you do, the more of it is
-revealed. Layered on top: a **streak** metric (consecutive active days).
+A procedural underground "plant" that grows as the user completes activities.
+**One central taproot** (the shared foundation) with **one offshoot per habit**
+branching off it — and each offshoot's length/complexity tracks *that habit's
+own* completion count. A neglected habit is a short stub (or nothing); an active
+one is long and richly branched. Layered on top: a **streak** metric, per-habit
+**colour tinting**, milestone **blooms**, **click-through**, and **optimistic
+growth** on completion.
 
 - **Garden widget** — a non-interactive preview embedded in the dashboard.
 - **Garden route** (`/garden`) — the full, pan/zoom-able view with stats.
 - **Streak** — first streak primitive in the app (none existed before).
 
-> **Status:** v1 prototype wired to live data. See
-> [Notes & v1 Review Backlog](#notes--v1-review-backlog) for everything
-> deliberately deferred.
+> **Status:** v1.2 — taproot + per-habit offshoots, wired to live data. See
+> [Notes & Backlog](#notes--backlog) for what's still deferred.
 
 ---
 
 ## Core Idea — Derive, Don't Persist
 
-The generator (`src/lib/roots.ts`) is **pure and deterministic**: a `seed`
-produces one fixed plant, and `growth` reveals it gradually. Its docstring says
-you "only need to persist `{ seed, growth }`." We go one step further and **derive
-both** — so the feature adds **zero tables and zero columns**.
+The generator (`src/lib/roots.ts`) is **pure and deterministic**. We **derive
+everything** from existing rows — so the feature adds **zero tables and zero
+columns**.
 
 | Quantity | Source | Why it's safe |
 | -------- | ------ | ------------- |
-| `seed` | FNV-1a hash of `userId` | Stable for a user forever → plant shape never changes. |
-| `growth` | Count of non-skipped `logs` | Monotonic; raising growth only _adds_ segments, never mutates existing ones. |
-| `currentStreak` / `longestStreak` | Pure function over log dates | Recomputed each load; no drift possible. |
+| tree `seed` | FNV-1a hash of the **userId** | One stable shared tree per user; never reshuffles. |
+| per-habit offshoot length | Count of that activity's non-skipped `logs` | Monotonic; raising it only _adds_ segments. |
+| `currentStreak` / `longestStreak` | Pure function over all log dates | Recomputed each load; no drift. |
+
+The whole tree is generated up-front; growth only **reveals** more of it:
+
+- The **taproot** (depth 0, `activityId: null`) is the shared spine. It reveals
+  only deep enough to host the offshoots that have grown — `max(attachBorn) + 2`
+  over habits with ≥1 completion (a small base keeps a seedling stub visible).
+- Each **offshoot** reveals by its **own** habit's completion count, using a
+  **local** `born` (1..N within that offshoot). So revealed length == completions
+  (capped at the offshoot's full size).
 
 ```mermaid
 flowchart LR
     A[logs rows] --> B[getGardenData]
-    U[userId] --> H[seedFromUserId\nFNV-1a]
-    B --> C[count non-skipped\n= growth = totalCompletions]
-    B --> D[computeStreak over\nlog dates]
-    H --> S[seed]
-    C --> G[GardenData]
+    Acts[activities] --> B
+    B --> C[count per activity\n= offshoot reveal length]
+    B --> D[computeStreak over\nall log dates]
+    U[userId] --> H[seed = FNV-1a userId]
+    C --> G[GardenData.habits]
+    H --> G
     D --> G
-    S --> G
-    G --> RS[generateRootSystem seed]
-    RS --> R[RootSystem.svelte\nreveal born <= growth]
+    G --> GEN["generateGarden(habits, {seed})"]
+    GEN --> R["RootSystem.svelte\noffshoot: born <= habit count\ntaproot: born <= deepest active attach"]
 ```
 
-Because generation depends **only** on the seed, the segment array is stable as
-`growth` rises — Svelte plays the draw-in transition on each newly revealed path.
+---
+
+## Generator — `generateGarden(habits, { seed })`
+
+```mermaid
+flowchart TD
+    A([generateGarden]) --> T[grow ONE taproot\nstraight down, depth 0, activityId null]
+    T --> S{taproot reaches\na scheduled node?}
+    S -- yes --> O[spawn habit offshoot\ndepth 1, left/right, tag activityId+colour\nrecord attachBorn = taproot born]
+    O --> SB[offshoot sub-branches grow\ndepth 2/3, inherit habit + attachBorn]
+    S -- no --> SB
+    SB --> L[born is LOCAL per owner:\ntaproot 1..K, each habit 1..M]
+```
+
+- One taproot; habits attach as offshoots at **staggered nodes down the spine**
+  (first near the surface, so little bare spine up top). Sides alternate L/R.
+- The taproot does **not** branch randomly — its only branches are the scheduled
+  habit offshoots. Offshoots branch organically into depth 2/3 sub-roots.
+- `simulateRoot` (the original prototype loop) still backs the legacy
+  `generateRootSystem` single-plant path (`activityId = null`, global born).
+
+`Segment` gained: `activityId: string | null`, `color?: string`, and
+`attachBorn?: number` (the taproot born of an offshoot's attachment node).
+
+> **No floating roots:** an offshoot's `attachBorn` is included in the taproot's
+> reveal depth whenever that habit is active, so the spine always reaches the
+> node an offshoot hangs from.
 
 ---
 
 ## Data Flow
 
-No schema change. `getGardenData` joins `logs → activities` and counts.
+No schema change. `getGardenData` reads the user's activities + counts their
+non-skipped logs per activity.
 
 ```mermaid
 sequenceDiagram
@@ -59,103 +96,109 @@ sequenceDiagram
 
     Browser->>PageServer: GET / (dashboard) or /garden
     PageServer->>Garden: getGardenData(userId)
-    Garden->>DB: SELECT logs.date JOIN activities\nWHERE userId AND status != 'skipped'
-    DB-->>Garden: dates[]
-    Garden->>Garden: growth = dates.length
-    Garden->>Garden: computeStreak(dates)
-    Garden->>Garden: seed = FNV-1a(userId)
-    Garden-->>PageServer: GardenData
+    Garden->>DB: SELECT activities (non-archived, ASC createdAt)
+    Garden->>DB: SELECT logs.activityId, date JOIN activities\nWHERE userId AND status != 'skipped'
+    DB-->>Garden: activities[], completed[]
+    Garden->>Garden: countByActivity, seed = FNV-1a(userId)
+    Garden->>Garden: computeStreak(all dates)
+    Garden-->>PageServer: GardenData { seed, habits[], totals, streaks }
     PageServer-->>Browser: dashboard streams gardenData\n/garden awaits it
 ```
 
-`GardenData` shape (`src/lib/server/garden.ts`):
+`GardenData` (`src/lib/types/garden.ts`):
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| `seed` | `number` | 32-bit FNV-1a of `userId`. Determines plant shape. |
-| `growth` | `number` | Lifetime non-skipped completions. Drives reveal. |
-| `totalCompletions` | `number` | Same value, surfaced as a stat. |
-| `currentStreak` | `number` | Consecutive active days (1-day grace). |
-| `longestStreak` | `number` | Best run ever. |
+| `seed` | `number` | FNV-1a of userId → fixed shared-tree shape. |
+| `habits[]` | `GardenHabit[]` | One per non-archived activity. |
+| `totalCompletions` | `number` | Lifetime non-skipped logs — root thickness + a stat. |
+| `currentStreak` / `longestStreak` | `number` | Streaks. |
 
-**Skipped logs are excluded** — they record intent, not work. This mirrors the
-dashboard's `logCountToday` counting (`status !== 'skipped'`).
+`GardenHabit`: `{ id, title, type, color, growth }` — `growth` is that habit's
+completion count (drives its offshoot length, bloom tier, tooltip).
+
+> Types live in `src/lib/types/garden.ts` (not the server module) so client
+> components import them without tripping SvelteKit's server-only guard.
+
+**Skipped logs are excluded** — they record intent, not work (mirrors the
+dashboard's `logCountToday`).
 
 ---
 
 ## Streak Logic
 
-Pure, unit-tested (`src/lib/streak.ts`, `streak.spec.ts`). Operates on a flat
-list of completion dates; dedupes per local calendar day.
+Pure, unit-tested (`src/lib/streak.ts`, `streak.spec.ts`). Dedupes per local day.
 
 ```mermaid
 flowchart TD
-    A([computeStreak dates, now]) --> B[map dates -> local day ordinals\ninto a Set]
-    B --> C{set empty?}
-    C -- yes --> D([current=0 longest=0])
-    C -- no --> E[sort ordinals]
-    E --> F[longest = max consecutive run\nanywhere in history]
-    E --> G{today in set?}
-    G -- yes --> H[anchor = today]
-    G -- no --> I{yesterday in set?}
-    I -- yes --> J[anchor = yesterday\nGRACE DAY]
-    I -- no --> K[current = 0]
-    H --> L[walk backward while\nconsecutive -> current]
-    J --> L
+    A([computeStreak dates, now]) --> B[map dates -> local day ordinals]
+    B --> E[longest = max consecutive run]
+    B --> G{today or yesterday active?}
+    G -- yes --> L[walk backward while consecutive]
+    G -- no --> K[current = 0]
 ```
 
 **Grace window:** the current streak stays alive while **today _or_ yesterday**
-has a completion — so it doesn't collapse to 0 the moment you wake up before
-logging. It only breaks once a full day passes with nothing.
+has a completion; it breaks only after a full empty day. Day-granular, local
+time, via `Date.UTC(y, m, d)` ordinals.
 
-| Completion days (relative to today) | `current` | Note |
-| ----------------------------------- | --------- | ---- |
-| today, −1, −2 | 3 | normal |
-| −1, −2 (nothing today yet) | 2 | grace day keeps it alive |
-| −2, −3 (today & yesterday missed) | 0 | broken |
-| today ×3 (dupes same day) | 1 | deduped |
+| Completion days (rel. today) | `current` |
+| ---------------------------- | --------- |
+| today, −1, −2 | 3 |
+| −1, −2 (grace) | 2 |
+| −2, −3 (missed today+yday) | 0 |
 
-All math is **day-granular, local time**, via `Date.UTC(y, m, d)` ordinals — so a
-completion at 23:59 and one at 00:01 the next day count as two days.
+---
+
+## Per-Habit Features
+
+| Feature | How |
+| ------- | --- |
+| **Offshoot length** | Revealed segments == habit completions (local `born`). Neglected habit → stub/none. |
+| **Colour tinting** | Offshoot follows the habit's colour token, shaded toward parchment with depth; `zinc`/unset → brown CSS palette. |
+| **Milestone blooms** | Flower pops in (scale transition) at the offshoot's outermost revealed tip when its count crosses `MILESTONES = [7, 30, 100, 365]` (tier sizes petals). |
+| **Click-through** | Tap a root → `onselect(activityId, type)`: workout → `/workout/[id]`; else → `/?focus=<id>` (dashboard expands + scrolls that card). |
+| **Tooltip** | Hover a root → habit title + "N completed". Taproot → "Your foundation". |
+
+### Optimistic growth on completion
+
+The dashboard completes activities **without** re-running its load, so server
+counts stay stale until the next navigation. `src/lib/state/garden.svelte.ts`
+holds per-habit `deltas`:
+
+```mermaid
+sequenceDiagram
+    participant Card as ActivityCard
+    participant Store as gardenProgress
+    participant Widget as GardenWidget
+
+    Card->>Store: complete → bumpHabitGrowth(id, +1)
+    Store-->>Widget: widget adds deltas to that habit's growth
+    Widget->>Widget: that habit's offshoot draws in one more segment
+    Note over Card,Widget: failure → Card reverts the bump
+    Widget->>Store: fresh server data → resetGardenProgress()
+```
+
+The widget clears deltas in an `$effect` keyed on the streamed data promise, so a
+real reload replaces optimistic counts with truth (never double-counts).
 
 ---
 
 ## UI
 
-```mermaid
-flowchart TD
-    subgraph Dashboard
-      W[GardenWidget\nstreamed promise]
-    end
-    subgraph Route[/garden/]
-      F[Garden interactive\n+ stat cards + Fit]
-    end
-    W -- click / Expand --> Route
-    W --> G1[Garden.svelte\ninteractive=false]
-    F --> G2[Garden.svelte\ninteractive=true]
-    G1 --> RS[RootSystem.svelte]
-    G2 --> RS
-```
+- **`Garden.svelte`** — `generateGarden(habits, { seed })` → builds
+  `growthByActivity`, `describe`, forwards `onselect` + `fitToView()`.
+- **`GardenWidget.svelte`** — dashboard card; applies optimistic deltas, streak
+  chip, static preview. The preview is an **`<a href="/garden">`** (reliable
+  client nav; the inner roots are `pointer-events: none` so the link always wins).
+- **`/garden/+page.svelte`** — interactive view, three stat cards, **Fit**,
+  click-through routing, empty state when no habits.
+- **`RootSystem.svelte`** — `interactive` prop (gates wheel/drag + hit-testing),
+  per-habit offshoot reveal + taproot reveal depth, tinting, blooms.
 
-- **`Garden.svelte`** — thin wrapper: `generateRootSystem(seed)` → `RootSystem`,
-  forwards `fitToView()`.
-- **`GardenWidget.svelte`** — dashboard card. Awaits the streamed `gardenData`
-  (never blocks the activity list), shows a streak chip, renders a static
-  preview, whole thing is a button → `/garden`.
-- **`/garden/+page.svelte`** — full view: interactive RootSystem, three stat
-  cards (current streak / longest streak / completions), a **Fit** button.
-- **`RootSystem.svelte`** — gained an **`interactive`** prop. When `false`:
-  wheel-zoom / drag-pan effect is skipped and root hit-testing is disabled
-  (`pointer-events: none`), so clicks fall through to the wrapping Expand button.
-
-**Soil backdrop:** RootSystem's earthy palette is designed for a dark background.
-Both surfaces supply a fixed `#2a2118 → #120c06` gradient so colors read
-correctly regardless of the app's light/dark theme.
-
-### Navigation
-
-`/garden` added to the bottom nav (`Sprout` icon), between Dashboard and the
-still-disabled Stats/Profile items.
+**Soil backdrop:** both surfaces supply a fixed `#2a2118 → #120c06` gradient so
+the earthy palette reads regardless of app theme. **Nav:** `/garden` in the
+bottom bar (`Sprout` icon).
 
 ---
 
@@ -163,17 +206,18 @@ still-disabled Stats/Profile items.
 
 | File | Role | New / Changed |
 | ---- | ---- | ------------- |
-| `src/lib/roots.ts` | Procedural generator | unchanged (prototype) |
-| `src/lib/streak.ts` | Pure streak math | **new** |
-| `src/lib/streak.spec.ts` | Streak tests (7) | **new** |
-| `src/lib/server/garden.ts` | `getGardenData` rollup | **new** |
-| `src/lib/components/root-system/RootSystem.svelte` | Renderer | changed (`interactive` prop) |
-| `src/lib/components/root-system/Garden.svelte` | seed → segments wrapper | **new** |
-| `src/lib/components/root-system/GardenWidget.svelte` | Dashboard preview | **new** |
-| `src/routes/(app)/garden/+page.{server.ts,svelte}` | Full view | **new** |
+| `src/lib/roots.ts` | `generateGarden` (taproot + offshoots), `milestoneTier` | changed |
+| `src/lib/roots.spec.ts` | Generator tests | new |
+| `src/lib/streak.ts` + `.spec.ts` | Pure streak math | new |
+| `src/lib/types/garden.ts` | `GardenData` / `GardenHabit` (shared) | new |
+| `src/lib/server/garden.ts` | `getGardenData` rollup | new |
+| `src/lib/state/garden.svelte.ts` | Optimistic growth deltas | new |
+| `src/lib/components/root-system/{RootSystem,Garden,GardenWidget}.svelte` | Renderers | RootSystem changed; Garden/Widget new |
+| `src/routes/(app)/garden/+page.{server.ts,svelte}` | Full view | new |
 | `src/lib/components/layout/Navigation.svelte` | Nav item | changed |
 | `src/routes/(app)/+page.server.ts` | Stream `gardenData` | changed |
-| `src/lib/components/activity/Dashboard.svelte` | Embed widget | changed |
+| `src/lib/components/activity/Dashboard.svelte` | Embed widget + `?focus=` | changed |
+| `src/lib/components/activity/ActivityCard.svelte` | Optimistic bump on toggle | changed |
 
 > **No `db:push` required** — this feature touches no schema.
 
@@ -183,82 +227,56 @@ still-disabled Stats/Profile items.
 
 | Scenario | Behaviour |
 | -------- | --------- |
-| Brand-new user, 0 completions | `growth = 0` → only the above-ground sprout renders. Empty/"plant a seed" state. |
-| Only skipped logs | Excluded → `growth = 0`, `streak = 0`. Skips don't grow the plant. |
-| Huge completion count (> `maxSteps` 72) | Whole system revealed; `growth` keeps rising harmlessly. Thickness caps at `maxGrowth` (60). |
-| Multiple completions same day | Grow plant by N (each log = +1 growth); streak counts the day once. |
-| Backfilled completion (past day, current ISO week) | Counts toward `growth`; streak reflects the backfilled day's ordinal. |
-| Undo a completion | `growth` drops by 1 on next load; a revealed tip segment disappears (reversible by design). |
+| Brand-new user (0 completions) | Just the sprout + a 2-segment taproot stub. No offshoots. |
+| Habit with 0 completions | Its offshoot is **not** revealed — only its attachment node exists on the spine. |
+| One very active habit, rest idle | Taproot extends to reach that habit's attachment; its offshoot is long; idle habits show nothing. |
+| Habit reaches 7 / 30 / 100 / 365 | A bloom (tier 1–4) appears at its offshoot tip. |
+| Many habits | Attachments stagger down a longer taproot (capped at 16 nodes). |
+| Archived activity | Excluded from `habits` — its offshoot disappears. |
+| Undo a completion | Optimistic −1 immediately (offshoot retracts a segment); server truth on next load. |
+| Complete then open `/garden` | `/garden` fresh-loads server truth (incl. the completion); optimistic deltas are dashboard-only. |
 | Garden query fails on dashboard | Widget shows "Garden unavailable"; activity list unaffected (separate streamed promise). |
-| Late-night completions across midnight | Counted as two distinct streak days (local ordinal boundary). |
 
 ---
 
-## Notes & v1 Review Backlog
+## Notes & Backlog
 
-Everything below is **intentionally deferred** — revisit after dogfooding v1.
+### Implemented
 
-### Known limitations / design gaps
+- ✅ Single taproot + one offshoot per habit (prototype-faithful organic shape).
+- ✅ Offshoot length/complexity tracks the habit's own completion count.
+- ✅ Accent colour tinting per habit.
+- ✅ Milestone blooms (7 / 30 / 100 / 365).
+- ✅ Per-habit click-through (workout detail or focused dashboard).
+- ✅ Optimistic growth on completion (the right offshoot draws in instantly).
 
-- **Roots are not mapped to habits.** `roots.ts` generates `rootId` per
-  internal branch, _not_ per activity. The "one root ≈ one habit" comment in the
-  generator is aspirational. Consequence: `onselect(rootId)` cannot open a
-  specific habit, and roots don't carry per-activity color. The plant currently
-  represents the _whole_ practice, not individual habits.
-  - _To fix:_ seed/generate one sub-tree per activity (e.g. per `activity.id`),
-    tag segments with the owning `activityId`, then `describe`/`onselect` can map
-    back to real habits and tint roots with `activity.color`.
+### Known limitations / still deferred
 
-- **Roots ignore activity accent colors.** Palette is hard-coded browns
-  (`--root-0..3` in `RootSystem.svelte`). Tinting needs the per-habit mapping
-  above first.
-
-- **`growth = raw completion count`.** Linear and uncapped. May feel slow for
-  heavy users and there's no "prestige"/reset. Consider a curve
-  (e.g. `growth = f(totalCompletions, currentStreak)`) so streaks visibly
-  accelerate growth.
-
-- **Streak counts _any_ completion day**, not "all scheduled activities done."
-  Simpler and robust, but a perfectionist streak ("perfect day") would need
-  per-day schedule evaluation over history (expensive). Decide which semantic we
-  want before users anchor on the current one.
-
-- **Streak has no timezone awareness beyond server local time.** `getGardenData`
-  runs `computeStreak(dates)` with the server's `new Date()`. A user in a far TZ
-  could see the grace window flip a few hours early/late. Thread the user's TZ
-  (or compute streak client-side) if this matters.
-
-- **Full query, no pagination.** `getGardenData` pulls _all_ non-skipped log
-  dates every load. Fine at current scale; for power users with thousands of
-  logs, switch to a SQL `count(*)` for growth + a windowed date scan (or a
-  materialized `daily_activity` rollup) for streak.
-
-- **No caching.** Recomputed on every dashboard + `/garden` load. Cheap now;
-  candidate for a short-TTL cache or a derived column if it shows up in traces.
+- **Streak counts _any_ completion day**, not "all scheduled done" (a "perfect
+  day" streak needs per-day schedule eval over history — expensive).
+- **Server-local time** for streak/grace window; thread the user's TZ if needed.
+- **Bare spine above the deepest active offshoot** when only a deep habit is
+  active. Truthful but can look sparse; could compact attachments by activity.
+- **Offshoot length is linear in completions**, uncapped beyond the offshoot's
+  generated size; no prestige/decay. Consider a curve later.
+- **Full query, no cache** — pulls all non-skipped log dates + activities each
+  load. Fine now; move growth to SQL `count(*) group by` + a streak rollup later.
+- **Optimistic growth is dashboard-only** (completing on `/workout/[id]` reloads
+  on return anyway).
+- **Blooms sit at offshoot tips (underground).** Could move above ground.
 
 ### Possible enhancements (post-v1)
 
-- **Milestones / blooms.** Trigger an above-ground flower or visual flourish at
-  streak/growth thresholds (7-day, 30-day, 100 completions).
-- **Per-habit roots + click-through** (depends on the mapping fix) — tap a root
-  to jump to that activity's detail.
-- **Shareable garden snapshot** (SVG/PNG export) for social proof.
-- **Streak freeze / repair** mechanic (spend nothing, or a limited "skip token")
-  to forgive one missed day — common retention pattern.
-- **Animated growth on completion** — when a log is created, optimistically bump
-  `growth` and play the new tip's draw-in without a full reload.
-- **Stats page integration** — the disabled `/stats` nav item could host streak
-  history, a completion heatmap, and longest-run records alongside the garden.
-- **Seasonal / theme variants** of the soil + palette.
-- **Persist `{ seed, growth }`** _only if_ we later want growth to diverge from
-  raw completion count (e.g. decay, prestige) — at that point derivation no
-  longer suffices and a `garden_state` row becomes worth it.
+- Above-ground rewards (leaves/flowers at total milestones).
+- Shareable garden snapshot (SVG/PNG export).
+- Streak freeze / repair (forgive one missed day).
+- `/stats` integration (streak history + completion heatmap).
+- Seasonal / theme variants of soil + palette.
+- Persist `{ seed }` only if shape must later diverge from derivation.
 
 ### Open questions for review
 
-1. Is "any completion = active day" the streak semantic we want, or "perfect
-   day"?
-2. Should growth be linear, or accelerate with streak?
-3. Do we want per-habit roots in v2, or keep the unified-plant model?
-4. Where should the streak surface besides `/garden` — header chip? toast on
-   completion?
+1. Streak semantic: "any completion" vs "perfect day"?
+2. Offshoot length: linear vs accelerated/curved by streak?
+3. Should blooms move above ground?
+4. Where else should the streak surface — header chip? completion toast?
