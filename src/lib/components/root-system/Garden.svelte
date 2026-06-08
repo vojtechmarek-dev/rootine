@@ -1,6 +1,7 @@
 <script lang="ts">
     import RootSystem from './RootSystem.svelte';
     import { generateGarden, type Segment } from '$lib/roots';
+    import { earnedAchievements } from '$lib/achievements';
     import type { GardenHabit } from '$lib/types/garden';
 
     interface Props {
@@ -10,6 +11,10 @@
         habits: GardenHabit[];
         /** Total completions — drives reveal + root thickness. Defaults to the sum. */
         totalGrowth?: number;
+        /** Current streak — for streak-based leaf achievements. */
+        currentStreak?: number;
+        /** Best streak ever — streak milestones use this so leaves persist. */
+        longestStreak?: number;
         /** Growth at which roots reach full thickness. */
         maxGrowth?: number;
         /** Pan / zoom enabled? Off for the dashboard preview. */
@@ -20,7 +25,17 @@
         onselect?: (activityId: string, type: string) => void;
     }
 
-    let { seed, habits, totalGrowth, maxGrowth = 60, interactive = true, sprout = true, onselect }: Props = $props();
+    let {
+        seed,
+        habits,
+        totalGrowth,
+        currentStreak = 0,
+        longestStreak = 0,
+        maxGrowth = 60,
+        interactive = true,
+        sprout = true,
+        onselect,
+    }: Props = $props();
 
     const byId = $derived(new Map(habits.map((h) => [h.id, h])));
 
@@ -78,6 +93,17 @@
 
     const total = $derived(totalGrowth ?? habits.reduce((sum, h) => sum + h.growth, 0));
 
+    // Earned milestones → leaves on the plant (hoverable, escalating rarity).
+    const leaves = $derived(
+        earnedAchievements({
+            totalCompletions: total,
+            currentStreak,
+            longestStreak,
+            habitCount: habits.length,
+            maxHabitGrowth: habits.reduce((m, h) => Math.max(m, h.growth), 0),
+        }).map((a) => ({ id: a.id, name: a.name, description: a.description }))
+    );
+
     const describe = (seg: Segment) => {
         const h = seg.activityId ? byId.get(seg.activityId) : undefined;
         if (!h) return { name: 'Root' };
@@ -102,6 +128,7 @@
     {segments}
     {growthByActivity}
     growth={total}
+    {leaves}
     {maxGrowth}
     {interactive}
     {sprout}

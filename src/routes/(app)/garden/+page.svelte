@@ -140,7 +140,16 @@
         </div>
     {:else}
         <div class="relative h-[60vh] overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2118] to-[#120c06]">
-            <Garden bind:this={garden} seed={g.seed} habits={effHabits} totalGrowth={effTotal} interactive={true} {onselect} />
+            <Garden
+                bind:this={garden}
+                seed={g.seed}
+                habits={effHabits}
+                totalGrowth={effTotal}
+                currentStreak={statCur}
+                longestStreak={statLong}
+                interactive={true}
+                {onselect}
+            />
         </div>
         <p class="text-center text-xs text-muted-foreground">
             Each root is one habit; it grows as you complete it. Tap a root to open it. Drag to pan, scroll to zoom.

@@ -5,6 +5,13 @@
 
     const DEPTH_LABEL = ['Taproot', 'Main root', 'Offshoot', 'Fine root'];
 
+    /** An earned milestone, rendered as a hoverable leaf on the plant. */
+    interface LeafBadge {
+        id: string;
+        name: string;
+        description: string;
+    }
+
     interface Props {
         /** All segments from generateRootSystem() / generateGarden(). */
         segments: Segment[];
@@ -15,6 +22,8 @@
          * shared organism); used for the above-ground plant level + tooltip counts.
          */
         growthByActivity?: Record<string, number>;
+        /** Earned milestones → one hoverable leaf each, in escalating order. */
+        leaves?: LeafBadge[];
         /** Growth value at which roots reach full thickness. */
         maxGrowth?: number;
         /** Map a hovered segment to tooltip text. Default = generic depth labels. */
@@ -31,6 +40,7 @@
         segments,
         growth = 4,
         growthByActivity,
+        leaves = [],
         maxGrowth = 60,
         describe = (s) => ({ name: s.depth === 0 ? 'Your foundation' : 'Root', meta: DEPTH_LABEL[s.depth] }),
         onselect,
@@ -118,35 +128,35 @@
         return mixHex(base, '#e7d8bb', seg.depth * 0.16);
     }
 
-    // ── above-ground plant: grows continuously with total completions ────────────
-    // The plant gets gradually taller and leafier as completions accrue (no
-    // milestone jumps). Flowers / shine are intentionally left for later.
+    // ── above-ground plant: one leaf per earned milestone (achievement) ──────────
+    // Leaves are NOT continuous progress — each is an earned achievement, growing
+    // rarer as you climb the stem. Each leaf is hoverable for its description.
     // A unit leaf pointing up-and-right from its base at (0,0); placed via transform.
     const LEAF_PATH = 'M0 0 C 4 -7 14 -9 21 -3 C 14 1 5 3 0 0 Z';
 
     const plant = $derived.by(() => {
-        const done = Math.max(0, growth); // total completions
-        const stemTop = -(36 + Math.min(done, 40) * 2.2); // taller, capped
+        const n = leaves.length;
+        // Stem grows with the number of milestones earned (room for the leaves).
+        const stemTop = -(36 + Math.min(n, 12) * 6);
         const crownY = stemTop + 4;
 
-        // ~1 leaf per 3 completions, gradual; min 2 so a sprout always has leaves.
-        const leafCount = Math.max(2, Math.min(2 + Math.floor(done / 3), 14));
-        const leaves: Array<{ x: number; y: number; side: 1 | -1; scale: number; rot: number }> = [];
-        for (let k = 0; k < leafCount; k++) {
-            const frac = (k + 1) / (leafCount + 1);
-            const y = -12 + (crownY - -12) * frac; // distribute up the stem
+        const placed = leaves.map((badge, k) => {
+            const frac = n > 1 ? k / (n - 1) : 0.5; // 0 at base → 1 at the crown
+            const y = -14 + (crownY - -14) * frac;
             const side: 1 | -1 = k % 2 === 0 ? 1 : -1;
-            const scale = 0.7 + 0.5 * (1 - frac); // larger lower, smaller toward the tip
-            leaves.push({ x: 0, y, side, scale, rot: -22 - frac * 14 });
-        }
+            const scale = 0.95 - 0.3 * frac; // larger low, smaller toward the tip
+            return { badge, y, side, scale, rot: -22 - frac * 12 };
+        });
 
-        return { stemTop, crownY, leaves };
+        return { stemTop, crownY, leaves: placed };
     });
 
     // ── hover / inspect ─────────────────────────────────────────────────────────
     let hovered = $state<Segment | null>(null);
+    let hoveredLeaf = $state<LeafBadge | null>(null);
     let mouse = $state({ x: 0, y: 0 });
-    const tip = $derived(hovered ? describe(hovered) : null);
+    // A hovered leaf takes priority over a hovered root for the tooltip.
+    const tip = $derived(hoveredLeaf ? { name: hoveredLeaf.name, meta: hoveredLeaf.description } : hovered ? describe(hovered) : null);
 
     function trackMouse(e: MouseEvent) {
         if (!wrapEl) return;
@@ -305,18 +315,22 @@
         </defs>
 
         {#if sprout}
-            <!-- Above-ground plant: grows taller + leafier with total completions. -->
-            <g class="sprout">
+            <!-- Above-ground plant: one leaf per earned milestone (hover to inspect). -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <g class="sprout" onmouseleave={() => (hoveredLeaf = null)}>
                 <line class="ground" x1="-70" y1="0" x2="70" y2="0" />
                 <path class="stem" d="M0 0 Q -2 {(plant.stemTop * 0.5).toFixed(1)} 0 {plant.stemTop.toFixed(1)}" />
-                {#each plant.leaves as lf, i (i)}
+                {#each plant.leaves as lf (lf.badge.id)}
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <path
                         class="leaf"
+                        class:hl={hoveredLeaf?.id === lf.badge.id}
                         d={LEAF_PATH}
                         fill="url(#rs-leaf)"
                         transform="translate(0 {lf.y.toFixed(1)}) scale({(lf.side * lf.scale).toFixed(2)} {lf.scale.toFixed(
                             2
                         )}) rotate({lf.rot.toFixed(0)})"
+                        onmouseenter={() => (hoveredLeaf = lf.badge)}
                         transition:fade={{ duration: 400 }}
                     />
                 {/each}
@@ -412,6 +426,11 @@
     .leaf {
         stroke: #5f8a48;
         stroke-width: 0.4;
+        cursor: pointer;
+        transition: filter 0.18s ease;
+    }
+    .leaf.hl {
+        filter: brightness(1.18) saturate(1.12) drop-shadow(0 0 2px rgba(169, 224, 138, 0.7));
     }
 
     .root {
