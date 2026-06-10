@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
 import { activities, logs } from '$lib/server/db/schema';
 import { and, asc, eq, ne } from 'drizzle-orm';
-import { computeStreak } from '$lib/streak';
+import { computeStreak, distinctDayCount } from '$lib/streak';
 import type { GardenData, GardenHabit } from '$lib/types/garden';
 
 export type { GardenData, GardenHabit } from '$lib/types/garden';
@@ -21,6 +21,10 @@ function seedFrom(id: string): number {
  * sharing one above-ground plant. Growth and streak are derived from the logs —
  * nothing extra is persisted. Skipped logs record intent, not work, so they're
  * excluded (mirrors the dashboard's completion counting).
+ *
+ * A habit's growth counts DISTINCT DAYS it was done — multiple completions on the
+ * same day (e.g. drink water 3×) count once, so frequent habits don't fill a root
+ * in days. Root growth reflects consistency, not log volume.
  */
 export async function getGardenData(userId: string): Promise<GardenData> {
     // Stable order so the garden layout doesn't reshuffle between loads.
@@ -36,9 +40,12 @@ export async function getGardenData(userId: string): Promise<GardenData> {
         .innerJoin(activities, eq(logs.activityId, activities.id))
         .where(and(eq(activities.userId, userId), ne(logs.status, 'skipped')));
 
-    const countByActivity = new Map<string, number>();
+    // Group completion dates per activity, then count distinct days.
+    const datesByActivity = new Map<string, Date[]>();
     for (const row of completed) {
-        countByActivity.set(row.activityId, (countByActivity.get(row.activityId) ?? 0) + 1);
+        const list = datesByActivity.get(row.activityId);
+        if (list) list.push(row.date);
+        else datesByActivity.set(row.activityId, [row.date]);
     }
 
     const habits: GardenHabit[] = acts.map((a) => ({
@@ -46,15 +53,17 @@ export async function getGardenData(userId: string): Promise<GardenData> {
         title: a.title,
         type: a.type,
         color: a.color ?? 'zinc',
-        growth: countByActivity.get(a.id) ?? 0,
+        growth: distinctDayCount(datesByActivity.get(a.id) ?? []),
     }));
 
+    // Total = sum of per-habit day-counts (each habit counts once per day).
+    const totalCompletions = habits.reduce((sum, h) => sum + h.growth, 0);
     const { current, longest } = computeStreak(completed.map((r) => r.date));
 
     return {
         seed: seedFrom(userId),
         habits,
-        totalCompletions: completed.length,
+        totalCompletions,
         currentStreak: current,
         longestStreak: longest,
     };

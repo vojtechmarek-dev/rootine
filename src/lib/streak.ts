@@ -9,8 +9,23 @@
  */
 
 /** Local-calendar ordinal day number (days since 1970-01-01, local time). */
-function dayOrdinal(date: Date): number {
+export function dayOrdinal(date: Date): number {
     return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
+}
+
+/**
+ * Count DISTINCT local days represented by a list of dates. Multiple completions
+ * on the same day count once — so a "drink water 3×/day" habit grows its root by
+ * one per day, not three. Invalid dates are ignored.
+ */
+export function distinctDayCount(dates: Date[]): number {
+    const days = new Set<number>();
+    for (const d of dates) {
+        if (d instanceof Date && !Number.isNaN(d.getTime())) {
+            days.add(dayOrdinal(d));
+        }
+    }
+    return days.size;
 }
 
 export interface StreakResult {

@@ -2,12 +2,16 @@
     import Garden from '$lib/components/root-system/Garden.svelte';
     import { Button } from '$lib/components/ui/button/index.js';
     import { goto } from '$app/navigation';
+    import { page } from '$app/state';
     import { dev } from '$app/environment';
     import { Flame, Sprout, Trophy, Maximize } from '@lucide/svelte';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
     const g = $derived(data.gardenData);
+
+    // Focus & celebrate: /garden?highlight=<activityId> frames + flashes that branch.
+    const highlightActivityId = $derived(page.url.searchParams.get('highlight'));
 
     let garden = $state<{ fitToView: () => void } | undefined>();
 
@@ -147,6 +151,7 @@
                 totalGrowth={effTotal}
                 currentStreak={statCur}
                 longestStreak={statLong}
+                {highlightActivityId}
                 interactive={true}
                 {onselect}
             />

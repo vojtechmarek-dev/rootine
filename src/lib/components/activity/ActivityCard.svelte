@@ -5,6 +5,7 @@
     import { dev } from '$app/environment';
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
+    import { goto } from '$app/navigation';
     import type { SubmitFunction } from '@sveltejs/kit';
     import {
         CalendarClock,
@@ -135,6 +136,9 @@
     const handleToggle: SubmitFunction = ({ formData }) => {
         const action = formData.get('action');
         const currentCount = optimisticLogCount ?? activity.logCountToday;
+        // Root growth counts distinct days, so only the FIRST completion of the
+        // day grows it — gate the "your root has grown" snackbar on that.
+        const growsRoot = action === 'complete' && currentCount === 0;
 
         isSubmitting = true;
 
@@ -162,6 +166,17 @@
                 } else if (formData.get('action') === 'undo') {
                     lastAddedLogId = null;
                 }
+            }
+
+            // First completion of the day → root grew. Offer a jump to it.
+            if (growsRoot && result.type === 'success') {
+                toast.success('Your root has grown! 🌱', {
+                    action: {
+                        label: 'View',
+                        // eslint-disable-next-line svelte/no-navigation-without-resolve
+                        onClick: () => goto(`/garden?highlight=${activity.id}`),
+                    },
+                });
             }
 
             // Don't invalidate the page — the dashboardPayload promise would be

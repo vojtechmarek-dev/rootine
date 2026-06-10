@@ -15,6 +15,8 @@
         currentStreak?: number;
         /** Best streak ever — streak milestones use this so leaves persist. */
         longestStreak?: number;
+        /** Focus & celebrate: frame + flash this activity's branch. */
+        highlightActivityId?: string | null;
         /** Growth at which roots reach full thickness. */
         maxGrowth?: number;
         /** Pan / zoom enabled? Off for the dashboard preview. */
@@ -31,6 +33,7 @@
         totalGrowth,
         currentStreak = 0,
         longestStreak = 0,
+        highlightActivityId = null,
         maxGrowth = 60,
         interactive = true,
         sprout = true,
@@ -129,6 +132,7 @@
     {growthByActivity}
     growth={total}
     {leaves}
+    {highlightActivityId}
     {maxGrowth}
     {interactive}
     {sprout}

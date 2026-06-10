@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { draw, fade } from 'svelte/transition';
+    import { fade, fly } from 'svelte/transition';
     import { cubicOut } from 'svelte/easing';
     import { type Segment, pathOf } from '$lib/roots';
 
@@ -24,6 +24,11 @@
         growthByActivity?: Record<string, number>;
         /** Earned milestones → one hoverable leaf each, in escalating order. */
         leaves?: LeafBadge[];
+        /**
+         * Focus & celebrate: when set, the camera frames just this activity's
+         * branch (instead of the whole plant) and its tip flashes.
+         */
+        highlightActivityId?: string | null;
         /** Growth value at which roots reach full thickness. */
         maxGrowth?: number;
         /** Map a hovered segment to tooltip text. Default = generic depth labels. */
@@ -41,6 +46,7 @@
         growth = 4,
         growthByActivity,
         leaves = [],
+        highlightActivityId = null,
         maxGrowth = 60,
         describe = (s) => ({ name: s.depth === 0 ? 'Your foundation' : 'Root', meta: DEPTH_LABEL[s.depth] }),
         onselect,
@@ -93,6 +99,70 @@
         return out.slice(0, 28);
     });
 
+    // ── only draw NEWLY-grown segments ───────────────────────────────────────────
+    // The plant is a persistent organism — re-drawing it from scratch on every
+    // visit reads as "temporary". We snapshot how much each root had grown last
+    // visit (localStorage); only segments revealed SINCE then animate in. The very
+    // first visit ever draws the whole plant (satisfying); after that it's stable.
+    const SEEN_KEY = 'rootine.garden.seen.v1';
+    type Seen = { a: Record<string, number>; t: number };
+    function readSeen(): Seen | null {
+        try {
+            const raw = localStorage.getItem(SEEN_KEY);
+            return raw ? (JSON.parse(raw) as Seen) : null;
+        } catch {
+            return null;
+        }
+    }
+    // Captured ONCE at init (client-side; ssr=false) — stays fixed for this view.
+    const seenSnapshot = readSeen();
+
+    function isNewlyGrown(seg: Segment): boolean {
+        if (!growthByActivity) return false; // legacy single-plant: no per-segment diff
+        // Always re-grow the highlighted branch (focus & celebrate: grow, then blink).
+        if (highlightActivityId && seg.activityId === highlightActivityId) return true;
+        if (!seenSnapshot) return true; // first ever visit → full draw
+        if (seg.activityId == null) {
+            return seg.born > (seenSnapshot.t ?? 0) && seg.born <= taprootReveal;
+        }
+        const prev = seenSnapshot.a?.[seg.activityId] ?? 0;
+        return seg.born > prev && seg.born <= (growthByActivity[seg.activityId] ?? 0);
+    }
+
+    // Persist the current reveal so the NEXT visit only animates newer growth.
+    $effect(() => {
+        if (!growthByActivity) return;
+        try {
+            localStorage.setItem(SEEN_KEY, JSON.stringify({ a: { ...growthByActivity }, t: taprootReveal }));
+        } catch {
+            /* storage unavailable — fine, we just lose the diff */
+        }
+    });
+
+    // Focus & celebrate: the outermost revealed tip of the highlighted activity.
+    const flashTip = $derived.by(() => {
+        if (!highlightActivityId) return null;
+        let best: Segment | null = null;
+        for (const s of visible) {
+            if (s.activityId !== highlightActivityId) continue;
+            if (!best || s.born > best.born) best = s;
+        }
+        return best;
+    });
+
+    // Sequence the celebrate: let the branch draw-grow first, THEN show the blink.
+    // Roughly the longest segment draw (520ms + depth stagger). Without this the
+    // ring would pulse over a still-growing root.
+    const GROW_MS = 900;
+    let flashOn = $state(false);
+    $effect(() => {
+        flashOn = false;
+        if (!highlightActivityId || !flashTip) return;
+        const t = setTimeout(() => (flashOn = true), GROW_MS);
+        return () => clearTimeout(t);
+    });
+
+
     // ── per-habit tinting ─────────────────────────────────────────────────────
     // Earthy accents per activity colour token. "zinc"/unset falls back to the
     // default brown depth palette (CSS) so a mixed garden still reads organic.
@@ -119,13 +189,17 @@
         return `#${((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1)}`;
     }
 
-    /** Stroke for a segment — accent shaded toward parchment with depth, or undefined to use CSS browns. */
+    /**
+     * Stroke for a segment — the accent darkened toward the soil with depth, so
+     * the main root reads strongest and fine offshoots fade into the dark
+     * background (visual hierarchy). Undefined falls back to the CSS browns.
+     */
     function strokeFor(seg: Segment): string | undefined {
         const token = seg.color;
         if (!token || token === 'zinc') return undefined;
         const base = HABIT_BASE[token];
         if (!base) return undefined;
-        return mixHex(base, '#e7d8bb', seg.depth * 0.16);
+        return mixHex(base, '#241a10', seg.depth * 0.22);
     }
 
     // ── above-ground plant: one leaf per earned milestone (achievement) ──────────
@@ -189,22 +263,33 @@
         vbRaf = requestAnimationFrame(step);
     }
 
-    /** Frame all currently-visible roots (plus the sprout) into the viewport. */
-    function fit(animate: boolean) {
+    /**
+     * Frame the viewport. With `focusActivityId`, frames just that activity's
+     * branch (zoom & pan to the newly-grown root); otherwise frames the whole
+     * plant + sprout.
+     */
+    function fit(animate: boolean, focusActivityId?: string | null) {
         if (!svgEl) return;
-        let minX = -28,
-            minY = Math.min(-46, plant.stemTop - 16), // include the (possibly tall) plant
-            maxX = 28,
-            maxY = 12; // seed the box with the sprout
-        for (const s of visible) {
+        const focusSegs = focusActivityId ? visible.filter((s) => s.activityId === focusActivityId) : [];
+        const useFocus = focusSegs.length > 0;
+        const src = useFocus ? focusSegs : visible;
+
+        // Focus: tight box around the branch. Otherwise seed with the sprout.
+        let minX = useFocus ? Infinity : -28;
+        let minY = useFocus ? Infinity : Math.min(-46, plant.stemTop - 16);
+        let maxX = useFocus ? -Infinity : 28;
+        let maxY = useFocus ? -Infinity : 12;
+        for (const s of src) {
             minX = Math.min(minX, s.x1, s.x2, s.cx);
             maxX = Math.max(maxX, s.x1, s.x2, s.cx);
             minY = Math.min(minY, s.y1, s.y2, s.cy);
             maxY = Math.max(maxY, s.y1, s.y2, s.cy);
         }
+        if (!Number.isFinite(minX)) return; // nothing to frame
+
         const bw = maxX - minX,
             bh = maxY - minY;
-        const pad = Math.max(bw, bh) * 0.16 + 18;
+        const pad = Math.max(bw, bh) * (useFocus ? 0.4 : 0.16) + (useFocus ? 12 : 18);
         const cx = (minX + maxX) / 2,
             cy = (minY + maxY) / 2;
         const r = svgEl.getBoundingClientRect();
@@ -218,14 +303,14 @@
         else view = target;
     }
 
-    // Auto-fit whenever the system grows or is regenerated — unless the user took over.
+    // Auto-fit whenever the system grows or is regenerated — unless the user took
+    // over. When a highlight is set, frame that branch (focus & celebrate).
     // Deps are tracked transitively: the `!svgEl` guard reads svgEl, and fit()
-    // reads `visible` (← segments / growth / growthByActivity), so this re-runs as
-    // the system grows, including optimistic per-habit bumps.
+    // reads `visible` (← segments / growth / growthByActivity).
     let settled = false;
     $effect(() => {
         if (!svgEl) return;
-        if (!userMoved) fit(settled); // snap on first layout, animate thereafter
+        if (!userMoved) fit(settled, highlightActivityId); // snap on first layout, animate thereafter
         settled = true;
     });
 
@@ -249,25 +334,69 @@
             view.h *= ratio;
         };
 
-        let dragging = false,
-            lx = 0,
-            ly = 0;
+        // Multi-pointer aware: 1 pointer = pan, 2 pointers = pinch-zoom + pan.
+        // Plain Map — imperative event bookkeeping, not reactive state.
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const pointers = new Map<number, { x: number; y: number }>();
+        let lastX = 0,
+            lastY = 0;
+        let pinchPrev: { dist: number; cx: number; cy: number } | null = null;
+
+        const pinchState = () => {
+            const [a, b] = [...pointers.values()];
+            return { dist: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+        };
+
         const onDown = (e: PointerEvent) => {
-            dragging = true;
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             userMoved = true;
-            lx = e.clientX;
-            ly = e.clientY;
             el.setPointerCapture(e.pointerId);
+            if (pointers.size === 1) {
+                lastX = e.clientX;
+                lastY = e.clientY;
+            } else if (pointers.size === 2) {
+                pinchPrev = pinchState();
+            }
         };
         const onMove = (e: PointerEvent) => {
-            if (!dragging) return;
+            if (!pointers.has(e.pointerId)) return;
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             const r = el.getBoundingClientRect();
-            view.x -= ((e.clientX - lx) / r.width) * view.w;
-            view.y -= ((e.clientY - ly) / r.height) * view.h;
-            lx = e.clientX;
-            ly = e.clientY;
+
+            if (pointers.size >= 2) {
+                const ps = pinchState();
+                if (pinchPrev && ps.dist > 0) {
+                    // Zoom around the pinch midpoint (in world coords).
+                    const mx = view.x + ((ps.cx - r.left) / r.width) * view.w;
+                    const my = view.y + ((ps.cy - r.top) / r.height) * view.h;
+                    const nw = Math.min(Math.max(view.w * (pinchPrev.dist / ps.dist), 40), 4000);
+                    const ratio = nw / view.w;
+                    view.x = mx - (mx - view.x) * ratio;
+                    view.y = my - (my - view.y) * ratio;
+                    view.w *= ratio;
+                    view.h *= ratio;
+                    // Pan by the midpoint's movement (two-finger drag).
+                    view.x -= ((ps.cx - pinchPrev.cx) / r.width) * view.w;
+                    view.y -= ((ps.cy - pinchPrev.cy) / r.height) * view.h;
+                }
+                pinchPrev = ps;
+            } else if (pointers.size === 1) {
+                view.x -= ((e.clientX - lastX) / r.width) * view.w;
+                view.y -= ((e.clientY - lastY) / r.height) * view.h;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }
         };
-        const onUp = () => (dragging = false);
+        const onUp = (e: PointerEvent) => {
+            pointers.delete(e.pointerId);
+            pinchPrev = null;
+            // Drop to one finger → resume panning from it without a jump.
+            if (pointers.size === 1) {
+                const [p] = pointers.values();
+                lastX = p.x;
+                lastY = p.y;
+            }
+        };
         const onResize = () => {
             if (!userMoved) fit(false);
         };
@@ -338,20 +467,30 @@
             </g>
         {/if}
 
+        <!-- `animate` newly-grown segments draw in via a CSS stroke-dashoffset
+             sweep (pathLength=1 normalizes every segment). CSS animations run on
+             element creation regardless of Svelte intro suppression, so this fires
+             on initial mount, reveal, completion-growth and highlight alike. -->
+        {#snippet rootPath(seg: Segment, animate: boolean)}
+            <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+            <path
+                d={pathOf(seg)}
+                pathLength="1"
+                class="root depth-{seg.depth}"
+                class:hl={hovered?.rootId === seg.rootId}
+                class:grow={animate}
+                style:stroke={strokeFor(seg)}
+                style:stroke-width="{(seg.baseWidth * maturity).toFixed(2)}px"
+                style:animation-delay={animate ? `${(seg.depth * 0.08).toFixed(2)}s` : undefined}
+                onmouseenter={() => (hovered = seg)}
+                onclick={() => onselect?.(seg.activityId, seg.depth)}
+            />
+        {/snippet}
+
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <g class="roots" class:focusing={hovered} class:inert={!interactive} filter="url(#rs-shadow)" onmouseleave={() => (hovered = null)}>
             {#each visible as seg (seg.id)}
-                <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-                <path
-                    d={pathOf(seg)}
-                    class="root depth-{seg.depth}"
-                    class:hl={hovered?.rootId === seg.rootId}
-                    style:stroke={strokeFor(seg)}
-                    style:stroke-width="{(seg.baseWidth * maturity).toFixed(2)}px"
-                    onmouseenter={() => (hovered = seg)}
-                    onclick={() => onselect?.(seg.activityId, seg.depth)}
-                    transition:draw={{ duration: 520, delay: seg.depth * 80, easing: cubicOut }}
-                />
+                {@render rootPath(seg, isNewlyGrown(seg))}
             {/each}
         </g>
 
@@ -363,10 +502,25 @@
                 </g>
             {/each}
         </g>
+
+        <!-- Focus & celebrate: a finite ring flash at the highlighted branch's tip,
+             shown only after the branch has finished growing (flashOn). -->
+        {#if flashTip && flashOn}
+            <g class="flash">
+                <circle class="flash-ring" cx={flashTip.x2} cy={flashTip.y2} r="5" />
+            </g>
+        {/if}
     </svg>
 
     {#if tip}
-        <div class="tooltip" style:left="{Math.min(mouse.x + 14, (wrapEl?.clientWidth ?? 9999) - 220)}px" style:top="{mouse.y + 14}px">
+        <!-- Desktop: floats at the cursor. Touch (coarse pointer): CSS docks it as a
+             bottom sheet (see @media below). The slide-up reads well in both. -->
+        <div
+            class="tooltip"
+            style:left="{Math.min(mouse.x + 14, (wrapEl?.clientWidth ?? 9999) - 220)}px"
+            style:top="{mouse.y + 14}px"
+            transition:fly={{ y: 10, duration: 160, easing: cubicOut }}
+        >
             <div class="t-name">{tip.name}</div>
             {#if tip.meta}<div class="t-meta">{tip.meta}</div>{/if}
         </div>
@@ -444,17 +598,44 @@
             stroke-width 0.8s ease,
             opacity 0.22s ease;
     }
+    /* Newly-grown segments draw in via a normalized stroke-dashoffset sweep
+       (path has pathLength=1). A CSS animation — not a Svelte intro — so it runs
+       whenever the path element is created: initial mount, reveal, completion
+       growth, or highlight. `both` holds it hidden through the stagger delay. */
+    .root.grow {
+        stroke-dasharray: 1;
+        animation: rs-grow 0.55s ease-out both;
+    }
+    @keyframes rs-grow {
+        from {
+            stroke-dashoffset: 1;
+        }
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .root.grow {
+            animation-duration: 0.01s;
+        }
+    }
+    /* Visual hierarchy on the dark soil: the taproot is strongest; finer roots
+       fade softly into the background as depth increases. */
     .depth-0 {
         stroke: var(--root-0);
+        opacity: 1;
     }
     .depth-1 {
         stroke: var(--root-1);
+        opacity: 0.86;
     }
     .depth-2 {
         stroke: var(--root-2);
+        opacity: 0.7;
     }
     .depth-3 {
         stroke: var(--root-3);
+        opacity: 0.52;
     }
 
     /* hovering a root dims the rest and highlights its siblings */
@@ -476,6 +657,37 @@
        a continuous pulse re-rasters the SVG every frame (idle CPU). */
     .tip .halo {
         opacity: 0.8;
+    }
+
+    /* Focus & celebrate flash — FINITE (4 pulses then stops), so no idle CPU. */
+    .flash {
+        pointer-events: none;
+    }
+    .flash-ring {
+        fill: none;
+        stroke: var(--tip-glow);
+        stroke-width: 1.5;
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: rs-flash 0.7s ease-out 4 forwards;
+    }
+    @keyframes rs-flash {
+        0% {
+            transform: scale(0.4);
+            opacity: 0.95;
+            stroke-width: 2.2;
+        }
+        100% {
+            transform: scale(2.8);
+            opacity: 0;
+            stroke-width: 0.3;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .flash-ring {
+            animation: none;
+            opacity: 0;
+        }
     }
 
     .tooltip {
@@ -500,5 +712,27 @@
         color: #c9bba6;
         font-size: 11.5px;
         margin-top: 2px;
+    }
+
+    /* Touch / coarse-pointer devices: a cursor-following tooltip is fiddly, so dock
+       it as a full-width card at the bottom of the view (overrides the inline
+       left/top via !important). Dismiss by tapping empty space. */
+    @media (hover: none) and (pointer: coarse) {
+        .tooltip {
+            left: 0.75rem !important;
+            right: 0.75rem;
+            top: auto !important;
+            bottom: 0.75rem !important;
+            max-width: none;
+            padding: 12px 16px;
+            font-size: 14px;
+            border-radius: 16px;
+        }
+        .t-name {
+            font-size: 15px;
+        }
+        .t-meta {
+            font-size: 12.5px;
+        }
     }
 </style>

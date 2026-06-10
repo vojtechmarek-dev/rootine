@@ -1,8 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { computeStreak } from './streak';
+import { computeStreak, distinctDayCount } from './streak';
 
 /** Midday local time so ordinal bucketing is unambiguous. */
 const d = (s: string) => new Date(`${s}T12:00:00`);
+
+describe('distinctDayCount', () => {
+    it('counts each day once regardless of completions per day', () => {
+        // 3 completions on day 1, 1 on day 2 → 2 distinct days.
+        const dates = [d('2026-06-01'), d('2026-06-01'), d('2026-06-01'), d('2026-06-02')];
+        expect(distinctDayCount(dates)).toBe(2);
+    });
+
+    it('is 0 for no dates', () => {
+        expect(distinctDayCount([])).toBe(0);
+    });
+
+    it('ignores invalid dates', () => {
+        expect(distinctDayCount([new Date('nope'), d('2026-06-01')])).toBe(1);
+    });
+});
 
 describe('computeStreak', () => {
     it('returns zeros for no completions', () => {
