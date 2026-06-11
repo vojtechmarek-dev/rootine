@@ -2,6 +2,7 @@
     import RootSystem from './RootSystem.svelte';
     import { generateGarden, type Segment } from '$lib/roots';
     import { earnedAchievements } from '$lib/achievements';
+    import { growthStage } from '$lib/growth';
     import type { GardenHabit } from '$lib/types/garden';
 
     interface Props {
@@ -92,7 +93,9 @@
         return placed;
     });
 
-    const growthByActivity = $derived(Object.fromEntries(habits.map((h) => [h.id, h.growth])));
+    // Reveal roots by staggered STAGE (distinct days → segments), not raw days —
+    // a root extends one segment per growth step, so it grows deliberately.
+    const growthByActivity = $derived(Object.fromEntries(habits.map((h) => [h.id, growthStage(h.growth)])));
 
     const total = $derived(totalGrowth ?? habits.reduce((sum, h) => sum + h.growth, 0));
 
@@ -110,7 +113,7 @@
     const describe = (seg: Segment) => {
         const h = seg.activityId ? byId.get(seg.activityId) : undefined;
         if (!h) return { name: 'Root' };
-        return { name: h.title, meta: `${h.growth} completed` };
+        return { name: h.title, meta: `${h.growth} day${h.growth === 1 ? '' : 's'} of practice` };
     };
 
     const handleSelect = (activityId: string | null) => {

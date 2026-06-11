@@ -6,6 +6,7 @@
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
     import { goto } from '$app/navigation';
+    import { growthProgress, growthStage } from '$lib/growth';
     import type { SubmitFunction } from '@sveltejs/kit';
     import {
         CalendarClock,
@@ -97,6 +98,14 @@
     const isCompleted = $derived(logCountToday >= activity.targetCount);
     const completionLabel = $derived(`${logCountToday}/${activity.targetCount}`);
 
+    // Root-growth meter. `growthPoints` (lifetime distinct days) already counts
+    // today if it was done before load, so add/subtract today's optimistic state
+    // around that baseline to keep the meter live as the user toggles.
+    const baseTodayCounted = $derived(activity.logCountToday > 0);
+    const todayCounted = $derived(logCountToday > 0);
+    const displayPoints = $derived(Math.max(0, (activity.growthPoints ?? 0) + (todayCounted ? 1 : 0) - (baseTodayCounted ? 1 : 0)));
+    const growth = $derived(growthProgress(displayPoints));
+
     const TypeIcon = $derived.by(() => {
         if (activity.type === 'plant') {
             return Sprout;
@@ -136,9 +145,10 @@
     const handleToggle: SubmitFunction = ({ formData }) => {
         const action = formData.get('action');
         const currentCount = optimisticLogCount ?? activity.logCountToday;
-        // Root growth counts distinct days, so only the FIRST completion of the
-        // day grows it — gate the "your root has grown" snackbar on that.
-        const growsRoot = action === 'complete' && currentCount === 0;
+        // Growth is staggered: the first completion of the day banks one day, but a
+        // root only extends when that crosses a stage boundary. Gate the "your root
+        // has grown" snackbar on an actual stage increase.
+        const grewStage = action === 'complete' && currentCount === 0 && growthStage(displayPoints + 1) > growthStage(displayPoints);
 
         isSubmitting = true;
 
@@ -168,8 +178,8 @@
                 }
             }
 
-            // First completion of the day → root grew. Offer a jump to it.
-            if (growsRoot && result.type === 'success') {
+            // Completion crossed a growth stage → a root segment grew. Offer a jump.
+            if (grewStage && result.type === 'success') {
                 toast.success('Your root has grown! 🌱', {
                     action: {
                         label: 'View',
@@ -230,6 +240,23 @@
                 {/if}
             </div>
             <Card.Title class="truncate">{activity.title}</Card.Title>
+
+            <!-- Root-growth meter: a quiet hint of how close the next root segment is. -->
+            <div
+                class="flex items-center gap-2 pt-0.5"
+                title="Root growth — {growth.inStage}/{growth.stageCost} days toward the next segment"
+            >
+                <Sprout class="h-3.5 w-3.5 shrink-0 text-secondary/70" />
+                <div class="h-1.5 w-20 overflow-hidden rounded-full bg-muted/60 sm:w-28">
+                    <div
+                        class="h-full rounded-full bg-secondary transition-[width] duration-700 ease-out"
+                        style="width: {Math.round(growth.progress * 100)}%"
+                    ></div>
+                </div>
+                <span class="text-[11px] tabular-nums text-muted-foreground">
+                    {growth.stage > 0 ? `next in ${growth.toNext}d` : `${growth.toNext}d to sprout`}
+                </span>
+            </div>
 
             {#if showSequence && rotationView}
                 <div class="flex flex-wrap items-center gap-1.5 pt-1">

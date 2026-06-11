@@ -301,6 +301,8 @@ export type DashboardActivity = Activity & {
     isCompleted: boolean;
     logCountToday: number;
     targetCount: number;
+    /** Lifetime distinct days completed — drives the root-growth progress meter. */
+    growthPoints: number;
     logs?: Log[] | null;
     /** True when at least one log for this period has status "skipped". */
     isSkippedToday: boolean;
