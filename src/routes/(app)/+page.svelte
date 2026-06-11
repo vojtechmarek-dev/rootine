@@ -24,8 +24,8 @@
         shownErrorSignatures.add(signature);
 
         for (const err of errors) {
-            toastError(`Failed to load ${err.type} activity`, {
-                description: 'Some saved data could not be read. Other activities are unaffected.',
+            toastError(`Failed to load a ${err.type}`, {
+                description: 'Some saved data could not be read. Other habits are unaffected.',
                 detail: `Activity ID: ${err.id}. ${err.message}`,
                 duration: 5000,
             });
@@ -37,11 +37,11 @@
     <Dashboard {session} activities={[]} loading={true} />
 {:then dashboardPayload}
     {@const activities = dashboardPayload.activities}
-    <Dashboard {session} {activities} />
+    <Dashboard {session} {activities} week={dashboardPayload.week} streak={dashboardPayload.streak} />
 {:catch err}
     <div class="p-4">
         <div class="rounded-2xl bg-destructive/10 p-6 text-destructive">
-            <p class="font-medium">Could not load activities right now.</p>
+            <p class="font-medium">Could not load your habits right now.</p>
             <p class="mt-1 text-sm text-muted-foreground">{err instanceof Error ? err.message : 'Unknown error.'}</p>
         </div>
     </div>

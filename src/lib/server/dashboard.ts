@@ -4,6 +4,7 @@ import {
     ActivitySchema,
     LogSchema,
     WeekExceptionSchema,
+    type Activity,
     type DashboardActivity,
     type Log,
     type WeekException,
@@ -11,9 +12,11 @@ import {
 } from '$lib/types/schemas';
 import { eq, desc, and, between, inArray, gte, ne, sql } from 'drizzle-orm';
 import { formatZodErrorTree } from '$lib/utils';
-import { differenceInDays, endOfDay, startOfDay } from 'date-fns';
+import { differenceInDays, eachDayOfInterval, endOfDay, endOfWeek, format, isSameDay, startOfDay, startOfWeek } from 'date-fns';
 import { isScheduledForDate } from '$lib/scheduler';
+import { computeStreak } from '$lib/streak';
 import { getRotationPosition, isoWeekOf } from '$lib/workout-rotation';
+import type { DashboardWeekDay } from '$lib/types/schemas';
 
 /** Target count for "done" today: habits use config.targetValue, others default to 1. */
 function getTargetCount(activity: { type: string; config: Record<string, unknown> }): number {
@@ -76,13 +79,24 @@ function buildWorkoutRotation(
 export async function getDashboardActivities(
     userId: string,
     targetDate: Date
-): Promise<{ activities: DashboardActivity[]; errors: Array<{ id: string; type: string; message: string }> }> {
+): Promise<{
+    activities: DashboardActivity[];
+    errors: Array<{ id: string; type: string; message: string }>;
+    /** Per-day completion for the target date's ISO week (Mon–Sun). */
+    week: DashboardWeekDay[];
+    /** Consecutive days with at least one completion (grace: yesterday keeps it alive). */
+    streak: number;
+}> {
+    // Load the whole ISO week of logs: the day view needs the target date, the
+    // week ribbon needs every day around it.
+    const weekStart = startOfWeek(targetDate, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(targetDate, { weekStartsOn: 1 });
     const userActivities = await db.query.activities.findMany({
         where: and(eq(activities.userId, userId), eq(activities.archived, false)),
         orderBy: [desc(activities.createdAt)],
         with: {
             logs: {
-                where: between(logs.date, startOfDay(targetDate), endOfDay(targetDate)),
+                where: between(logs.date, startOfDay(weekStart), endOfDay(weekEnd)),
             },
         },
     });
@@ -153,9 +167,12 @@ export async function getDashboardActivities(
 
     const dashboardActivities: DashboardActivity[] = [];
     const errors: Array<{ id: string; type: string; message: string }> = [];
+    // Validated activities with their week of logs — feeds the week ribbon,
+    // which needs every activity regardless of whether it's scheduled today.
+    const validated: Array<{ parsed: Activity; weekLogs: (typeof userActivities)[number]['logs'] }> = [];
 
     for (const activity of userActivities) {
-        const { logs: rawLogs, ...rawActivityData } = activity;
+        const { logs: weekLogs, ...rawActivityData } = activity;
 
         const validationResult = ActivitySchema.safeParse(rawActivityData);
 
@@ -167,10 +184,14 @@ export async function getDashboardActivities(
         }
 
         const parsedActivity = validationResult.data;
+        validated.push({ parsed: parsedActivity, weekLogs });
 
         if (!isScheduledForDate(parsedActivity, targetDate, exceptions)) {
             continue;
         }
+
+        // The dashboard list only looks at the target date's logs.
+        const rawLogs = weekLogs.filter((l) => isSameDay(l.date, targetDate));
 
         const targetCount = getTargetCount(parsedActivity);
         // Skipped logs record an intent, not a completion — don't count them.
@@ -211,5 +232,37 @@ export async function getDashboardActivities(
         });
     }
 
-    return { activities: dashboardActivities, errors };
+    // Week ribbon: a day is "completed" when every activity scheduled on it hit
+    // its target. Days with nothing scheduled stay neutral (scheduledCount 0).
+    const week: DashboardWeekDay[] = eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day) => {
+        let scheduledCount = 0;
+        let completedCount = 0;
+        for (const { parsed, weekLogs } of validated) {
+            if (!isScheduledForDate(parsed, day, exceptions)) {
+                continue;
+            }
+            scheduledCount++;
+            const count = weekLogs.filter((l) => l.status !== 'skipped' && isSameDay(l.date, day)).length;
+            if (count >= getTargetCount(parsed)) {
+                completedCount++;
+            }
+        }
+        return {
+            date: format(day, 'yyyy-MM-dd'),
+            scheduledCount,
+            completedCount,
+            completed: scheduledCount > 0 && completedCount === scheduledCount,
+        };
+    });
+
+    // Lifetime streak: consecutive days with at least one completion, matching
+    // the garden's definition (computeStreak handles the yesterday grace day).
+    const completionRows = await db
+        .select({ date: logs.date })
+        .from(logs)
+        .innerJoin(activities, eq(logs.activityId, activities.id))
+        .where(and(eq(activities.userId, userId), ne(logs.status, 'skipped')));
+    const streak = computeStreak(completionRows.map((r) => r.date)).current;
+
+    return { activities: dashboardActivities, errors, week, streak };
 }

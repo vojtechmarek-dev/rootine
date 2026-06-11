@@ -312,6 +312,18 @@ export type DashboardActivity = Activity & {
     weekShifted?: boolean;
 };
 
+/** One day of the dashboard's week ribbon. */
+export type DashboardWeekDay = {
+    /** Local calendar day, yyyy-MM-dd. */
+    date: string;
+    /** Activities scheduled on this day. */
+    scheduledCount: number;
+    /** Of those, how many hit their target. */
+    completedCount: number;
+    /** Every scheduled activity completed (false when nothing was scheduled). */
+    completed: boolean;
+};
+
 export type DrawerActivity = z.infer<typeof DrawerActivitySchema>;
 
 export type ActivityFormData = DrawerActivity;

@@ -140,7 +140,7 @@
 
     {#if g.habits.length === 0}
         <div class="rounded-2xl bg-surface-container-lowest p-6 text-center text-muted-foreground">
-            Create an activity and start completing it — your roots grow from here.
+            Create a habit and start completing it — your roots grow from here.
         </div>
     {:else}
         <div class="relative h-[60vh] overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2118] to-[#120c06]">

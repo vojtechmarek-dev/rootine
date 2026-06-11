@@ -171,7 +171,12 @@
                 </div>
             {/each}
 
-            <Button type="button" variant="outline" class="w-full border-dashed" onclick={addSet}>
+            <Button
+                type="button"
+                variant="ghost"
+                class="w-full rounded-xl bg-surface-container-high/60 hover:bg-primary/10 dark:hover:bg-primary/15"
+                onclick={addSet}
+            >
                 <Plus class="mr-2 h-4 w-4" />
                 Add set
             </Button>

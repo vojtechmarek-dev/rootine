@@ -36,6 +36,8 @@
                 bind:startDate={data.startDate}
                 bind:endDate={data.endDate}
                 bind:archived={data.archived}
+                titlePlaceholder="e.g. Monstera"
+                descriptionPlaceholder="e.g. Water weekly, bright indirect light"
                 {errors}
             />
 
