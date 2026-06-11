@@ -5,6 +5,8 @@
     import { dev } from '$app/environment';
     import Collapsible from '$lib/components/shared/Collapsible.svelte';
     import { enhance } from '$app/forms';
+    import { goto } from '$app/navigation';
+    import { growthProgress, growthStage } from '$lib/growth';
     import type { SubmitFunction } from '@sveltejs/kit';
     import {
         CalendarClock,
@@ -75,9 +77,34 @@
     /** Last inserted log ID from server, used for undo so we delete the right log. */
     let lastAddedLogId = $state<string | null>(null);
 
+    // Micro-reward: a little "+1" floats up from the button on completion, paired
+    // with a light haptic tap — immediate in-flow feedback (no separate widget).
+    let rewardSeq = 0;
+    let rewards = $state<{ id: number; label: string }[]>([]);
+    function popReward(label = '+1') {
+        const id = ++rewardSeq;
+        rewards = [...rewards, { id, label }];
+        setTimeout(() => (rewards = rewards.filter((r) => r.id !== id)), 850);
+    }
+    function haptic() {
+        try {
+            navigator.vibrate?.(12);
+        } catch {
+            /* vibrate unsupported — ignore */
+        }
+    }
+
     const logCountToday = $derived(optimisticLogCount ?? activity.logCountToday);
     const isCompleted = $derived(logCountToday >= activity.targetCount);
     const completionLabel = $derived(`${logCountToday}/${activity.targetCount}`);
+
+    // Root-growth meter. `growthPoints` (lifetime distinct days) already counts
+    // today if it was done before load, so add/subtract today's optimistic state
+    // around that baseline to keep the meter live as the user toggles.
+    const baseTodayCounted = $derived(activity.logCountToday > 0);
+    const todayCounted = $derived(logCountToday > 0);
+    const displayPoints = $derived(Math.max(0, (activity.growthPoints ?? 0) + (todayCounted ? 1 : 0) - (baseTodayCounted ? 1 : 0)));
+    const growth = $derived(growthProgress(displayPoints));
 
     const TypeIcon = $derived.by(() => {
         if (activity.type === 'plant') {
@@ -118,11 +145,17 @@
     const handleToggle: SubmitFunction = ({ formData }) => {
         const action = formData.get('action');
         const currentCount = optimisticLogCount ?? activity.logCountToday;
+        // Growth is staggered: the first completion of the day banks one day, but a
+        // root only extends when that crosses a stage boundary. Gate the "your root
+        // has grown" snackbar on an actual stage increase.
+        const grewStage = action === 'complete' && currentCount === 0 && growthStage(displayPoints + 1) > growthStage(displayPoints);
 
         isSubmitting = true;
 
         if (action === 'complete') {
             optimisticLogCount = currentCount + 1;
+            haptic();
+            popReward();
         } else if (action === 'undo') {
             optimisticLogCount = Math.max(0, currentCount - 1);
         }
@@ -143,6 +176,17 @@
                 } else if (formData.get('action') === 'undo') {
                     lastAddedLogId = null;
                 }
+            }
+
+            // Completion crossed a growth stage → a root segment grew. Offer a jump.
+            if (grewStage && result.type === 'success') {
+                toast.success('Your root has grown! 🌱', {
+                    action: {
+                        label: 'View',
+                        // eslint-disable-next-line svelte/no-navigation-without-resolve
+                        onClick: () => goto(`/garden?highlight=${activity.id}`),
+                    },
+                });
             }
 
             // Don't invalidate the page — the dashboardPayload promise would be
@@ -196,6 +240,23 @@
                 {/if}
             </div>
             <Card.Title class="truncate">{activity.title}</Card.Title>
+
+            <!-- Root-growth meter: a quiet hint of how close the next root segment is. -->
+            <div
+                class="flex items-center gap-2 pt-0.5"
+                title="Root growth — {growth.inStage}/{growth.stageCost} days toward the next segment"
+            >
+                <Sprout class="h-3.5 w-3.5 shrink-0 text-secondary/70" />
+                <div class="h-1.5 w-20 overflow-hidden rounded-full bg-muted/60 sm:w-28">
+                    <div
+                        class="h-full rounded-full bg-secondary transition-[width] duration-700 ease-out"
+                        style="width: {Math.round(growth.progress * 100)}%"
+                    ></div>
+                </div>
+                <span class="text-[11px] tabular-nums text-muted-foreground">
+                    {growth.stage > 0 ? `next in ${growth.toNext}d` : `${growth.toNext}d to sprout`}
+                </span>
+            </div>
 
             {#if showSequence && rotationView}
                 <div class="flex flex-wrap items-center gap-1.5 pt-1">
@@ -295,11 +356,20 @@
                     method="POST"
                     action="?/toggleActivity{dateQuery}"
                     use:enhance={handleToggle}
-                    class="mt-2 flex items-center justify-end"
+                    class="relative mt-2 flex items-center justify-end"
                 >
                     <input type="hidden" name="activityId" value={activity.id} />
                     {#if isCompleted && lastAddedLogId}
                         <input type="hidden" name="logId" value={lastAddedLogId} />
+                    {/if}
+
+                    <!-- Floating "+1" micro-reward, anchored above the action button. -->
+                    {#if rewards.length}
+                        <div class="pointer-events-none absolute right-2 bottom-full flex flex-col items-end">
+                            {#each rewards as r (r.id)}
+                                <span class="reward-float text-success">{r.label}</span>
+                            {/each}
+                        </div>
                     {/if}
 
                     {#if !canToggle}
@@ -368,3 +438,33 @@
 {#if activity.type === 'workout'}
     <SkipDayModal bind:open={skipModalOpen} {activity} />
 {/if}
+
+<style>
+    /* Micro-reward: float up + fade. Colour comes from the `text-success` class. */
+    .reward-float {
+        font-weight: 700;
+        font-size: 0.9rem;
+        line-height: 1;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+        animation: reward-float 0.85s cubic-bezier(0.22, 0.61, 0.2, 1) forwards;
+    }
+    @keyframes reward-float {
+        0% {
+            transform: translateY(6px) scale(0.9);
+            opacity: 0;
+        }
+        25% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-26px) scale(1.05);
+            opacity: 0;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .reward-float {
+            animation-duration: 0.4s;
+            transform: none;
+        }
+    }
+</style>

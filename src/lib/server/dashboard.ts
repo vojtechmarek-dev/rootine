@@ -9,7 +9,7 @@ import {
     type WeekException,
     type WorkoutRotationView,
 } from '$lib/types/schemas';
-import { eq, desc, and, between, inArray, gte } from 'drizzle-orm';
+import { eq, desc, and, between, inArray, gte, ne, sql } from 'drizzle-orm';
 import { formatZodErrorTree } from '$lib/utils';
 import { differenceInDays, endOfDay, startOfDay } from 'date-fns';
 import { isScheduledForDate } from '$lib/scheduler';
@@ -88,6 +88,23 @@ export async function getDashboardActivities(
     });
 
     const activityIds = userActivities.map((a) => a.id);
+
+    // Lifetime growth points per activity: DISTINCT days completed (non-skipped),
+    // rolled up in SQL so we don't pull every historical log into Node. `date` is
+    // `timestamp without time zone`, so date_trunc('day', …) buckets by the stored
+    // wall-clock — identical to the garden's distinctDayCount (no tz drift).
+    const growthRows = activityIds.length
+        ? await db
+              .select({
+                  activityId: logs.activityId,
+                  days: sql<number>`count(distinct date_trunc('day', ${logs.date}))`.mapWith(Number),
+              })
+              .from(logs)
+              .innerJoin(activities, eq(logs.activityId, activities.id))
+              .where(and(eq(activities.userId, userId), ne(logs.status, 'skipped')))
+              .groupBy(logs.activityId)
+        : [];
+    const growthPointsByActivity = new Map<string, number>(growthRows.map((r) => [r.activityId, r.days]));
 
     // WeekExceptions for the target's ISO week. Only apply for the current or
     // future ISO week — past-week exceptions are expired and should not affect
@@ -186,6 +203,7 @@ export async function getDashboardActivities(
             isCompleted,
             logCountToday,
             targetCount,
+            growthPoints: growthPointsByActivity.get(activity.id) ?? 0,
             logs: parsedLogs,
             isSkippedToday,
             workoutRotation,

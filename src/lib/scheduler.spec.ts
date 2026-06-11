@@ -102,6 +102,7 @@ describe('isScheduledForDate — week exceptions', () => {
         habitId: base.id,
         weekOf: '2025-W02',
         shiftDays: 1,
+        createdAt: new Date('2025-01-05T12:00:00Z'),
     };
 
     it('shifts the scheduled days for the matching week', () => {
