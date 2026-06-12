@@ -209,7 +209,7 @@
                     action: {
                         label: 'View',
                         // eslint-disable-next-line svelte/no-navigation-without-resolve
-                        onClick: () => goto(`/garden?highlight=${activity.id}`),
+                        onClick: () => goto(`/roots?highlight=${activity.id}`),
                     },
                 });
             }

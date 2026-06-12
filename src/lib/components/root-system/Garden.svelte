@@ -139,6 +139,7 @@
     {maxGrowth}
     {interactive}
     {sprout}
+    {seed}
     {describe}
     onselect={handleSelect}
 />
