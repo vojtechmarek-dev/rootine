@@ -25,6 +25,13 @@
                     d.dataset.mode = r;
                     d.classList.toggle('dark', r === 'dark');
                     d.style.colorScheme = r;
+                    // Sync theme-color metas with the resolved app theme so the
+                    // status bar is correct on first paint even when the stored
+                    // mode differs from the OS scheme.
+                    const tc = r === 'dark' ? '#0b130e' : '#f4f1ea';
+                    document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+                        m.setAttribute('content', tc);
+                    });
                 } catch (e) {}
             })();
         </script>
@@ -37,7 +44,7 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: #f8f9fa;
+                background: #f4f1ea;
                 color: #012d1d;
                 opacity: 0;
                 pointer-events: none;
@@ -46,7 +53,7 @@
             }
 
             .dark #app-splash {
-                background: #0b1c14;
+                background: #0b130e;
                 color: #f8f9fa;
             }
 
