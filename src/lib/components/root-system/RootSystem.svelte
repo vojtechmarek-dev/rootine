@@ -33,12 +33,17 @@
         maxGrowth?: number;
         /** Map a hovered segment to tooltip text. Default = generic depth labels. */
         describe?: (seg: Segment) => { name: string; meta?: string };
-        /** Fired when a root is clicked — e.g. open that habit. */
+        /**
+         * Scaffold for a future "open habit" interaction — currently nothing
+         * passes a handler, so clicking a root is a no-op.
+         */
         onselect?: (activityId: string | null, depth: number) => void;
         /** Draw the little above-ground sprout at the origin. */
         sprout?: boolean;
         /** Enable wheel-zoom / drag-pan / hover. Off for static previews. */
         interactive?: boolean;
+        /** Stable seed for the decorative soil scatter (stones, specks, tufts). */
+        seed?: number;
     }
 
     let {
@@ -52,6 +57,7 @@
         onselect,
         sprout = true,
         interactive = true,
+        seed = 1,
     }: Props = $props();
 
     // ── derived view of the system ──────────────────────────────────────────────
@@ -223,6 +229,45 @@
         });
 
         return { stemTop, crownY, leaves: placed };
+    });
+
+    // ── scenery: soil dressing + sky band ────────────────────────────────────────
+    // World-fixed decoration so it pans/zooms with the roots: a sky rect above the
+    // surface, a soil rect below, seeded stones/specks in the dirt, a soft surface
+    // line with sparse grass tufts. All static + pointer-events:none (no idle cost).
+    function mulberry32(a: number) {
+        return () => {
+            a |= 0;
+            a = (a + 0x6d2b79f5) | 0;
+            let t = Math.imul(a ^ (a >>> 15), 1 | a);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    const scenery = $derived.by(() => {
+        const rnd = mulberry32((Math.imul(seed, 2654435761) >>> 0) || 1);
+        const stones = Array.from({ length: 26 }, () => ({
+            x: -150 + rnd() * 300,
+            y: 12 + rnd() * 250,
+            rx: 1.2 + rnd() * 2.6,
+            ry: 0.8 + rnd() * 1.5,
+            rot: rnd() * 180,
+            o: 0.06 + rnd() * 0.1,
+        }));
+        const specks = Array.from({ length: 64 }, () => ({
+            x: -160 + rnd() * 320,
+            y: 6 + rnd() * 270,
+            r: 0.25 + rnd() * 0.55,
+            o: 0.05 + rnd() * 0.09,
+        }));
+        // Grass tufts along the surface; keep clear of the stem at the origin.
+        const tufts = Array.from({ length: 12 }, (_, i) => ({
+            x: -88 + i * 16 + (rnd() * 8 - 4),
+            h: 2.5 + rnd() * 2.5,
+            lean: rnd() * 2 - 1,
+        })).filter((t) => Math.abs(t.x) > 9);
+        return { stones, specks, tufts };
     });
 
     // ── hover / inspect ─────────────────────────────────────────────────────────
@@ -441,13 +486,53 @@
                 <stop offset="0%" stop-color="#bfe39a" />
                 <stop offset="100%" stop-color="#6f9e54" />
             </radialGradient>
+            <!-- World-fixed (userSpaceOnUse) so the horizon stays at y=0 while
+                 panning/zooming. Pad spread clamps beyond the stop range. -->
+            <linearGradient id="rs-sky" x1="0" y1="-420" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#0f1a13" />
+                <stop offset="100%" stop-color="#1c2b20" />
+            </linearGradient>
+            <linearGradient id="rs-soil" x1="0" y1="0" x2="0" y2="560" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#2a2118" />
+                <stop offset="100%" stop-color="#120c06" />
+            </linearGradient>
         </defs>
+
+        <!-- Scenery: sky above the surface, soil with seeded stones + specks below,
+             a soft surface line and sparse grass tufts at the horizon. -->
+        <g class="scenery" aria-hidden="true">
+            <rect x="-5000" y="-5000" width="10000" height="5000" fill="url(#rs-sky)" />
+            <rect x="-5000" y="0" width="10000" height="5000" fill="url(#rs-soil)" />
+            {#each scenery.specks as p, i (i)}
+                <circle class="speck" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={p.r.toFixed(2)} style:opacity={p.o.toFixed(2)} />
+            {/each}
+            {#each scenery.stones as st, i (i)}
+                <ellipse
+                    class="stone"
+                    cx={st.x.toFixed(1)}
+                    cy={st.y.toFixed(1)}
+                    rx={st.rx.toFixed(2)}
+                    ry={st.ry.toFixed(2)}
+                    transform="rotate({st.rot.toFixed(0)} {st.x.toFixed(1)} {st.y.toFixed(1)})"
+                    style:opacity={st.o.toFixed(2)}
+                />
+            {/each}
+            <path
+                class="surface"
+                d="M-340 0 Q -300 -1.3 -260 0 T -180 0 T -100 0 T -20 0 T 60 0 T 140 0 T 220 0 T 300 0 T 380 0"
+            />
+            {#each scenery.tufts as t, i (i)}
+                <path
+                    class="tuft"
+                    d="M{t.x.toFixed(1)} 0 q {t.lean.toFixed(1)} {(-t.h).toFixed(1)} {(t.lean * 2).toFixed(1)} {(-t.h * 1.6).toFixed(1)}"
+                />
+            {/each}
+        </g>
 
         {#if sprout}
             <!-- Above-ground plant: one leaf per earned milestone (hover to inspect). -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <g class="sprout" onmouseleave={() => (hoveredLeaf = null)}>
-                <line class="ground" x1="-70" y1="0" x2="70" y2="0" />
                 <path class="stem" d="M0 0 Q -2 {(plant.stemTop * 0.5).toFixed(1)} 0 {plant.stemTop.toFixed(1)}" />
                 {#each plant.leaves as lf (lf.badge.id)}
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -477,7 +562,8 @@
                 d={pathOf(seg)}
                 pathLength="1"
                 class="root depth-{seg.depth}"
-                class:hl={hovered?.rootId === seg.rootId}
+                class:hl={hovered != null &&
+                    (hovered.activityId != null ? seg.activityId === hovered.activityId : seg.rootId === hovered.rootId)}
                 class:grow={animate}
                 style:stroke={strokeFor(seg)}
                 style:stroke-width="{(seg.baseWidth * maturity).toFixed(2)}px"
@@ -562,10 +648,27 @@
         cursor: inherit;
     }
 
-    .ground {
-        stroke: rgba(243, 233, 218, 0.16);
-        stroke-width: 0.8;
-        stroke-dasharray: 2 4;
+    .scenery {
+        pointer-events: none;
+    }
+    .scenery .speck {
+        fill: #d2a067;
+    }
+    .scenery .stone {
+        fill: #c9b08e;
+    }
+    .scenery .surface {
+        fill: none;
+        stroke: rgba(214, 196, 166, 0.22);
+        stroke-width: 0.9;
+        stroke-linecap: round;
+    }
+    .scenery .tuft {
+        fill: none;
+        stroke: #5f8a48;
+        stroke-width: 0.7;
+        stroke-linecap: round;
+        opacity: 0.55;
     }
     .stem {
         fill: none;
@@ -592,7 +695,6 @@
         stroke-linecap: round;
         stroke-linejoin: round;
         pointer-events: stroke;
-        cursor: pointer;
         /* maturity thickening + hover fade animate smoothly */
         transition:
             stroke-width 0.8s ease,

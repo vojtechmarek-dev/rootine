@@ -19,6 +19,7 @@
         Sprout,
         MoreHorizontal,
         Archive,
+        Target,
     } from '@lucide/svelte';
     import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import type { ActivityFormData } from '$lib/types/schemas';
@@ -35,6 +36,8 @@
         viewDate?: string;
         isOpen?: boolean;
         onToggle?: () => void;
+        /** Optimistic log-count changes, so the dashboard summary updates live. */
+        onLogCountChange?: (count: number) => void;
     }>();
     const activity = $derived(props.activity);
     const canToggle = $derived(props.canToggle ?? true);
@@ -45,7 +48,8 @@
     const dateQuery = $derived(viewDate ? `&date=${viewDate}` : '');
     const isOpen = $derived(props.isOpen ?? false);
     const onToggle = $derived(props.onToggle);
-    const accent = $derived(getActivityAccentClasses(activity.color));
+    const onLogCountChange = $derived(props.onLogCountChange);
+    const accent = $derived(getActivityAccentClasses(activity.color, activity.type));
     const typeLabel = $derived(getActivityTypeLabel(activity.type));
 
     let isSubmitting = $state(false);
@@ -106,6 +110,23 @@
     const displayPoints = $derived(Math.max(0, (activity.growthPoints ?? 0) + (todayCounted ? 1 : 0) - (baseTodayCounted ? 1 : 0)));
     const growth = $derived(growthProgress(displayPoints));
 
+    // Root tendril meter: an organic curve standing in for a flat progress bar.
+    // The filled portion is revealed via pathLength/dashoffset; the tip dot (and
+    // the "+1" reward float) track the end of the filled portion.
+    const TENDRIL_PATH = 'M2 9 C 18 4, 34 12, 52 8 S 86 4, 110 8';
+    const growthPct = $derived(Math.round(growth.progress * 100));
+    let tendrilEl = $state<SVGPathElement | null>(null);
+    let tendrilTip = $state({ x: 2, y: 9 });
+    $effect(() => {
+        const el = tendrilEl;
+        const pct = growthPct;
+        if (!el) {
+            return;
+        }
+        const point = el.getPointAtLength((pct / 100) * el.getTotalLength());
+        tendrilTip = { x: point.x, y: point.y };
+    });
+
     const TypeIcon = $derived.by(() => {
         if (activity.type === 'plant') {
             return Sprout;
@@ -159,12 +180,16 @@
         } else if (action === 'undo') {
             optimisticLogCount = Math.max(0, currentCount - 1);
         }
+        if (optimisticLogCount != null) {
+            onLogCountChange?.(optimisticLogCount);
+        }
 
         return async ({ update, result }) => {
             isSubmitting = false;
 
             if (result.type === 'failure' || result.type === 'error') {
                 optimisticLogCount = null;
+                onLogCountChange?.(activity.logCountToday);
                 await update();
                 return;
             }
@@ -184,7 +209,7 @@
                     action: {
                         label: 'View',
                         // eslint-disable-next-line svelte/no-navigation-without-resolve
-                        onClick: () => goto(`/garden?highlight=${activity.id}`),
+                        onClick: () => goto(`/roots?highlight=${activity.id}`),
                     },
                 });
             }
@@ -205,7 +230,9 @@
     class={cn(
         'relative cursor-pointer overflow-hidden border-l-4 border-l-transparent shadow-ambient transition-all duration-200 active:scale-[0.99] dark:ring-1 dark:ring-outline-variant/15',
         isCompleted ? 'bg-success/10' : undefined,
-        isOpen ? 'bg-muted/30' : 'hover:bg-muted/10'
+        // Open: elevate + ring instead of a bg tint — a tinted card blends into
+        // the warm page background in light mode.
+        isOpen ? 'shadow-lg ring-1 ring-clay/40 dark:ring-clay/40' : 'hover:shadow-lg'
     )}
     onclick={() => {
         if (onToggle) onToggle();
@@ -241,21 +268,37 @@
             </div>
             <Card.Title class="truncate">{activity.title}</Card.Title>
 
-            <!-- Root-growth meter: a quiet hint of how close the next root segment is. -->
+            <!-- Root-growth tendril: how close the next root segment is. The "+1"
+                 reward floats from the tendril's tip so completion and growth read
+                 as one moment. -->
             <div
                 class="flex items-center gap-2 pt-0.5"
                 title="Root growth — {growth.inStage}/{growth.stageCost} days toward the next segment"
             >
-                <Sprout class="h-3.5 w-3.5 shrink-0 text-secondary/70" />
-                <div class="h-1.5 w-20 overflow-hidden rounded-full bg-muted/60 sm:w-28">
-                    <div
-                        class="h-full rounded-full bg-secondary transition-[width] duration-700 ease-out"
-                        style="width: {Math.round(growth.progress * 100)}%"
-                    ></div>
+                <Sprout class="h-3.5 w-3.5 shrink-0 text-success/80" />
+                <div class="relative h-4 w-28">
+                    <svg viewBox="0 0 112 16" class="h-full w-full overflow-visible" aria-hidden="true">
+                        <path d={TENDRIL_PATH} pathLength="100" class="tendril-track" />
+                        <path
+                            bind:this={tendrilEl}
+                            d={TENDRIL_PATH}
+                            pathLength="100"
+                            class="tendril-fill"
+                            style="stroke-dashoffset: {100 - growthPct}"
+                        />
+                        <circle cx={tendrilTip.x} cy={tendrilTip.y} r="2.6" class="tendril-tip" />
+                    </svg>
+                    {#if rewards.length}
+                        <div
+                            class="pointer-events-none absolute bottom-full -translate-x-1/2"
+                            style="left: {(tendrilTip.x / 112) * 100}%"
+                        >
+                            {#each rewards as r (r.id)}
+                                <span class="reward-float">{r.label}</span>
+                            {/each}
+                        </div>
+                    {/if}
                 </div>
-                <span class="text-[11px] tabular-nums text-muted-foreground">
-                    {growth.stage > 0 ? `next in ${growth.toNext}d` : `${growth.toNext}d to sprout`}
-                </span>
             </div>
 
             {#if showSequence && rotationView}
@@ -299,7 +342,7 @@
                             }}
                         >
                             <Pencil class="h-4 w-4" />
-                            Edit Activity
+                            Edit {typeLabel}
                         </Button>
                         <Button
                             variant="ghost"
@@ -333,7 +376,7 @@
                                     class="h-auto w-full justify-start gap-3 px-3 py-2 text-sm font-normal text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 >
                                     <Archive class="h-4 w-4" />
-                                    Archive Activity
+                                    Archive {typeLabel}
                                 </Button>
                             </form>
                         </div>
@@ -361,15 +404,6 @@
                     <input type="hidden" name="activityId" value={activity.id} />
                     {#if isCompleted && lastAddedLogId}
                         <input type="hidden" name="logId" value={lastAddedLogId} />
-                    {/if}
-
-                    <!-- Floating "+1" micro-reward, anchored above the action button. -->
-                    {#if rewards.length}
-                        <div class="pointer-events-none absolute right-2 bottom-full flex flex-col items-end">
-                            {#each rewards as r (r.id)}
-                                <span class="reward-float text-success">{r.label}</span>
-                            {/each}
-                        </div>
                     {/if}
 
                     {#if !canToggle}
@@ -415,15 +449,32 @@
     </Card.Header>
     {#if isOpen}
         <Card.Content class="space-y-3 border-t pt-3" onclick={(e) => e.stopPropagation()}>
-            <div class="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                <div><span class="font-medium text-foreground">Type:</span> {typeLabel}</div>
-                <div><span class="font-medium text-foreground">Schedule:</span> {scheduleSummary}</div>
-                <div><span class="font-medium text-foreground">Target:</span> {targetSummary}</div>
-                <div><span class="font-medium text-foreground">Progress:</span> {completionLabel}</div>
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                <span class="inline-flex items-center gap-1.5">
+                    <CalendarClock class="h-4 w-4 shrink-0 text-clay/80" />
+                    {scheduleSummary}
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <Target class="h-4 w-4 shrink-0 text-clay/80" />
+                    {targetSummary}
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <CheckIcon class="h-4 w-4 shrink-0 {isCompleted ? 'text-success' : 'text-muted-foreground/60'}" />
+                    {completionLabel} today
+                </span>
+            </div>
+
+            <div class="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Sprout class="h-4 w-4 shrink-0 text-success/80" />
+                <span>
+                    {displayPoints}
+                    {displayPoints === 1 ? 'day' : 'days'} grown ·
+                    {growth.stage > 0 ? `next root segment in ${growth.toNext}d` : `sprouts in ${growth.toNext}d`}
+                </span>
             </div>
 
             {#if activity.description}
-                <p class="text-sm text-muted-foreground">{activity.description}</p>
+                <p class="font-serif text-sm text-muted-foreground italic">{activity.description}</p>
             {/if}
 
             {#if dev}
@@ -440,12 +491,39 @@
 {/if}
 
 <style>
-    /* Micro-reward: float up + fade. Colour comes from the `text-success` class. */
+    .tendril-track {
+        fill: none;
+        stroke: var(--surface-container-high);
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+    .tendril-fill {
+        fill: none;
+        stroke: var(--clay);
+        stroke-width: 2.25;
+        stroke-linecap: round;
+        stroke-dasharray: 100;
+        transition: stroke-dashoffset 0.7s cubic-bezier(0.22, 0.61, 0.2, 1);
+    }
+    .tendril-tip {
+        fill: var(--clay);
+        /* cx/cy are CSS properties per SVG2 — the tip glides with the fill. */
+        transition:
+            cx 0.7s cubic-bezier(0.22, 0.61, 0.2, 1),
+            cy 0.7s cubic-bezier(0.22, 0.61, 0.2, 1);
+    }
+
+    /* Micro-reward: a solid clay pill (floats over card text, so it needs a bg). */
     .reward-float {
+        display: inline-block;
         font-weight: 700;
-        font-size: 0.9rem;
+        font-size: 0.75rem;
         line-height: 1;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--clay);
+        color: var(--clay-foreground);
+        box-shadow: 0 2px 6px rgb(0 0 0 / 0.2);
         animation: reward-float 0.85s cubic-bezier(0.22, 0.61, 0.2, 1) forwards;
     }
     @keyframes reward-float {

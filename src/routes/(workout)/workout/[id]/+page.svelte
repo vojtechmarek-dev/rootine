@@ -6,6 +6,7 @@
     import { cn } from '$lib/utils';
     import { page } from '$app/state';
     import { toastError } from '$lib/toast';
+    import { toast } from 'svelte-sonner';
 
     import WorkoutHeader from '$lib/components/activity/workout/WorkoutHeader.svelte';
     import ActiveExerciseCard from '$lib/components/activity/workout/ActiveExerciseCard.svelte';
@@ -243,9 +244,22 @@
                         isSubmitting = false;
                         if (result.type === 'success') {
                             showSummary = true;
-                            setTimeout(() => {
+                            // The dashboard's grow toast comes from its optimistic
+                            // toggle path, which this flow bypasses — the action
+                            // reports the stage crossing instead.
+                            const grew = (result.data as { grew?: boolean } | undefined)?.grew === true;
+                            setTimeout(async () => {
                                 // eslint-disable-next-line svelte/no-navigation-without-resolve
-                                goto('/');
+                                await goto('/');
+                                if (grew) {
+                                    toast.success('Your root has grown! 🌱', {
+                                        action: {
+                                            label: 'View',
+                                            // eslint-disable-next-line svelte/no-navigation-without-resolve
+                                            onClick: () => goto(`/roots?highlight=${activity.id}`),
+                                        },
+                                    });
+                                }
                             }, 2000);
                         } else {
                             console.error('Submission result:', result);

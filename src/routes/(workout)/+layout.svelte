@@ -7,7 +7,8 @@
 </script>
 
 <NavigationProgress />
-<Toaster />
+<!-- No bottom nav in the workout flow — don't lift the toasts. -->
+<Toaster offset={24} mobileOffset={16} />
 <div class="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
     <main class="flex-1">
         {@render children()}

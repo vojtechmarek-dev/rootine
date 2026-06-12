@@ -2,12 +2,13 @@ import type { PageServerLoad, Actions } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { activities, logs } from '$lib/server/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, ne, sql } from 'drizzle-orm';
 import { WorkoutConfigSchema, WorkoutLogSchema } from '$lib/types/schemas';
 import { z } from 'zod';
-import { differenceInDays, parseISO, startOfDay } from 'date-fns';
+import { differenceInDays, endOfDay, parseISO, startOfDay } from 'date-fns';
 import { getRotationPosition } from '$lib/workout-rotation';
 import { isBackfillableDate } from '$lib/utils/date';
+import { growthStage } from '$lib/growth';
 
 export const load: PageServerLoad = async (event) => {
     const session = event.locals.session;
@@ -134,6 +135,23 @@ export const actions: Actions = {
             return fail(404, { message: 'Activity not found' });
         }
 
+        // Growth check for the client toast: growth counts DISTINCT days, so this
+        // log only banks a day if no other non-skipped log exists on `date`. A
+        // stage crossing means the habit's root grew a segment.
+        const [{ days: daysBefore }] = await db
+            .select({ days: sql<number>`count(distinct date_trunc('day', ${logs.date}))`.mapWith(Number) })
+            .from(logs)
+            .where(and(eq(logs.activityId, activityId), ne(logs.status, 'skipped')));
+        const existingSameDay = await db.query.logs.findFirst({
+            where: and(
+                eq(logs.activityId, activityId),
+                ne(logs.status, 'skipped'),
+                sql`${logs.date} between ${startOfDay(date)} and ${endOfDay(date)}`
+            ),
+        });
+        const daysAfter = existingSameDay ? daysBefore : daysBefore + 1;
+        const grew = growthStage(daysAfter) > growthStage(daysBefore);
+
         await db.insert(logs).values({
             activityId,
             date,
@@ -141,6 +159,6 @@ export const actions: Actions = {
             data: logData,
         });
 
-        return { success: true };
+        return { success: true, grew };
     },
 };

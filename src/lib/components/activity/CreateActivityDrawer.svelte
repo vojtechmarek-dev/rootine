@@ -71,7 +71,7 @@
                 return;
             }
             if (!f.valid) {
-                toastError('Could not save activity', {
+                toastError('Could not save habit', {
                     description: 'Please check the highlighted fields and try again.',
                     detail: f.errors,
                 });
@@ -134,7 +134,7 @@
             <div class="shrink-0 px-4 pt-2 pb-3">
                 {#if view === 'menu'}
                     <Drawer.Header class="px-0 text-left">
-                        <Drawer.Title class="text-2xl font-semibold">Create Activity</Drawer.Title>
+                        <Drawer.Title class="font-serif text-2xl font-semibold">Grow a new habit</Drawer.Title>
                         <Drawer.Description class="text-base text-foreground/70">What would you like to track?</Drawer.Description>
                     </Drawer.Header>
                 {:else}
@@ -171,7 +171,7 @@
                                 onclick={() => {
                                     switchView(type as ActivityType);
                                 }}
-                                class="flex h-24 flex-col gap-2"
+                                class="flex h-24 flex-col gap-2 rounded-2xl"
                             >
                                 <Icon class="mb-1 h-7 w-7" />
                                 <span class="text-base font-medium">{def.label}</span>
@@ -208,7 +208,7 @@
                                     Archive {FormDef.label}
                                 </Button>
                                 <p class="mt-2 text-center text-sm text-muted-foreground">
-                                    Archived activities won't appear on your dashboard.
+                                    Archived habits won't appear on your dashboard.
                                 </p>
                             </form>
                         {/if}

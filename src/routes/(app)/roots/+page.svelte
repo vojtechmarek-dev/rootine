@@ -1,7 +1,6 @@
 <script lang="ts">
     import Garden from '$lib/components/root-system/Garden.svelte';
     import { Button } from '$lib/components/ui/button/index.js';
-    import { goto } from '$app/navigation';
     import { page } from '$app/state';
     import { dev } from '$app/environment';
     import { Flame, Sprout, Trophy, Maximize } from '@lucide/svelte';
@@ -10,7 +9,7 @@
     let { data }: { data: PageData } = $props();
     const g = $derived(data.gardenData);
 
-    // Focus & celebrate: /garden?highlight=<activityId> frames + flashes that branch.
+    // Focus & celebrate: /roots?highlight=<activityId> frames + flashes that branch.
     const highlightActivityId = $derived(page.url.searchParams.get('highlight'));
 
     let garden = $state<{ fitToView: () => void } | undefined>();
@@ -43,23 +42,12 @@
         { label: 'Completions', value: statTotal, icon: Sprout, tone: 'text-secondary' },
     ]);
 
-    // Click a root → jump to that activity. Workouts have a detail route; other
-    // types open focused on the dashboard.
-    function onselect(activityId: string, type: string) {
-        if (type === 'workout') {
-            // eslint-disable-next-line svelte/no-navigation-without-resolve
-            goto(`/workout/${activityId}`);
-        } else {
-            // eslint-disable-next-line svelte/no-navigation-without-resolve
-            goto(`/?focus=${activityId}`);
-        }
-    }
 </script>
 
 <div class="flex flex-col gap-4 p-4">
     <div class="flex items-center justify-between">
         <h1 class="flex items-center gap-2 font-serif text-2xl">
-            <Sprout class="h-6 w-6 text-secondary" /> Your garden
+            <Sprout class="h-6 w-6 text-secondary" /> Your roots
         </h1>
         <Button variant="outline" size="sm" onclick={() => garden?.fitToView()}>
             <Maximize class="mr-1 h-4 w-4" /> Fit
@@ -140,7 +128,7 @@
 
     {#if g.habits.length === 0}
         <div class="rounded-2xl bg-surface-container-lowest p-6 text-center text-muted-foreground">
-            Create an activity and start completing it — your roots grow from here.
+            Create a habit and start completing it — your roots grow from here.
         </div>
     {:else}
         <div class="relative h-[60vh] overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2118] to-[#120c06]">
@@ -153,11 +141,10 @@
                 longestStreak={statLong}
                 {highlightActivityId}
                 interactive={true}
-                {onselect}
             />
         </div>
         <p class="text-center text-xs text-muted-foreground">
-            Each root is one habit; it grows as you complete it. Tap a root to open it. Drag to pan, scroll to zoom.
+            Each root is one habit; it grows as you complete it. Drag to pan, scroll to zoom.
         </p>
     {/if}
 </div>

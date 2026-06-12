@@ -1,21 +1,32 @@
 <script lang="ts">
     import { Toaster as Sonner, type ToasterProps as SonnerProps } from 'svelte-sonner';
-    import { mode } from 'mode-watcher';
+    import { theme } from '$lib/theme/theme.svelte';
     import Loader2Icon from '@lucide/svelte/icons/loader-2';
     import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
     import OctagonXIcon from '@lucide/svelte/icons/octagon-x';
     import InfoIcon from '@lucide/svelte/icons/info';
     import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 
-    let { richColors = true, closeButton = true, position = 'top-center', ...restProps }: SonnerProps = $props();
+    // Bottom-centered, lifted above the fixed bottom nav (~64px + breathing room).
+    // svelte-sonner uses `mobileOffset` (not `offset`) on small viewports.
+    let {
+        richColors = true,
+        closeButton = true,
+        position = 'bottom-center',
+        offset = 84,
+        mobileOffset = 84,
+        ...restProps
+    }: SonnerProps = $props();
 </script>
 
 <Sonner
-    theme={mode.current}
+    theme={theme.resolvedMode}
     class="toaster group"
     {richColors}
     {closeButton}
     {position}
+    {offset}
+    {mobileOffset}
     style="--normal-bg: var(--color-popover); --normal-text: var(--color-popover-foreground); --normal-border: var(--color-border);"
     toastOptions={{ classes: { description: 'whitespace-pre-wrap break-words text-xs opacity-90' } }}
     {...restProps}

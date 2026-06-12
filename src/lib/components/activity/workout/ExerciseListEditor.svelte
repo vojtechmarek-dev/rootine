@@ -99,8 +99,8 @@
     {/each}
 
     <Button
-        variant="outline"
-        class="w-full border-dashed"
+        variant="ghost"
+        class="w-full rounded-xl bg-surface-container-high/60 hover:bg-primary/10 dark:hover:bg-primary/15"
         onclick={() => {
             exercises = [...exercises, { id: crypto.randomUUID(), name: '', sets: 3, reps: 10 }];
         }}

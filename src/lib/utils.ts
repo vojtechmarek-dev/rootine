@@ -57,7 +57,7 @@ export function getActivityTypeLabel(type: string): string {
     if (type === 'workout') {
         return 'Workout';
     }
-    return 'Activity';
+    return 'Habit';
 }
 
 type ActivityAccentClasses = {
@@ -90,14 +90,31 @@ const activityAccentClasses: Record<string, ActivityAccentClasses> = {
         chip: 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-100',
         bar: 'bg-rose-500/80 dark:bg-rose-400/90',
     },
+    forest: {
+        chip: 'bg-success/15 text-success dark:bg-success/20',
+        bar: 'bg-success/80',
+    },
+    clay: {
+        chip: 'bg-clay/15 text-clay dark:bg-clay/20',
+        bar: 'bg-clay/80',
+    },
 };
 
-export function getActivityAccentClasses(color: string | null | undefined): ActivityAccentClasses {
+// Without an explicit colour, each type gets its own earthy accent so a
+// default dashboard still reads as varied instead of uniformly grey.
+const typeAccentDefaults: Record<string, string> = {
+    habit: 'forest',
+    plant: 'emerald',
+    workout: 'clay',
+};
+
+export function getActivityAccentClasses(color: string | null | undefined, type?: string): ActivityAccentClasses {
     const normalized = color?.trim().toLowerCase();
     if (normalized && activityAccentClasses[normalized]) {
         return activityAccentClasses[normalized];
     }
-    return activityAccentClasses.zinc;
+    const fallback = type ? typeAccentDefaults[type] : undefined;
+    return activityAccentClasses[fallback ?? 'zinc'] ?? activityAccentClasses.zinc;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
