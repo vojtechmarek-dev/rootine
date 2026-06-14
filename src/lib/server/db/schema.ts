@@ -132,6 +132,21 @@ export const weekExceptions = pgTable(
     (table) => [unique('week_exception_habit_week_unique').on(table.habitId, table.weekOf)]
 );
 
+// One row per browser/device push subscription. A user can have several
+// (phone PWA, desktop). Timezone is captured at subscribe time so the
+// reminder cron can evaluate schedule times in the user's local clock.
+export const pushSubscriptions = pgTable('push_subscription', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('userId')
+        .notNull()
+        .references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull().unique(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    timezone: text('timezone').default('UTC').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // =========================================
 // 3. RELATIONS (For Drizzle Queries)
 // =========================================

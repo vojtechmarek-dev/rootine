@@ -7,6 +7,7 @@
     import * as Drawer from '$lib/components/ui/drawer';
     import type { Session } from '$lib/types/schemas';
     import { theme, setThemeMode, type ThemeMode } from '$lib/theme/theme.svelte';
+    import NotificationSettings from '$lib/components/layout/NotificationSettings.svelte';
 
     let { data } = $props<{
         data: { session: Session | null };
@@ -129,6 +130,8 @@
                                 </Button>
                             </ButtonGroup>
                         </div>
+
+                        <NotificationSettings />
                     </div>
                 </div>
             </Drawer.Content>

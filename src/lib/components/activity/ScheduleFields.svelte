@@ -2,6 +2,8 @@
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import * as Select from '$lib/components/ui/select/index.js';
+    import { Button } from '$lib/components/ui/button';
+    import { Plus, X } from '@lucide/svelte';
     import { WEEKDAYS } from '$lib/constants';
     import type { Schedule, FormErrors } from '$lib/types/schemas';
 
@@ -13,6 +15,29 @@
 
     const isWeeklySchedule = (value: Schedule): value is WeeklySchedule => {
         return value.type === 'weekly';
+    };
+
+    // Reminder times live on daily/weekly schedules only.
+    type RemindableSchedule = Extract<Schedule, { times?: string[] }>;
+
+    const isRemindable = (value: Schedule): value is RemindableSchedule => {
+        return value.type === 'daily' || value.type === 'weekly';
+    };
+
+    const addTime = () => {
+        if (!isRemindable(schedule)) return;
+        schedule.times = [...(schedule.times ?? []), '09:00'];
+    };
+
+    const updateTime = (index: number, value: string) => {
+        if (!isRemindable(schedule) || !schedule.times) return;
+        schedule.times = schedule.times.map((t, i) => (i === index ? value : t));
+    };
+
+    const removeTime = (index: number) => {
+        if (!isRemindable(schedule) || !schedule.times) return;
+        const next = schedule.times.filter((_, i) => i !== index);
+        schedule.times = next.length ? next : undefined;
     };
 
     const onTypeChange = (newType: Schedule['type']) => {
@@ -124,6 +149,35 @@
                 {/each}
             </div>
             <Field.Error errors={errors?.days} />
+        </Field.Field>
+    {/if}
+
+    {#if schedule.type === 'daily' || schedule.type === 'weekly'}
+        <Field.Field>
+            <Field.Label>Reminders</Field.Label>
+            <Field.Description>Get a push notification at these times (enable notifications in Settings).</Field.Description>
+
+            <div class="space-y-2">
+                {#each schedule.times ?? [] as time, index (index)}
+                    <div class="flex items-center gap-2">
+                        <Input type="time" value={time} oninput={(e) => updateTime(index, e.currentTarget.value)} class="flex-1" />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Remove reminder"
+                            onclick={() => removeTime(index)}
+                        >
+                            <X class="h-4 w-4" />
+                        </Button>
+                    </div>
+                {/each}
+                <Button type="button" variant="outline" class="w-full" onclick={addTime}>
+                    <Plus class="mr-2 h-4 w-4" />
+                    Add reminder
+                </Button>
+            </div>
+            <Field.Error errors={errors?.times} />
         </Field.Field>
     {/if}
 </Field.Group>
