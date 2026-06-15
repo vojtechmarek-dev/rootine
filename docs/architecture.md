@@ -33,3 +33,4 @@ High-level tech choices are summarized in **`docs/decisions`** (numbered ADRs). 
 
 - [ADR 001: Transition to Single Page Application (SPA) Mode for PWA](./adr/001-spa-mode-for-pwa.md)
 - [ADR 005: Why sveltekit-superforms](./decisions/005-why-sveltekit-superforms.md) — forms, Zod 4 integration, nested activity payloads
+- [ADR 007: Resolving "today" in the user's timezone](./decisions/007-timezone-handling.md) — tz cookie so server load/actions use the user's local day, not UTC

@@ -3,12 +3,23 @@
     import '../app.scss';
     import { initializeTheme } from '$lib/theme/theme.svelte';
     import { onMount } from 'svelte';
+    import { afterNavigate } from '$app/navigation';
 
     let { children } = $props();
 
     // In Svelte 5, calling this sync function with $effect
     // at the root of a component sets up the reactivity automatically.
     initializeTheme();
+
+    // Keep the timezone cookie fresh on every navigation so "today" stays correct
+    // even after the user travels across timezones (app.html sets it on first load).
+    afterNavigate(() => {
+        try {
+            document.cookie = `tz=${Intl.DateTimeFormat().resolvedOptions().timeZone};path=/;max-age=31536000;samesite=lax`;
+        } catch {
+            /* timezone unavailable — server falls back to UTC */
+        }
+    });
 
     let swUpdateDetected = false;
 

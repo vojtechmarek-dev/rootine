@@ -35,6 +35,14 @@
                 } catch (e) {}
             })();
         </script>
+        <script>
+            // Record the browser's IANA timezone in a cookie so the server can
+            // resolve "today" in the user's local time. Runs before the first data
+            // request; refreshed on every navigation (see root +layout.svelte).
+            try {
+                document.cookie = 'tz=' + Intl.DateTimeFormat().resolvedOptions().timeZone + ';path=/;max-age=31536000;samesite=lax';
+            } catch (e) {}
+        </script>
         <style>
             /* Splash screen styles */
             #app-splash {

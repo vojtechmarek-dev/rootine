@@ -17,6 +17,8 @@ export interface GardenHabit {
     color: string;
     /** Completions for THIS habit — milestone blooms + tooltip count. */
     growth: number;
+    /** Schedule-aware current streak for THIS habit (consecutive due days done). */
+    streak: number;
 }
 
 export interface GardenData {

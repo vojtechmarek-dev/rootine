@@ -303,6 +303,8 @@ export type DashboardActivity = Activity & {
     targetCount: number;
     /** Lifetime distinct days completed — drives the root-growth progress meter. */
     growthPoints: number;
+    /** Schedule-aware current streak for THIS habit (consecutive due days done). */
+    streak: number;
     logs?: Log[] | null;
     /** True when at least one log for this period has status "skipped". */
     isSkippedToday: boolean;

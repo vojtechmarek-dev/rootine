@@ -2,18 +2,23 @@ import { fail } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { logs } from '$lib/server/db/schema';
 import { eq, and, between, desc } from 'drizzle-orm';
-import { startOfDay, endOfDay, isToday, isValid } from 'date-fns';
+import { startOfDay, endOfDay, isSameDay, isValid } from 'date-fns';
 import { isBackfillableDate } from '$lib/utils/date';
 
 type SessionWithUser = { user: { id: string } };
 
-export async function toggleActivity(_session: SessionWithUser, formData: FormData, targetDate: Date) {
+/**
+ * `now` is the user's local "today" (UTC-midnight Date, from the tz cookie) so the
+ * backfill window and logged timestamp track the day they're viewing — not the
+ * server's UTC day. Defaults to the server clock when a caller omits it.
+ */
+export async function toggleActivity(_session: SessionWithUser, formData: FormData, targetDate: Date, now: Date = new Date()) {
     if (!isValid(targetDate)) {
         return fail(400, { message: 'Invalid dashboard date' });
     }
 
     // Allow today or a missed day earlier this ISO week (make-up / backfill).
-    if (!isBackfillableDate(targetDate)) {
+    if (!isBackfillableDate(targetDate, now)) {
         return fail(403, { message: 'Completion is only available for today or a missed day earlier this week' });
     }
 
@@ -24,11 +29,14 @@ export async function toggleActivity(_session: SessionWithUser, formData: FormDa
         return fail(400, { message: 'Invalid action' });
     }
 
-    // Date the log against the viewed day: "now" for today, otherwise the start
-    // of the target day so it falls inside the dashboard's per-day read window.
-    const logDate = isToday(targetDate) ? new Date() : startOfDay(targetDate);
     const dayStart = startOfDay(targetDate);
     const dayEnd = endOfDay(targetDate);
+    // Date the log so it always lands inside the viewed day's read window. For the
+    // user's live today, use the real instant when it falls in the window (keeps
+    // ordering), else clamp to the day's start — this covers the post-midnight
+    // window where the server clock still trails the user's local day.
+    const liveNow = new Date();
+    const logDate = isSameDay(targetDate, now) ? (liveNow >= dayStart && liveNow <= dayEnd ? liveNow : dayStart) : startOfDay(targetDate);
 
     try {
         if (action === 'complete') {

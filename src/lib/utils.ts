@@ -7,6 +7,14 @@ export function formatZodErrorTree(error: z.ZodError): string {
     return JSON.stringify(z.treeifyError(error), null, 2);
 }
 
+/** Completions needed for a "done" day: habits use config.targetValue (≥1), others 1. */
+export function activityTargetCount(activity: { type: string; config: Record<string, unknown> }): number {
+    if (activity.type === 'habit' && typeof activity.config?.targetValue === 'number') {
+        return Math.max(1, activity.config.targetValue);
+    }
+    return 1;
+}
+
 const DEFAULT_TOAST_DESCRIPTION_LENGTH = 220;
 
 export function toToastDescription(value: unknown, maxLength = DEFAULT_TOAST_DESCRIPTION_LENGTH): string | undefined {

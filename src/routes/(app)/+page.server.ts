@@ -9,6 +9,7 @@ import { skipDay } from '$lib/server/actions/skipDay';
 import { DrawerActivitySchema, ArchiveActivityFormSchema, type UpdateActivity } from '$lib/types/schemas';
 import { superValidate, message } from 'sveltekit-superforms/server';
 import { zod4 } from 'sveltekit-superforms/adapters';
+import { tzTodayDate } from '$lib/utils/date';
 
 export const load: PageServerLoad = async (event) => {
     const session = event.locals.session ?? (await event.locals.auth());
@@ -16,8 +17,10 @@ export const load: PageServerLoad = async (event) => {
         throw redirect(303, '/login');
     }
 
+    // Default to the user's LOCAL today (from the tz cookie), not the server's UTC
+    // day — otherwise just-after-midnight loads show yesterday for users east of UTC.
     const urlDate = event.url.searchParams.get('date');
-    const targetDate = urlDate ? new Date(urlDate) : new Date();
+    const targetDate = urlDate ? new Date(urlDate) : tzTodayDate(event.cookies.get('tz'));
     return {
         session,
         dashboardPayload: getDashboardActivities(session.user.id, targetDate),
@@ -58,10 +61,13 @@ export const actions: Actions = {
         if (!session?.user?.id) {
             return fail(401, { message: 'Unauthorized' });
         }
+        // Resolve "today" in the user's timezone so the backfill window and the
+        // logged timestamp match the day they're actually viewing.
+        const localToday = tzTodayDate(event.cookies.get('tz'));
         const urlDate = event.url.searchParams.get('date');
-        const targetDate = urlDate ? new Date(urlDate) : new Date();
+        const targetDate = urlDate ? new Date(urlDate) : localToday;
 
-        return toggleActivity({ user: { id: session.user.id } }, await event.request.formData(), targetDate);
+        return toggleActivity({ user: { id: session.user.id } }, await event.request.formData(), targetDate, localToday);
     },
 
     updateActivity: async (event) => {

@@ -20,6 +20,7 @@
         MoreHorizontal,
         Archive,
         Target,
+        Flame,
     } from '@lucide/svelte';
     import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import type { ActivityFormData } from '$lib/types/schemas';
@@ -29,26 +30,23 @@
     import { toast } from 'svelte-sonner';
     import SkipDayModal from '$lib/components/activity/workout/SkipDayModal.svelte';
 
-    const props = $props<{
+    interface Props {
         activity: DashboardActivity;
         canToggle?: boolean;
         isPast?: boolean;
+        /**
+         * The dashboard's currently-viewed date (yyyy-MM-dd). Threaded into the
+         * toggle action and the workout link so a make-up logs against this day.
+         */
         viewDate?: string;
         isOpen?: boolean;
         onToggle?: () => void;
         /** Optimistic log-count changes, so the dashboard summary updates live. */
         onLogCountChange?: (count: number) => void;
-    }>();
-    const activity = $derived(props.activity);
-    const canToggle = $derived(props.canToggle ?? true);
-    const isPast = $derived(props.isPast ?? false);
-    // The dashboard's currently-viewed date (yyyy-MM-dd). Threaded into the
-    // toggle action and the workout link so a make-up logs against this day.
-    const viewDate = $derived(props.viewDate ?? '');
+    }
+    let { activity, canToggle = true, isPast = false, viewDate = '', isOpen = false, onToggle, onLogCountChange }: Props = $props();
+
     const dateQuery = $derived(viewDate ? `&date=${viewDate}` : '');
-    const isOpen = $derived(props.isOpen ?? false);
-    const onToggle = $derived(props.onToggle);
-    const onLogCountChange = $derived(props.onLogCountChange);
     const accent = $derived(getActivityAccentClasses(activity.color, activity.type));
     const typeLabel = $derived(getActivityTypeLabel(activity.type));
 
@@ -102,13 +100,18 @@
     const isCompleted = $derived(logCountToday >= activity.targetCount);
     const completionLabel = $derived(`${logCountToday}/${activity.targetCount}`);
 
-    // Root-growth meter. `growthPoints` (lifetime distinct days) already counts
-    // today if it was done before load, so add/subtract today's optimistic state
-    // around that baseline to keep the meter live as the user toggles.
-    const baseTodayCounted = $derived(activity.logCountToday > 0);
-    const todayCounted = $derived(logCountToday > 0);
+    // Root-growth meter. `growthPoints` counts days the habit was COMPLETED (target
+    // met), so today only counts once `logCountToday` reaches the target. Add/subtract
+    // today's optimistic completed-state around that baseline to keep the meter live.
+    const baseTodayCounted = $derived(activity.logCountToday >= activity.targetCount);
+    const todayCounted = $derived(isCompleted);
     const displayPoints = $derived(Math.max(0, (activity.growthPoints ?? 0) + (todayCounted ? 1 : 0) - (baseTodayCounted ? 1 : 0)));
     const growth = $derived(growthProgress(displayPoints));
+
+    // Per-habit streak (schedule-aware, from the server). The card only renders for
+    // activities scheduled today, so completing today extends it — mirror the growth
+    // meter's optimistic baseline so the flame moves with the first completion.
+    const displayStreak = $derived(Math.max(0, activity.streak + (todayCounted ? 1 : 0) - (baseTodayCounted ? 1 : 0)));
 
     // Root tendril meter: an organic curve standing in for a flat progress bar.
     // The filled portion is revealed via pathLength/dashoffset; the tip dot (and
@@ -166,17 +169,22 @@
     const handleToggle: SubmitFunction = ({ formData }) => {
         const action = formData.get('action');
         const currentCount = optimisticLogCount ?? activity.logCountToday;
-        // Growth is staggered: the first completion of the day banks one day, but a
-        // root only extends when that crosses a stage boundary. Gate the "your root
-        // has grown" snackbar on an actual stage increase.
-        const grewStage = action === 'complete' && currentCount === 0 && growthStage(displayPoints + 1) > growthStage(displayPoints);
+        // Celebrate only when this completion FINISHES the day's target — so a habit
+        // like "drink water 3×" pops once (on the 3rd), not on every sip.
+        const completesDay = action === 'complete' && currentCount < activity.targetCount && currentCount + 1 >= activity.targetCount;
+        // The root grows the first day the habit is completed; show the "your root
+        // has grown" snackbar only when finishing today crosses a growth stage.
+        const pointsWithoutToday = Math.max(0, (activity.growthPoints ?? 0) - (baseTodayCounted ? 1 : 0));
+        const grewStage = completesDay && growthStage(pointsWithoutToday + 1) > growthStage(pointsWithoutToday);
 
         isSubmitting = true;
 
         if (action === 'complete') {
             optimisticLogCount = currentCount + 1;
-            haptic();
-            popReward();
+            if (completesDay) {
+                haptic();
+                popReward();
+            }
         } else if (action === 'undo') {
             optimisticLogCount = Math.max(0, currentCount - 1);
         }
@@ -246,6 +254,15 @@
                 <span class={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', accent.chip)}>
                     {typeLabel}
                 </span>
+                {#if displayStreak > 0}
+                    <span
+                        class="inline-flex items-center gap-1 rounded-full bg-clay/15 px-2 py-0.5 text-xs font-medium text-clay"
+                        title="{displayStreak}-day streak on this habit"
+                    >
+                        <Flame class="h-3 w-3" />
+                        {displayStreak}
+                    </span>
+                {/if}
                 {#if isCompleted}
                     <span class="inline-flex items-center gap-1 rounded-full bg-success/20 px-2 py-0.5 text-xs font-medium text-success">
                         <CheckIcon class="h-3 w-3" />
@@ -289,10 +306,7 @@
                         <circle cx={tendrilTip.x} cy={tendrilTip.y} r="2.6" class="tendril-tip" />
                     </svg>
                     {#if rewards.length}
-                        <div
-                            class="pointer-events-none absolute bottom-full -translate-x-1/2"
-                            style="left: {(tendrilTip.x / 112) * 100}%"
-                        >
+                        <div class="pointer-events-none absolute bottom-full -translate-x-1/2" style="left: {(tendrilTip.x / 112) * 100}%">
                             {#each rewards as r (r.id)}
                                 <span class="reward-float">{r.label}</span>
                             {/each}

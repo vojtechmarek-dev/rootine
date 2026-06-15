@@ -57,6 +57,30 @@ export function toDateRequired(val: unknown): Date {
 }
 
 /**
+ * The user's local calendar day ("yyyy-MM-dd") for `now`, in IANA `tz` (e.g.
+ * "Europe/Prague"). Uses `Intl` so DST is handled automatically. Falls back to
+ * UTC when `tz` is missing or invalid — so a server (UTC host) never reports its
+ * own day as the user's when the timezone is unknown for one request.
+ */
+export function tzTodayString(tz: string | null | undefined, now: Date = new Date()): string {
+    const fmt = (timeZone: string) =>
+        new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+    try {
+        return fmt(tz || 'UTC');
+    } catch {
+        return fmt('UTC'); // invalid IANA name → UTC
+    }
+}
+
+/**
+ * The user's local "today" as a UTC-midnight Date — the same representation as
+ * `new Date('yyyy-MM-dd')`, so it lines up with how dashboard dates are bucketed.
+ */
+export function tzTodayDate(tz: string | null | undefined, now: Date = new Date()): Date {
+    return new Date(`${tzTodayString(tz, now)}T00:00:00Z`);
+}
+
+/**
  * Whether a completion may be logged for `date` ("make-up" / backfill window).
  *
  * A date is backfillable when it is **today**, or it is **in the past AND

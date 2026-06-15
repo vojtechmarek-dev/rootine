@@ -10,11 +10,11 @@ import {
     type WeekException,
     type WorkoutRotationView,
 } from '$lib/types/schemas';
-import { eq, desc, and, between, inArray, gte, ne, sql } from 'drizzle-orm';
+import { eq, desc, and, between, inArray, gte, ne } from 'drizzle-orm';
 import { formatZodErrorTree } from '$lib/utils';
 import { differenceInDays, eachDayOfInterval, endOfDay, endOfWeek, format, isSameDay, startOfDay, startOfWeek } from 'date-fns';
 import { isScheduledForDate } from '$lib/scheduler';
-import { computeStreak } from '$lib/streak';
+import { aggregateHabitStreaks, completedDayOrdinals } from '$lib/streak';
 import { getRotationPosition, isoWeekOf } from '$lib/workout-rotation';
 import type { DashboardWeekDay } from '$lib/types/schemas';
 
@@ -84,7 +84,7 @@ export async function getDashboardActivities(
     errors: Array<{ id: string; type: string; message: string }>;
     /** Per-day completion for the target date's ISO week (Mon–Sun). */
     week: DashboardWeekDay[];
-    /** Consecutive days with at least one completion (grace: yesterday keeps it alive). */
+    /** Global streak: the longest currently-alive per-habit schedule-aware streak. */
     streak: number;
 }> {
     // Load the whole ISO week of logs: the day view needs the target date, the
@@ -103,22 +103,28 @@ export async function getDashboardActivities(
 
     const activityIds = userActivities.map((a) => a.id);
 
-    // Lifetime growth points per activity: DISTINCT days completed (non-skipped),
-    // rolled up in SQL so we don't pull every historical log into Node. `date` is
-    // `timestamp without time zone`, so date_trunc('day', …) buckets by the stored
-    // wall-clock — identical to the garden's distinctDayCount (no tz drift).
-    const growthRows = activityIds.length
+    // Lifetime completions (non-skipped) per activity. One scan feeds BOTH the
+    // root-growth meter (distinct days) and the schedule-aware streak (which needs
+    // each habit's actual completed days, not just a count).
+    const completionRows = activityIds.length
         ? await db
-              .select({
-                  activityId: logs.activityId,
-                  days: sql<number>`count(distinct date_trunc('day', ${logs.date}))`.mapWith(Number),
-              })
+              .select({ activityId: logs.activityId, date: logs.date })
               .from(logs)
               .innerJoin(activities, eq(logs.activityId, activities.id))
               .where(and(eq(activities.userId, userId), ne(logs.status, 'skipped')))
-              .groupBy(logs.activityId)
         : [];
-    const growthPointsByActivity = new Map<string, number>(growthRows.map((r) => [r.activityId, r.days]));
+    const datesByActivity = new Map<string, Date[]>();
+    for (const row of completionRows) {
+        const list = datesByActivity.get(row.activityId);
+        if (list) list.push(row.date);
+        else datesByActivity.set(row.activityId, [row.date]);
+    }
+    // A day counts as DONE only when the target was met (matches the week ribbon) —
+    // one definition driving both the growth meter and the schedule-aware streak.
+    const completedDaysByActivity = new Map<string, Set<number>>(
+        userActivities.map((a) => [a.id, completedDayOrdinals(datesByActivity.get(a.id) ?? [], getTargetCount(a))])
+    );
+    const growthPointsByActivity = new Map<string, number>([...completedDaysByActivity].map(([id, set]) => [id, set.size]));
 
     // WeekExceptions for the target's ISO week. Only apply for the current or
     // future ISO week — past-week exceptions are expired and should not affect
@@ -225,6 +231,7 @@ export async function getDashboardActivities(
             logCountToday,
             targetCount,
             growthPoints: growthPointsByActivity.get(activity.id) ?? 0,
+            streak: 0, // filled in below once all activities are validated
             logs: parsedLogs,
             isSkippedToday,
             workoutRotation,
@@ -255,14 +262,20 @@ export async function getDashboardActivities(
         };
     });
 
-    // Lifetime streak: consecutive days with at least one completion, matching
-    // the garden's definition (computeStreak handles the yesterday grace day).
-    const completionRows = await db
-        .select({ date: logs.date })
-        .from(logs)
-        .innerJoin(activities, eq(logs.activityId, activities.id))
-        .where(and(eq(activities.userId, userId), ne(logs.status, 'skipped')));
-    const streak = computeStreak(completionRows.map((r) => r.date)).current;
+    // Schedule-aware streaks. Each habit's streak counts consecutive *scheduled*
+    // days it completed (rest days don't break it); the global streak is the
+    // longest currently-alive habit streak. Anchored on the real today, not the
+    // viewed date. Exceptions only matter for the current week.
+    const { byActivity, global } = aggregateHabitStreaks(
+        validated.map((v) => v.parsed),
+        completedDaysByActivity,
+        new Date(),
+        exceptions
+    );
+    for (const a of dashboardActivities) {
+        a.streak = byActivity.get(a.id)?.current ?? 0;
+    }
+    const streak = global.current;
 
     return { activities: dashboardActivities, errors, week, streak };
 }

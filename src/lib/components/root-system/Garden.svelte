@@ -113,7 +113,8 @@
     const describe = (seg: Segment) => {
         const h = seg.activityId ? byId.get(seg.activityId) : undefined;
         if (!h) return { name: 'Root' };
-        return { name: h.title, meta: `${h.growth} day${h.growth === 1 ? '' : 's'} of practice` };
+        const days = `${h.growth} day${h.growth === 1 ? '' : 's'} of practice`;
+        return { name: h.title, meta: h.streak > 0 ? `${days} · 🔥 ${h.streak}` : days };
     };
 
     const handleSelect = (activityId: string | null) => {

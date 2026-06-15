@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CalendarDate } from '@internationalized/date';
-import { toDate, toDateValue, toDateRequired, isBackfillableDate } from './date';
+import { toDate, toDateValue, toDateRequired, isBackfillableDate, tzTodayString, tzTodayDate } from './date';
 
 describe('toDateValue', () => {
     it('returns undefined for null/undefined', () => {
@@ -96,5 +96,31 @@ describe('isBackfillableDate', () => {
 
     it('rejects future days even within the same ISO week', () => {
         expect(isBackfillableDate(new Date(2026, 4, 31), now)).toBe(false); // Sun, same week
+    });
+});
+
+describe('tzTodayString / tzTodayDate', () => {
+    // 22:30 UTC — already "tomorrow" east of UTC, still "today" to the west.
+    const lateUtc = new Date('2026-06-16T22:30:00Z');
+
+    it('reports the local day east of UTC (Prague, +2 in summer)', () => {
+        expect(tzTodayString('Europe/Prague', lateUtc)).toBe('2026-06-17');
+    });
+
+    it('reports the local day west of UTC (New York, -4 in summer)', () => {
+        expect(tzTodayString('America/New_York', lateUtc)).toBe('2026-06-16');
+    });
+
+    it('handles DST: Prague is +1 in winter', () => {
+        expect(tzTodayString('Europe/Prague', new Date('2026-01-15T23:30:00Z'))).toBe('2026-01-16');
+    });
+
+    it('falls back to UTC for a missing or invalid timezone', () => {
+        expect(tzTodayString(undefined, lateUtc)).toBe('2026-06-16');
+        expect(tzTodayString('Not/AZone', lateUtc)).toBe('2026-06-16');
+    });
+
+    it('tzTodayDate is the local day at UTC midnight', () => {
+        expect(tzTodayDate('Europe/Prague', lateUtc).toISOString()).toBe('2026-06-17T00:00:00.000Z');
     });
 });

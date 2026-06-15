@@ -281,16 +281,22 @@
                     <div class="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                         {currentDateStr === todayDateStr ? 'Today' : 'This day'}
                     </div>
-                    <div class="mt-1 flex items-baseline gap-1.5">
-                        <span class="font-serif text-3xl font-semibold tracking-tight">{doneCount}</span>
-                        <span class="text-sm text-muted-foreground">/ {activities.length} done</span>
-                    </div>
-                    <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-container-high">
-                        <div
-                            class="h-full rounded-full bg-success transition-[width] duration-500 ease-out"
-                            style="width: {Math.round(dayProgress * 100)}%"
-                        ></div>
-                    </div>
+                    {#if activities.length === 0}
+                        <div class="mt-1 flex items-baseline gap-1.5">
+                            <span class="font-serif text-xl font-semibold tracking-tight">Rest day</span>
+                        </div>
+                    {:else}
+                        <div class="mt-1 flex items-baseline gap-1.5">
+                            <span class="font-serif text-3xl font-semibold tracking-tight">{doneCount}</span>
+                            <span class="text-sm text-muted-foreground">/ {activities.length} done</span>
+                        </div>
+                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+                            <div
+                                class="h-full rounded-full bg-success transition-[width] duration-500 ease-out"
+                                style="width: {Math.round(dayProgress * 100)}%"
+                            ></div>
+                        </div>
+                    {/if}
                 </div>
             </div>
         </div>
@@ -299,8 +305,11 @@
     {#if loading}
         <ActivitySkeletons />
     {:else if activities.length === 0}
-        <div class="rounded-2xl bg-surface-container-lowest p-6 shadow-ambient">
-            <p class="text-muted-foreground">Your habits will appear here.</p>
+        <div class="rounded-2xl bg-surface-container-lowest p-6 text-center shadow-ambient">
+            <p class="font-medium text-foreground">
+                {currentDateStr === todayDateStr ? 'Nothing scheduled today.' : 'Nothing scheduled for this day.'}
+            </p>
+            <p class="mt-1 text-sm text-muted-foreground">Enjoy the rest - scheduled habits will show up here.</p>
         </div>
     {:else}
         <div class="space-y-8">
