@@ -247,7 +247,10 @@
         <div class="min-w-0 space-y-2">
             <div class="flex flex-wrap items-center gap-2">
                 <TypeIcon class="h-4 w-4 text-muted-foreground" />
-                <span class={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', accent.chip)} style={accent.chipStyle}>
+                <span
+                    class={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', accent.chip)}
+                    style={accent.chipStyle}
+                >
                     {typeLabel}
                 </span>
                 {#if displayStreak > 0}
@@ -479,7 +482,7 @@
                 <span>
                     {displayPoints}
                     {displayPoints === 1 ? 'day' : 'days'} grown ·
-                    {growth.stage > 0 ? `next root segment in ${growth.toNext}d` : `sprouts in ${growth.toNext}d`}
+                    {growth.stage > 0 ? `next root segment in ${growth.toNext} completions` : `sprouts in ${growth.toNext} completions`}
                 </span>
             </div>
 
