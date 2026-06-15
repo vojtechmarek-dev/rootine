@@ -45,10 +45,13 @@
         WithElementRef<HTMLAnchorAttributes> & {
             variant?: ButtonVariant;
             size?: ButtonSize;
+            loading?: boolean;
         };
 </script>
 
 <script lang="ts">
+    import { LoaderCircle } from '@lucide/svelte';
+
     let {
         class: className,
         variant = 'default',
@@ -57,6 +60,7 @@
         href = undefined,
         type = 'button',
         disabled,
+        loading = false,
         children,
         ...restProps
     }: ButtonProps = $props();
@@ -76,7 +80,18 @@
         {@render children?.()}
     </a>
 {:else}
-    <button bind:this={ref} data-slot="button" class={cn(buttonVariants({ variant, size }), className)} {type} {disabled} {...restProps}>
+    <button
+        bind:this={ref}
+        data-slot="button"
+        class={cn(buttonVariants({ variant, size }), className)}
+        {type}
+        disabled={disabled || loading}
+        aria-busy={loading}
+        {...restProps}
+    >
+        {#if loading}
+            <LoaderCircle class="size-4 animate-spin" />
+        {/if}
         {@render children?.()}
     </button>
 {/if}

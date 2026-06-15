@@ -40,7 +40,7 @@
             <p class="mb-1 text-xs font-semibold tracking-widest text-clay/80 uppercase">
                 Exercise {index + 1} of {totalExercises}
             </p>
-            <h2 class="font-sans text-4xl leading-tight font-bold tracking-tight text-foreground sm:text-5xl">
+            <h2 class="font-sans text-3xl leading-tight font-bold tracking-tight text-foreground sm:text-4xl">
                 {exercise.name}
             </h2>
         </div>

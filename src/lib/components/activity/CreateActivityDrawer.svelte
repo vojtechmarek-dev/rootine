@@ -9,7 +9,7 @@
     import type { Component } from 'svelte';
     import * as Drawer from '$lib/components/ui/drawer';
     import { Button, buttonVariants } from '$lib/components/ui/button';
-    import { ChevronLeft, LoaderCircle } from '@lucide/svelte';
+    import { ChevronLeft } from '@lucide/svelte';
     import { cn } from '$lib/utils';
     import { toastError } from '$lib/toast';
     import HabitForm, { meta as HabitMeta } from '$lib/components/activity/forms/HabitForm.svelte';
@@ -20,7 +20,6 @@
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
     import ActivityEditor from '$lib/components/activity/ActivityEditor.svelte';
-    import ProgressBar from '$lib/components/shared/ProgressBar.svelte';
     import { activityDrawerState, closeActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import { enhance } from '$app/forms';
     import { untrack } from 'svelte';
@@ -217,17 +216,13 @@
             </div>
 
             <Drawer.Footer class="shrink-0 border-t border-border/50 p-4 ">
-                {#if $submitting && view !== 'menu'}
-                    <ProgressBar class="mb-2" />
-                {/if}
                 {#if view === 'menu'}
                     <Drawer.Close class={buttonVariants({ variant: 'link' })}>Cancel</Drawer.Close>
                 {:else}
                     <div class="flex gap-3">
                         <Drawer.Close class={cn(buttonVariants({ variant: 'link' }), 'flex-1')}>Cancel</Drawer.Close>
-                        <Button type="submit" variant="default" form={FORM_ID} class="flex-2" disabled={$submitting}>
+                        <Button type="submit" variant="default" form={FORM_ID} class="flex-2" loading={$submitting}>
                             {#if $submitting}
-                                <LoaderCircle class="size-4 animate-spin" />
                                 {activityDrawerState.data ? 'Saving…' : 'Creating…'}
                             {:else}
                                 {activityDrawerState.data ? 'Save Changes' : 'Create'}

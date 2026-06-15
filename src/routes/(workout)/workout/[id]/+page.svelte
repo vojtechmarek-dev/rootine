@@ -13,7 +13,6 @@
     import QueueExerciseCard from '$lib/components/activity/workout/QueueExerciseCard.svelte';
     import WorkoutSummary from '$lib/components/activity/workout/WorkoutSummary.svelte';
     import WorkoutSetPicker from '$lib/components/activity/workout/WorkoutSetPicker.svelte';
-    import ProgressBar from '$lib/components/shared/ProgressBar.svelte';
     import TimerWorker from '$lib/workers/timerWorker.ts?worker';
 
     let { data } = $props();
@@ -277,17 +276,15 @@
                 <Button
                     type="submit"
                     variant={isAllProcessed ? 'clay' : 'outline'}
+                    loading={isSubmitting}
                     class={cn(
                         'h-14 w-full rounded-2xl text-lg font-medium shadow-ambient transition-all',
                         !isAllProcessed && 'border-outline-variant/20 bg-surface-container-low text-muted-foreground opacity-60'
                     )}
-                    disabled={!isAllProcessed || isSubmitting || exercises.length === 0}
+                    disabled={!isAllProcessed || exercises.length === 0}
                 >
                     {isSubmitting ? 'Finishing…' : 'Finish Workout'}
                 </Button>
-                {#if isSubmitting}
-                    <ProgressBar class="mt-3" />
-                {/if}
             </form>
         </div>
 
