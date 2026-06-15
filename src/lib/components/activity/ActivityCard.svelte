@@ -7,6 +7,7 @@
     import { enhance } from '$app/forms';
     import { goto } from '$app/navigation';
     import { growthProgress, growthStage } from '$lib/growth';
+    import { haptic } from '$lib/haptics';
     import type { SubmitFunction } from '@sveltejs/kit';
     import {
         CalendarClock,
@@ -87,13 +88,6 @@
         const id = ++rewardSeq;
         rewards = [...rewards, { id, label }];
         setTimeout(() => (rewards = rewards.filter((r) => r.id !== id)), 850);
-    }
-    function haptic() {
-        try {
-            navigator.vibrate?.(12);
-        } catch {
-            /* vibrate unsupported — ignore */
-        }
     }
 
     const logCountToday = $derived(optimisticLogCount ?? activity.logCountToday);
@@ -182,7 +176,7 @@
         if (action === 'complete') {
             optimisticLogCount = currentCount + 1;
             if (completesDay) {
-                haptic();
+                haptic('light');
                 popReward();
             }
         } else if (action === 'undo') {

@@ -23,8 +23,8 @@
     <AlertDialog.Root>
         <AlertDialog.Trigger>
             {#snippet child({ props })}
-                <Button {...props} variant="ghost" size="icon" class="text-muted-foreground hover:bg-surface-variant hover:text-foreground">
-                    <X class="h-6 w-6" />
+                <Button {...props} variant="ghost" size="icon-lg" class="text-foreground hover:bg-surface-variant">
+                    <X class="size-7" strokeWidth={2.5} />
                 </Button>
             {/snippet}
         </AlertDialog.Trigger>
@@ -42,15 +42,15 @@
         </AlertDialog.Content>
     </AlertDialog.Root>
     <div class="flex gap-2">
-        <button onclick={onTogglePause} class="group flex gap-3 text-secondary transition-colors hover:opacity-80">
-            <span class="flex">
+        <button onclick={onTogglePause} class="group flex items-center gap-3 text-secondary transition-colors hover:opacity-80">
+            <span class="flex items-center">
                 {#if isPaused}
                     <Play class="h-7 w-7" />
                 {:else}
                     <Pause class="h-7 w-7" />
                 {/if}
             </span>
-            <span class="font-serif text-3xl tracking-wider tabular-nums transition-opacity group-hover:opacity-80">
+            <span class="font-serif text-3xl leading-none tracking-wider tabular-nums transition-opacity group-hover:opacity-80">
                 {formatTime(secondsElapsed)}
             </span>
         </button>
