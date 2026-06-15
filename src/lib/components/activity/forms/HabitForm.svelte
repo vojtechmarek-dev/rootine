@@ -42,13 +42,28 @@
             <!-- Habit Specific Fields -->
             <Field.Group>
                 <Field.Field>
-                    <Field.Label>Target Value</Field.Label>
-                    <Input type="number" min="1" bind:value={data.config.targetValue} />
+                    <Field.Label>Daily goal</Field.Label>
+                    <div
+                        class="flex items-stretch overflow-hidden rounded-sm border border-border/60 bg-input focus-within:border-ring focus-within:ring-2 focus-within:ring-tertiary-fixed"
+                    >
+                        <Input
+                            type="number"
+                            min="1"
+                            bind:value={data.config.targetValue}
+                            class="h-12 w-20 shrink-0 border-0 bg-transparent text-center focus:ring-0"
+                            aria-label="Target value"
+                        />
+                        <div class="my-2 w-px bg-border/60"></div>
+                        <Input
+                            type="text"
+                            placeholder="times"
+                            bind:value={data.config.unit}
+                            class="h-12 flex-1 border-0 bg-transparent focus:ring-0"
+                            aria-label="Unit"
+                        />
+                    </div>
+                    <Field.Description>How much counts as done — e.g. "3 glasses" or "1 time".</Field.Description>
                     <Field.Error errors={errors?.config?.targetValue} />
-                </Field.Field>
-                <Field.Field>
-                    <Field.Label>Unit</Field.Label>
-                    <Input type="text" placeholder="e.g. times" bind:value={data.config.unit} />
                     <Field.Error errors={errors?.config?.unit} />
                 </Field.Field>
 

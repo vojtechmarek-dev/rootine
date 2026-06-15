@@ -1,4 +1,4 @@
-import { differenceInDays, differenceInHours, startOfDay } from 'date-fns';
+import { differenceInDays, differenceInCalendarMonths, differenceInCalendarYears, endOfMonth, startOfDay } from 'date-fns';
 import type { Activity, WeekException } from '$lib/types/schemas';
 import { WEEKDAYS } from '$lib/constants';
 import { isoWeekOf, shiftWeekdays } from '$lib/workout-rotation';
@@ -80,16 +80,46 @@ function isScheduledBySchedule(schedule: Activity['schedule'], anchor: Date, tar
         case 'interval': {
             const intervalVal = schedule.value ?? 1;
 
-            if (schedule.unit === 'hours') {
-                const diff = differenceInHours(target, anchor);
-                return diff % intervalVal === 0;
+            switch (schedule.unit) {
+                case 'weeks': {
+                    return differenceInDays(target, anchor) % (intervalVal * 7) === 0;
+                }
+                case 'months': {
+                    const months = differenceInCalendarMonths(target, anchor);
+                    return months >= 0 && months % intervalVal === 0 && matchesDayOfMonth(target, anchor);
+                }
+                case 'years': {
+                    const years = differenceInCalendarYears(target, anchor);
+                    return (
+                        years >= 0 &&
+                        years % intervalVal === 0 &&
+                        target.getMonth() === anchor.getMonth() &&
+                        matchesDayOfMonth(target, anchor)
+                    );
+                }
+                case 'days':
+                default: {
+                    return differenceInDays(target, anchor) % intervalVal === 0;
+                }
             }
-
-            const diff = differenceInDays(target, anchor);
-            return diff % intervalVal === 0;
         }
         default: {
             return false;
         }
     }
+}
+
+/**
+ * True when target lands on the anchor's day-of-month. When the anchor day
+ * exceeds the target month's length (e.g. anchor Jan 31 in Feb), the last day
+ * of the target month counts as a match so monthly schedules never skip.
+ */
+function matchesDayOfMonth(target: Date, anchor: Date): boolean {
+    const anchorDay = anchor.getDate();
+    const targetDay = target.getDate();
+    if (targetDay === anchorDay) {
+        return true;
+    }
+    const lastDay = endOfMonth(target).getDate();
+    return anchorDay > lastDay && targetDay === lastDay;
 }

@@ -28,6 +28,18 @@
             schedule = { type: 'interval', value: 1, unit: 'days' };
         }
     };
+
+    const INTERVAL_UNITS = [
+        { value: 'days', one: 'day', many: 'days' },
+        { value: 'weeks', one: 'week', many: 'weeks' },
+        { value: 'months', one: 'month', many: 'months' },
+        { value: 'years', one: 'year', many: 'years' },
+    ] as const;
+
+    const unitLabel = (unit: string, value: number) => {
+        const def = INTERVAL_UNITS.find((u) => u.value === unit) ?? INTERVAL_UNITS[0];
+        return value === 1 ? def.one : def.many;
+    };
 </script>
 
 <Field.Group>
@@ -54,26 +66,33 @@
     </Field.Field>
 
     {#if schedule.type === 'interval'}
-        <div class="flex gap-2">
-            <Field.Field class="flex-1">
-                <Field.Label>Every</Field.Label>
-                <Input type="number" min="1" bind:value={schedule.value} />
-                <Field.Error errors={errors?.value} />
-            </Field.Field>
-            <Field.Field class="w-1/3">
-                <Field.Label>Unit</Field.Label>
+        <Field.Field>
+            <Field.Label>Repeat every</Field.Label>
+            <div
+                class="flex items-stretch overflow-hidden rounded-sm border border-border/60 bg-input focus-within:border-ring focus-within:ring-2 focus-within:ring-tertiary-fixed"
+            >
+                <Input
+                    type="number"
+                    min="1"
+                    bind:value={schedule.value}
+                    class="h-12 w-20 shrink-0 border-0 bg-transparent text-center focus:ring-0"
+                    aria-label="Interval count"
+                />
+                <div class="my-2 w-px bg-border/60"></div>
                 <Select.Root type="single" bind:value={schedule.unit}>
-                    <Select.Trigger>
-                        {schedule.unit === 'days' ? 'Days' : 'Hours'}
+                    <Select.Trigger class="h-12 flex-1 border-0 bg-transparent capitalize focus:ring-0">
+                        {unitLabel(schedule.unit, schedule.value)}
                     </Select.Trigger>
                     <Select.Content>
-                        <Select.Item value="days" label="Days" />
-                        <Select.Item value="hours" label="Hours" />
+                        {#each INTERVAL_UNITS as u (u.value)}
+                            <Select.Item value={u.value} label={u.many.charAt(0).toUpperCase() + u.many.slice(1)} />
+                        {/each}
                     </Select.Content>
                 </Select.Root>
-                <Field.Error errors={errors?.unit} />
-            </Field.Field>
-        </div>
+            </div>
+            <Field.Error errors={errors?.value} />
+            <Field.Error errors={errors?.unit} />
+        </Field.Field>
     {:else if schedule.type === 'weekly'}
         <Field.Field>
             <Field.Label>Days</Field.Label>

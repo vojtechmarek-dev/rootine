@@ -71,7 +71,41 @@ export function getActivityTypeLabel(type: string): string {
 type ActivityAccentClasses = {
     chip: string;
     bar: string;
+    /** Inline styles, set only for custom hex colours (token colours use classes). */
+    chipStyle?: string;
+    barStyle?: string;
 };
+
+/** Hex values behind the named tokens — also the swatch palette for the picker. */
+export const ACTIVITY_COLOR_PALETTE: Record<string, string> = {
+    forest: '#6b8f5f',
+    emerald: '#10b981',
+    clay: '#b08968',
+    amber: '#f59e0b',
+    rose: '#f43f5e',
+    violet: '#8b5cf6',
+    blue: '#3b82f6',
+    zinc: '#71717a',
+};
+
+export const ACTIVITY_COLOR_SWATCHES: string[] = Object.values(ACTIVITY_COLOR_PALETTE);
+
+const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+export function isHexColor(value: string | null | undefined): value is string {
+    return !!value && HEX_RE.test(value.trim());
+}
+
+/** Accent styles for a custom hex: translucent chip, near-solid bar. */
+function hexAccent(hex: string): ActivityAccentClasses {
+    const h = hex.trim();
+    return {
+        chip: '',
+        bar: '',
+        chipStyle: `background-color:${h}26;color:${h};`,
+        barStyle: `background-color:${h}cc;`,
+    };
+}
 
 const activityAccentClasses: Record<string, ActivityAccentClasses> = {
     zinc: {
@@ -117,7 +151,10 @@ const typeAccentDefaults: Record<string, string> = {
 };
 
 export function getActivityAccentClasses(color: string | null | undefined, type?: string): ActivityAccentClasses {
-    const normalized = color?.trim().toLowerCase();
+    if (isHexColor(color)) {
+        return hexAccent(color);
+    }
+    const normalized = (color ?? '').trim().toLowerCase();
     if (normalized && activityAccentClasses[normalized]) {
         return activityAccentClasses[normalized];
     }

@@ -142,7 +142,9 @@
             const days = activity.schedule.days.map((day: string) => day.slice(0, 3).toUpperCase()).join(', ');
             return `Weekly: ${days}`;
         }
-        return `Every ${activity.schedule.value} ${activity.schedule.unit}`;
+        const { value, unit } = activity.schedule;
+        const singular = unit.replace(/s$/, '');
+        return value === 1 ? `Every ${singular}` : `Every ${value} ${unit}`;
     });
 
     const targetSummary = $derived.by(() => {
@@ -240,12 +242,12 @@
         if (onToggle) onToggle();
     }}
 >
-    <div class={cn('absolute inset-y-0 left-0 w-1', accent.bar)}></div>
+    <div class={cn('absolute inset-y-0 left-0 w-1', accent.bar)} style={accent.barStyle}></div>
     <Card.Header class="space-y-3">
         <div class="min-w-0 space-y-2">
             <div class="flex flex-wrap items-center gap-2">
                 <TypeIcon class="h-4 w-4 text-muted-foreground" />
-                <span class={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', accent.chip)}>
+                <span class={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', accent.chip)} style={accent.chipStyle}>
                     {typeLabel}
                 </span>
                 {#if displayStreak > 0}

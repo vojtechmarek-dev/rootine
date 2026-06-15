@@ -55,7 +55,9 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
     z.object({
         type: z.literal('interval'),
         value: z.coerce.number().min(1),
-        unit: z.enum(['days', 'hours']), // Usually 'days'
+        // Legacy records stored 'hours'; the day-based scheduler treated it as
+        // days anyway, so migrate it forward on read.
+        unit: z.enum(['days', 'weeks', 'months', 'years']),
     }),
 ]);
 

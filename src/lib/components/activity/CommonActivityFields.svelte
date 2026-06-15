@@ -3,6 +3,7 @@
     import { Input } from '$lib/components/ui/input/index.js';
     import type { BaseActivity } from '$lib/types/schemas';
     import DatePicker from '$lib/components/shared/DatePicker.svelte';
+    import ColorPicker from '$lib/components/shared/ColorPicker.svelte';
 
     // Use a generic or partial type for the shared fields
     let {
@@ -35,5 +36,11 @@
         <Field.Label>Start Date</Field.Label>
         <DatePicker bind:value={startDate} />
         <Field.Error errors={errors?.startDate} />
+    </Field.Field>
+
+    <Field.Field>
+        <Field.Label>Color</Field.Label>
+        <ColorPicker bind:value={color} label="Pick a color" />
+        <Field.Error errors={errors?.color} />
     </Field.Field>
 </Field.Group>

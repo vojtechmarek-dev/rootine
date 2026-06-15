@@ -112,7 +112,7 @@
 
     const describe = (seg: Segment) => {
         const h = seg.activityId ? byId.get(seg.activityId) : undefined;
-        if (!h) return { name: 'Root' };
+        if (!h) return { name: 'Tap Root' };
         const days = `${h.growth} day${h.growth === 1 ? '' : 's'} of practice`;
         return { name: h.title, meta: h.streak > 0 ? `${days} · 🔥 ${h.streak}` : days };
     };

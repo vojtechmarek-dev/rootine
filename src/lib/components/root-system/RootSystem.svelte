@@ -53,7 +53,7 @@
         leaves = [],
         highlightActivityId = null,
         maxGrowth = 60,
-        describe = (s) => ({ name: s.depth === 0 ? 'Your foundation' : 'Root', meta: DEPTH_LABEL[s.depth] }),
+        describe = (s) => ({ name: s.depth === 0 ? 'Your foundation' : 'Tap Root', meta: DEPTH_LABEL[s.depth] }),
         onselect,
         sprout = true,
         interactive = true,
@@ -168,10 +168,11 @@
         return () => clearTimeout(t);
     });
 
-
     // ── per-habit tinting ─────────────────────────────────────────────────────
-    // Earthy accents per activity colour token. "zinc"/unset falls back to the
-    // default brown depth palette (CSS) so a mixed garden still reads organic.
+    // The roots and tips keep the earthy brown palette (CSS) so the garden
+    // always reads organic even with many habits — the activity colour only
+    // tints the focus flash ring, where it's a brief accent on one branch.
+    // Legacy colour tokens map to hex here; new activities already store hex.
     const HABIT_BASE: Record<string, string> = {
         emerald: '#5fae6e',
         blue: '#5b93d6',
@@ -180,32 +181,10 @@
         rose: '#d678a0',
     };
 
-    function mixHex(a: string, b: string, t: number): string {
-        const pa = parseInt(a.slice(1), 16);
-        const pb = parseInt(b.slice(1), 16);
-        const ar = (pa >> 16) & 255,
-            ag = (pa >> 8) & 255,
-            ab = pa & 255;
-        const br = (pb >> 16) & 255,
-            bg = (pb >> 8) & 255,
-            bb = pb & 255;
-        const r = Math.round(ar + (br - ar) * t);
-        const g = Math.round(ag + (bg - ag) * t);
-        const bl = Math.round(ab + (bb - ab) * t);
-        return `#${((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1)}`;
-    }
-
-    /**
-     * Stroke for a segment — the accent darkened toward the soil with depth, so
-     * the main root reads strongest and fine offshoots fade into the dark
-     * background (visual hierarchy). Undefined falls back to the CSS browns.
-     */
-    function strokeFor(seg: Segment): string | undefined {
-        const token = seg.color;
+    /** Resolve a segment's colour (token or hex) to a flash accent hex, or undefined for the default glow. */
+    function accentHex(token: string | undefined): string | undefined {
         if (!token || token === 'zinc') return undefined;
-        const base = HABIT_BASE[token];
-        if (!base) return undefined;
-        return mixHex(base, '#241a10', seg.depth * 0.22);
+        return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(token) ? token : HABIT_BASE[token];
     }
 
     // ── above-ground plant: one leaf per earned milestone (achievement) ──────────
@@ -246,7 +225,7 @@
     }
 
     const scenery = $derived.by(() => {
-        const rnd = mulberry32((Math.imul(seed, 2654435761) >>> 0) || 1);
+        const rnd = mulberry32(Math.imul(seed, 2654435761) >>> 0 || 1);
         const stones = Array.from({ length: 26 }, () => ({
             x: -150 + rnd() * 300,
             y: 12 + rnd() * 250,
@@ -517,10 +496,7 @@
                     style:opacity={st.o.toFixed(2)}
                 />
             {/each}
-            <path
-                class="surface"
-                d="M-340 0 Q -300 -1.3 -260 0 T -180 0 T -100 0 T -20 0 T 60 0 T 140 0 T 220 0 T 300 0 T 380 0"
-            />
+            <path class="surface" d="M-340 0 Q -300 -1.3 -260 0 T -180 0 T -100 0 T -20 0 T 60 0 T 140 0 T 220 0 T 300 0 T 380 0" />
             {#each scenery.tufts as t, i (i)}
                 <path
                     class="tuft"
@@ -565,7 +541,6 @@
                 class:hl={hovered != null &&
                     (hovered.activityId != null ? seg.activityId === hovered.activityId : seg.rootId === hovered.rootId)}
                 class:grow={animate}
-                style:stroke={strokeFor(seg)}
                 style:stroke-width="{(seg.baseWidth * maturity).toFixed(2)}px"
                 style:animation-delay={animate ? `${(seg.depth * 0.08).toFixed(2)}s` : undefined}
                 onmouseenter={() => (hovered = seg)}
@@ -593,7 +568,7 @@
              shown only after the branch has finished growing (flashOn). -->
         {#if flashTip && flashOn}
             <g class="flash">
-                <circle class="flash-ring" cx={flashTip.x2} cy={flashTip.y2} r="5" />
+                <circle class="flash-ring" cx={flashTip.x2} cy={flashTip.y2} r="5" style:stroke={accentHex(flashTip.color)} />
             </g>
         {/if}
     </svg>

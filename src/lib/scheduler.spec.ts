@@ -77,6 +77,61 @@ describe('isScheduledForDate — interval (days)', () => {
     });
 });
 
+describe('isScheduledForDate — interval (weeks)', () => {
+    const a = activity({
+        startDate: new Date(2025, 0, 1), // Wed 1 Jan 2025
+        schedule: { type: 'interval', value: 2, unit: 'weeks' },
+    });
+
+    it('is true every 2 weeks from the anchor', () => {
+        expect(isScheduledForDate(a, new Date(2025, 0, 1))).toBe(true); // diff 0
+        expect(isScheduledForDate(a, new Date(2025, 0, 15))).toBe(true); // diff 14 days
+    });
+
+    it('is false off the interval', () => {
+        expect(isScheduledForDate(a, new Date(2025, 0, 8))).toBe(false); // 1 week
+    });
+});
+
+describe('isScheduledForDate — interval (months)', () => {
+    const a = activity({
+        startDate: new Date(2025, 0, 15),
+        schedule: { type: 'interval', value: 1, unit: 'months' },
+    });
+
+    it('is true on the anchor day each month', () => {
+        expect(isScheduledForDate(a, new Date(2025, 0, 15))).toBe(true);
+        expect(isScheduledForDate(a, new Date(2025, 1, 15))).toBe(true);
+    });
+
+    it('is false on other days', () => {
+        expect(isScheduledForDate(a, new Date(2025, 1, 14))).toBe(false);
+    });
+
+    it('clamps anchor day to the last day of shorter months', () => {
+        const end = activity({
+            startDate: new Date(2025, 0, 31), // Jan 31
+            schedule: { type: 'interval', value: 1, unit: 'months' },
+        });
+        expect(isScheduledForDate(end, new Date(2025, 1, 28))).toBe(true); // Feb has no 31st
+    });
+});
+
+describe('isScheduledForDate — interval (years)', () => {
+    const a = activity({
+        startDate: new Date(2025, 2, 10), // 10 Mar 2025
+        schedule: { type: 'interval', value: 1, unit: 'years' },
+    });
+
+    it('is true on the same month/day each year', () => {
+        expect(isScheduledForDate(a, new Date(2026, 2, 10))).toBe(true);
+    });
+
+    it('is false on a different month', () => {
+        expect(isScheduledForDate(a, new Date(2026, 3, 10))).toBe(false);
+    });
+});
+
 describe('isScheduledForDate — plant anchors on lastWatered', () => {
     it('uses lastWatered as the interval anchor when present', () => {
         const a = activity({
