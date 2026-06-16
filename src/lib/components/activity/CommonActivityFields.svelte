@@ -4,6 +4,7 @@
     import type { BaseActivity } from '$lib/types/schemas';
     import DatePicker from '$lib/components/shared/DatePicker.svelte';
     import ColorPicker from '$lib/components/shared/ColorPicker.svelte';
+    import IconPicker from '$lib/components/shared/IconPicker.svelte';
 
     // Use a generic or partial type for the shared fields
     let {
@@ -16,8 +17,14 @@
         archived = $bindable(),
         titlePlaceholder = 'e.g. Drink Water',
         descriptionPlaceholder = 'e.g. Drink water 3 times a day',
+        iconFallback = 'circle',
         errors,
-    }: BaseActivity & { titlePlaceholder?: string; descriptionPlaceholder?: string; errors?: any } = $props();
+    }: BaseActivity & {
+        titlePlaceholder?: string;
+        descriptionPlaceholder?: string;
+        iconFallback?: string;
+        errors?: any;
+    } = $props();
 </script>
 
 <Field.Group>
@@ -38,9 +45,18 @@
         <Field.Error errors={errors?.startDate} />
     </Field.Field>
 
-    <Field.Field>
-        <Field.Label>Color</Field.Label>
-        <ColorPicker bind:value={color} label="Pick a color" />
-        <Field.Error errors={errors?.color} />
-    </Field.Field>
+    <div class="flex items-start gap-3">
+        <Field.Field class="flex-1">
+            <Field.Label>Color</Field.Label>
+            <ColorPicker bind:value={color} label="Pick a color" />
+            <Field.Error errors={errors?.color} />
+        </Field.Field>
+        <!-- Plain column, not a Field: Field forces [&>*]:w-full which would
+             stretch the square icon trigger to full width. -->
+        <div class="flex shrink-0 flex-col gap-3">
+            <Field.Label>Icon</Field.Label>
+            <IconPicker bind:value={icon} fallback={iconFallback} />
+            <Field.Error errors={errors?.icon} />
+        </div>
+    </div>
 </Field.Group>

@@ -38,6 +38,7 @@
                 bind:archived={data.archived}
                 titlePlaceholder="e.g. Monstera"
                 descriptionPlaceholder="e.g. Water weekly, bright indirect light"
+                iconFallback="sprout"
                 {errors}
             />
 

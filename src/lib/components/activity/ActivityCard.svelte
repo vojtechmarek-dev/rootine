@@ -14,9 +14,7 @@
         CalendarOff,
         CheckIcon,
         ChevronDown,
-        Dumbbell,
         Pencil,
-        Repeat,
         Sprout,
         MoreHorizontal,
         Archive,
@@ -26,6 +24,7 @@
     import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import type { ActivityFormData } from '$lib/types/schemas';
     import { cn, getActivityAccentClasses, getActivityTypeLabel } from '$lib/utils';
+    import { getActivityIcon } from '$lib/utils/icons';
     import * as Popover from '$lib/components/ui/popover';
     import { buttonVariants } from '$lib/components/ui/button';
     import { toast } from 'svelte-sonner';
@@ -124,15 +123,7 @@
         tendrilTip = { x: point.x, y: point.y };
     });
 
-    const TypeIcon = $derived.by(() => {
-        if (activity.type === 'plant') {
-            return Sprout;
-        }
-        if (activity.type === 'workout') {
-            return Dumbbell;
-        }
-        return Repeat;
-    });
+    const TypeIcon = $derived(getActivityIcon(activity.icon, activity.type));
 
     const scheduleSummary = $derived.by(() => {
         if (activity.schedule.type === 'daily') {

@@ -36,6 +36,7 @@
                 bind:startDate={data.startDate}
                 bind:endDate={data.endDate}
                 bind:archived={data.archived}
+                iconFallback="check"
                 {errors}
             />
 

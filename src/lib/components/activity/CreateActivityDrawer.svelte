@@ -38,14 +38,17 @@
         habit: {
             config: { targetValue: 1, unit: 'times' } as HabitConfig,
             schedule: { type: 'daily' } as Schedule,
+            icon: 'check',
         },
         plant: {
             config: { location: '', species: '' } as PlantConfig,
             schedule: { type: 'interval', value: 7, unit: 'days' } as Schedule,
+            icon: 'sprout',
         },
         workout: {
             config: { exercises: [], workoutSets: [], rotation: [], useRotation: true } as WorkoutConfig,
             schedule: { type: 'weekly', days: ['mon', 'wed', 'fri'] } as Schedule,
+            icon: 'dumbbell',
         },
     };
 
@@ -89,6 +92,7 @@
         $form.type = newType;
         $form.config = { ...defaults[newType].config };
         $form.schedule = { ...defaults[newType].schedule };
+        $form.icon = defaults[newType].icon;
         view = newType;
     };
 

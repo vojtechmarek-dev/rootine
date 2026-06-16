@@ -74,6 +74,7 @@
                 bind:archived={data.archived}
                 titlePlaceholder="e.g. Push Pull Legs"
                 descriptionPlaceholder="e.g. Strength program, 3 times a week"
+                iconFallback="dumbbell"
                 {errors}
             />
 
