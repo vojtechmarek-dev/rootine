@@ -16,10 +16,7 @@ export function isPushSupported(): boolean {
  * is in the way. Race it against a timeout so callers never block forever.
  */
 function serviceWorkerReady(timeoutMs: number): Promise<ServiceWorkerRegistration | null> {
-    return Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
-    ]);
+    return Promise.race([navigator.serviceWorker.ready, new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs))]);
 }
 
 export async function getPushStatus(): Promise<PushStatus> {
