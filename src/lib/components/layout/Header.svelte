@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { LogOut, X, Sun, Moon, Monitor, Settings } from '@lucide/svelte';
+    import { LogOut, X, Settings } from '@lucide/svelte';
     import { signOut } from '@auth/sveltekit/client';
     import { Button, buttonVariants } from '$lib/components/ui/button';
-    import { ButtonGroup } from '$lib/components/ui/button-group';
     import * as Avatar from '$lib/components/ui/avatar';
     import * as Drawer from '$lib/components/ui/drawer';
     import type { Session } from '$lib/types/schemas';
-    import { theme, setThemeMode, type ThemeMode } from '$lib/theme/theme.svelte';
+    import AppearanceSettings from '$lib/components/layout/AppearanceSettings.svelte';
     import NotificationSettings from '$lib/components/layout/NotificationSettings.svelte';
+    import HapticSettings from '$lib/components/layout/HapticSettings.svelte';
 
     let { data } = $props<{
         data: { session: Session | null };
@@ -22,10 +22,6 @@
 
     function getInitials(name?: string | null) {
         return name ? name.slice(0, 2).toUpperCase() : 'U';
-    }
-
-    function handleThemeChange(mode: ThemeMode) {
-        setThemeMode(mode);
     }
 </script>
 
@@ -92,46 +88,10 @@
                             <Drawer.Close class={buttonVariants({ variant: 'ghost', size: 'icon' })}><X class="h-4 w-4" /></Drawer.Close>
                         </div>
                     </Drawer.Header>
-                    <div class="space-y-6 p-4 pb-8">
-                        <div class="space-y-3">
-                            <h3 class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Appearance
-                            </h3>
-                            <ButtonGroup orientation="horizontal" class="flex w-50 justify-center">
-                                <Button
-                                    data-slot="select-trigger"
-                                    variant={theme.mode === 'light' ? 'default' : 'outline'}
-                                    size="icon"
-                                    class="h-11 w-0 min-w-0 flex-1 shrink justify-center"
-                                    aria-label="Theme mode: light"
-                                    onclick={() => handleThemeChange('light')}
-                                >
-                                    <Sun class="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    data-slot="select-trigger"
-                                    variant={theme.mode === 'dark' ? 'default' : 'outline'}
-                                    size="icon"
-                                    class="h-11 w-0 min-w-0 flex-1 shrink justify-center"
-                                    aria-label="Theme mode: dark"
-                                    onclick={() => handleThemeChange('dark')}
-                                >
-                                    <Moon class="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    data-slot="select-trigger"
-                                    variant={theme.mode === 'system' ? 'default' : 'outline'}
-                                    size="icon"
-                                    class="h-11 w-0 min-w-0 flex-1 shrink justify-center"
-                                    aria-label="Theme mode: system"
-                                    onclick={() => handleThemeChange('system')}
-                                >
-                                    <Monitor class="h-4 w-4" />
-                                </Button>
-                            </ButtonGroup>
-                        </div>
-
+                    <div class="space-y-4 p-4 pb-8">
+                        <AppearanceSettings />
                         <NotificationSettings />
+                        <HapticSettings />
                     </div>
                 </div>
             </Drawer.Content>

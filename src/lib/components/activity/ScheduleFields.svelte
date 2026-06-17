@@ -160,14 +160,8 @@
             <div class="space-y-2">
                 {#each schedule.times ?? [] as time, index (index)}
                     <div class="flex items-center gap-2">
-                        <Input type="time" value={time} oninput={(e) => updateTime(index, e.currentTarget.value)} class="flex-1" />
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Remove reminder"
-                            onclick={() => removeTime(index)}
-                        >
+                        <Input type="time" value={time} oninput={(e) => updateTime(index, e.currentTarget.value)} class="w-36" />
+                        <Button type="button" variant="ghost" size="icon" aria-label="Remove reminder" onclick={() => removeTime(index)}>
                             <X class="h-4 w-4" />
                         </Button>
                     </div>

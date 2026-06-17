@@ -214,18 +214,24 @@ already follows.
 
 ### 3. Cron schedule
 
-`vercel.json` registers the job:
+The reminder window is 15 minutes ([`WINDOW_MINUTES`](../../src/routes/api/cron/reminders/+server.ts)),
+so for reminders to land near their set time the dispatcher must run **every ~15 minutes**. Vercel Hobby
+caps cron at **once per day**, so the real cadence comes from an **external scheduler** and `vercel.json`
+keeps only a once-daily safety net:
 
 ```json
-"crons": [{ "path": "/api/cron/reminders", "schedule": "*/15 * * * *" }]
+"crons": [{ "path": "/api/cron/reminders", "schedule": "0 21 * * *" }]
 ```
 
-When `CRON_SECRET` is set in the Vercel project, **Vercel automatically attaches the
-`Authorization: Bearer <CRON_SECRET>` header** to cron invocations — no extra wiring.
+> Vercel cron schedules are **UTC** — `0 21 * * *` is 21:00 UTC. When `CRON_SECRET` is set in the Vercel
+> project, Vercel automatically attaches the `Authorization: Bearer <CRON_SECRET>` header to its
+> invocations.
 
-> **Hobby plan caveat:** Vercel Hobby runs cron jobs at most **once per day**, so 15-minute reminders
-> need the Pro plan _or_ an external scheduler (e.g. cron-job.org) calling the same URL with the
-> `Authorization: Bearer <CRON_SECRET>` header. The endpoint accepts any caller with the right secret.
+**External scheduler (the real driver):** point a service like [cron-job.org](https://cron-job.org) at
+`https://<your-domain>/api/cron/reminders` every 15 minutes, with header
+`Authorization: Bearer <CRON_SECRET>`. The endpoint accepts any caller with the right secret, so the
+external scheduler and Vercel's daily run use the exact same path. A reminder time only fires inside its
+own 15-minute window, so a slower external interval will simply miss some windows.
 
 ### 4. Testing locally
 
