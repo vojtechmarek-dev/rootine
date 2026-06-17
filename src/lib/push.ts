@@ -63,7 +63,8 @@ export async function enablePush(): Promise<PushStatus> {
         // embedded/Electron webviews). Surface an actionable hint.
         if (err instanceof Error && /push service/i.test(err.message)) {
             throw new Error(
-                'No push service in this browser. Open the app in a standalone Chrome, Edge, or Firefox window — the in-editor browser cannot use Web Push.'
+                'No push service in this browser. Open the app in a standalone Chrome, Edge, or Firefox window — the in-editor browser cannot use Web Push.',
+                { cause: err }
             );
         }
         throw err;
