@@ -69,4 +69,8 @@ Use **`strategies: 'injectManifest'`** with `@vite-pwa/sveltekit` as the single 
   worker on their next visit (the old script 404s on update check and is unregistered).
   Transient; negligible for a single-user app.
 - Push still needs the **client-side** subscription flow (permission prompt + `PushManager`
-  subscribe + send subscription to the server) and a server push sender — not yet implemented.
+  subscribe + send subscription to the server) and a server push sender.
+
+    > **Now implemented** — see [Push Notifications](../features/push-notifications.md) for the subscribe
+    > flow (`src/lib/push.ts`), subscription storage (`/api/push`), server sender (`src/lib/server/push.ts`,
+    > web-push + VAPID), and the timezone-aware reminder cron (`/api/cron/reminders`).

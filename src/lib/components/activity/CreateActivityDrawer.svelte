@@ -15,7 +15,16 @@
     import HabitForm, { meta as HabitMeta } from '$lib/components/activity/forms/HabitForm.svelte';
     import PlantForm, { meta as PlantMeta } from '$lib/components/activity/forms/PlantForm.svelte';
     import WorkoutForm, { meta as WorkoutMeta } from '$lib/components/activity/forms/WorkoutForm.svelte';
-    import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, ActivityFormData, DrawerActivity, FormErrors } from '$lib/types/schemas';
+    import type {
+        Activity,
+        HabitConfig,
+        PlantConfig,
+        WorkoutConfig,
+        Schedule,
+        ActivityFormData,
+        DrawerActivity,
+        FormErrors,
+    } from '$lib/types/schemas';
     import { getEmptyDrawerActivity } from '$lib/types/schemas';
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
