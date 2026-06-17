@@ -27,6 +27,6 @@
     const action = $derived(isEditing ? '?/updateActivity' : '?/createActivity');
 </script>
 
-<form id={formId} method="POST" {action} use:enhance>
+<form id={formId} method="POST" {action} novalidate use:enhance>
     <FormComponent bind:data={formData} {errors} />
 </form>

@@ -10,7 +10,7 @@
         errors,
     }: {
         exercises: Exercise[];
-        // Zod error tree keyed by exercise id (matches legacy WorkoutForm shape).
+        // Superforms keys array-item errors by index, so look up by loop index (not id).
         errors?: FormErrors;
     } = $props();
 
@@ -25,7 +25,7 @@
 </script>
 
 <div class="flex flex-col gap-4">
-    {#each exercises as exercise (exercise.id)}
+    {#each exercises as exercise, i (exercise.id)}
         <div class="relative flex flex-col gap-3 rounded-lg bg-surface-container-low p-4 text-foreground shadow-ambient">
             <div class="flex items-center gap-2">
                 <div class="flex-1">
@@ -35,7 +35,7 @@
                         bind:value={() => exercise.name, (v) => patch(exercise.id, { name: v })}
                         class="bg-surface-container-high font-medium"
                     />
-                    <Field.Error errors={errors?.[exercise.id]?.name} />
+                    <Field.Error errors={errors?.[i]?.name} />
                 </div>
                 <Button
                     variant="ghost"
@@ -62,7 +62,7 @@
                         bind:value={() => exercise.sets, (v) => patch(exercise.id, { sets: v })}
                         class="bg-surface-container-high"
                     />
-                    <Field.Error errors={errors?.[exercise.id]?.sets} />
+                    <Field.Error errors={errors?.[i]?.sets} />
                 </div>
                 <div class="space-y-1">
                     <label
@@ -76,7 +76,7 @@
                         bind:value={() => exercise.reps, (v) => patch(exercise.id, { reps: v })}
                         class="bg-surface-container-high"
                     />
-                    <Field.Error errors={errors?.[exercise.id]?.reps} />
+                    <Field.Error errors={errors?.[i]?.reps} />
                 </div>
                 <div class="space-y-1">
                     <label
@@ -92,7 +92,7 @@
                         bind:value={() => exercise.weight, (v) => patch(exercise.id, { weight: v })}
                         class="bg-surface-container-high"
                     />
-                    <Field.Error errors={errors?.[exercise.id]?.weight} />
+                    <Field.Error errors={errors?.[i]?.weight} />
                 </div>
             </div>
         </div>

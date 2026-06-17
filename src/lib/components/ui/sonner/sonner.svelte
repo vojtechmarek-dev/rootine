@@ -9,12 +9,14 @@
 
     // Bottom-centered, lifted above the fixed bottom nav (~64px + breathing room).
     // svelte-sonner uses `mobileOffset` (not `offset`) on small viewports.
+    // Only lift the bottom — a uniform offset also pads left/right, squishing the
+    // toast into two rows on narrow phones. Keep side margins small for max width.
     let {
         richColors = true,
         closeButton = true,
         position = 'bottom-center',
         offset = 84,
-        mobileOffset = 84,
+        mobileOffset = { bottom: 84, left: 16, right: 16, top: 16 },
         ...restProps
     }: SonnerProps = $props();
 </script>

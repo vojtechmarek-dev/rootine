@@ -177,8 +177,9 @@
     }
 
     function handleExit() {
+        // Replace history so back/swipe doesn't return to the abandoned workout.
         // eslint-disable-next-line svelte/no-navigation-without-resolve
-        goto('/');
+        goto('/', { replaceState: true });
     }
 
     const logDataJSON = $derived.by(() => {
@@ -278,8 +279,9 @@
                             // reports the stage crossing instead.
                             const grew = (result.data as { grew?: boolean } | undefined)?.grew === true;
                             setTimeout(async () => {
+                                // Replace history so back/swipe doesn't return to the finished workout.
                                 // eslint-disable-next-line svelte/no-navigation-without-resolve
-                                await goto('/');
+                                await goto('/', { replaceState: true });
                                 if (grew) {
                                     toast.success('Your root has grown! 🌱', {
                                         action: {

@@ -254,9 +254,8 @@
                     </span>
                 {/if}
                 {#if isCompleted}
-                    <span class="inline-flex items-center gap-1 rounded-full bg-success/20 px-2 py-0.5 text-xs font-medium text-success">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-success/20 px-2 py-1 text-xs font-medium text-success">
                         <CheckIcon class="h-3 w-3" />
-                        Completed
                     </span>
                 {:else if activity.isSkippedToday}
                     <span

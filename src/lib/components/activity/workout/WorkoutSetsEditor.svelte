@@ -121,7 +121,7 @@
                                 }
                                 class="bg-surface-container-high font-medium"
                             />
-                            <Field.Error errors={errors?.[set.id]?.name} />
+                            <Field.Error errors={errors?.[i]?.name} />
                         </div>
 
                         <span class="shrink-0 text-xs text-muted-foreground">
@@ -164,7 +164,7 @@
                                         workoutSets = workoutSets.map((s) => (s.id === set.id ? { ...s, exercises: value } : s));
                                     }
                                 }
-                                errors={errors?.[set.id]?.exercises}
+                                errors={errors?.[i]?.exercises}
                             />
                         </div>
                     {/if}
