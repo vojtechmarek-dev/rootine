@@ -83,7 +83,7 @@ const CompleteWorkoutFormSchema = z.object({
         try {
             const parsed = JSON.parse(str);
             return WorkoutLogSchema.parse(parsed);
-        } catch (e) {
+        } catch {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 message: 'Invalid workout log data',

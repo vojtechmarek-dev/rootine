@@ -3,7 +3,7 @@
     import { Input } from '$lib/components/ui/input/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Plus, Trash2 } from '@lucide/svelte';
-    import type { Exercise } from '$lib/types/schemas';
+    import type { Exercise, FormErrors } from '$lib/types/schemas';
 
     let {
         exercises = $bindable(),
@@ -11,7 +11,7 @@
     }: {
         exercises: Exercise[];
         // Zod error tree keyed by exercise id (matches legacy WorkoutForm shape).
-        errors?: any;
+        errors?: FormErrors;
     } = $props();
 
     // Editing a field must REASSIGN the array, not mutate an element in place.

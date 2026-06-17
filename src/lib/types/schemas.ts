@@ -332,6 +332,16 @@ export type DrawerActivity = z.infer<typeof DrawerActivitySchema>;
 
 export type ActivityFormData = DrawerActivity;
 
+/**
+ * Recursive validation-error tree as produced by superforms / Zod and threaded
+ * down through the activity forms. Branches are keyed by field name (or, for
+ * dynamic collections, by item id/index); leaf nodes are message arrays at
+ * runtime. Indexing always yields `FormErrors` so nested access type-checks;
+ * `Field.Error` guards with `Array.isArray` to render only the leaf arrays.
+ */
+export type FieldErrorList = ({ message?: string } | string)[];
+export type FormErrors = { [key: string]: FormErrors };
+
 export function getEmptyDrawerActivity(): DrawerActivity {
     return {
         title: '',

@@ -9,7 +9,7 @@
 <script lang="ts">
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
-    import type { ActivityFormData } from '$lib/types/schemas';
+    import type { ActivityFormData, FormErrors } from '$lib/types/schemas';
     import CommonActivityFields from '$lib/components/activity/CommonActivityFields.svelte';
     import ScheduleFields from '$lib/components/activity/ScheduleFields.svelte';
 
@@ -18,7 +18,7 @@
         errors,
     }: {
         data: Extract<ActivityFormData, { type: 'plant' }>;
-        errors?: any;
+        errors?: FormErrors;
     } = $props();
 </script>
 
@@ -34,8 +34,6 @@
                 bind:color={data.color}
                 bind:icon={data.icon}
                 bind:startDate={data.startDate}
-                bind:endDate={data.endDate}
-                bind:archived={data.archived}
                 titlePlaceholder="e.g. Monstera"
                 descriptionPlaceholder="e.g. Water weekly, bright indirect light"
                 iconFallback="sprout"

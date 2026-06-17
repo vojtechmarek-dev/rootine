@@ -4,7 +4,7 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import { Plus, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Pencil, RotateCcw } from '@lucide/svelte';
-    import type { WorkoutSet } from '$lib/types/schemas';
+    import type { WorkoutSet, FormErrors } from '$lib/types/schemas';
     import ExerciseListEditor from './ExerciseListEditor.svelte';
 
     let {
@@ -16,7 +16,7 @@
         workoutSets: WorkoutSet[];
         rotation: string[];
         useRotation: boolean;
-        errors?: any;
+        errors?: FormErrors;
     } = $props();
 
     let editingSetId = $state<string | null>(null);

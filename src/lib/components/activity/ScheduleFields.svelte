@@ -3,9 +3,9 @@
     import { Input } from '$lib/components/ui/input/index.js';
     import * as Select from '$lib/components/ui/select/index.js';
     import { WEEKDAYS } from '$lib/constants';
-    import type { Schedule } from '$lib/types/schemas';
+    import type { Schedule, FormErrors } from '$lib/types/schemas';
 
-    let { schedule = $bindable(), errors }: { schedule: Schedule; errors?: any } = $props();
+    let { schedule = $bindable(), errors }: { schedule: Schedule; errors?: FormErrors } = $props();
 
     // Helper to sync Select value with Schedule type
     let selectedType = $derived<Schedule['type']>(schedule.type);

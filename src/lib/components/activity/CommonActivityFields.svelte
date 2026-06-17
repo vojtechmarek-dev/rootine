@@ -1,7 +1,7 @@
 <script lang="ts">
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
-    import type { BaseActivity } from '$lib/types/schemas';
+    import type { BaseActivity, FormErrors } from '$lib/types/schemas';
     import DatePicker from '$lib/components/shared/DatePicker.svelte';
     import ColorPicker from '$lib/components/shared/ColorPicker.svelte';
     import IconPicker from '$lib/components/shared/IconPicker.svelte';
@@ -13,17 +13,15 @@
         color = $bindable(),
         icon = $bindable(),
         startDate = $bindable(),
-        endDate = $bindable(),
-        archived = $bindable(),
         titlePlaceholder = 'e.g. Drink Water',
         descriptionPlaceholder = 'e.g. Drink water 3 times a day',
         iconFallback = 'circle',
         errors,
-    }: BaseActivity & {
+    }: Omit<BaseActivity, 'endDate' | 'archived'> & {
         titlePlaceholder?: string;
         descriptionPlaceholder?: string;
         iconFallback?: string;
-        errors?: any;
+        errors?: FormErrors;
     } = $props();
 </script>
 

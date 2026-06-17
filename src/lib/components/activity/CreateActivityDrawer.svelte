@@ -15,7 +15,7 @@
     import HabitForm, { meta as HabitMeta } from '$lib/components/activity/forms/HabitForm.svelte';
     import PlantForm, { meta as PlantMeta } from '$lib/components/activity/forms/PlantForm.svelte';
     import WorkoutForm, { meta as WorkoutMeta } from '$lib/components/activity/forms/WorkoutForm.svelte';
-    import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, ActivityFormData, DrawerActivity } from '$lib/types/schemas';
+    import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, ActivityFormData, DrawerActivity, FormErrors } from '$lib/types/schemas';
     import { getEmptyDrawerActivity } from '$lib/types/schemas';
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
@@ -186,9 +186,9 @@
                     <div class="h-full w-full" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
                         <ActivityEditor
                             bind:formData={$form}
-                            errors={$errors}
+                            errors={$errors as unknown as FormErrors}
                             formId={FORM_ID}
-                            FormComponent={FormDef.component as Component<{ data: ActivityFormData; errors?: any }>}
+                            FormComponent={FormDef.component as Component<{ data: ActivityFormData; errors?: FormErrors }>}
                             enhance={superEnhance}
                         />
 

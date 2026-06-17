@@ -9,7 +9,7 @@
 <script lang="ts">
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
-    import type { ActivityFormData } from '$lib/types/schemas';
+    import type { ActivityFormData, FormErrors } from '$lib/types/schemas';
     import { cn } from '$lib/utils';
     import CommonActivityFields from '$lib/components/activity/CommonActivityFields.svelte';
     import ScheduleFields from '$lib/components/activity/ScheduleFields.svelte';
@@ -21,7 +21,7 @@
         errors,
     }: {
         data: Extract<ActivityFormData, { type: 'workout' }>;
-        errors?: any;
+        errors?: FormErrors;
     } = $props();
 
     // One editor at a time: a flat exercise list ("single") or named sets the
@@ -70,8 +70,6 @@
                 bind:color={data.color}
                 bind:icon={data.icon}
                 bind:startDate={data.startDate}
-                bind:endDate={data.endDate}
-                bind:archived={data.archived}
                 titlePlaceholder="e.g. Push Pull Legs"
                 descriptionPlaceholder="e.g. Strength program, 3 times a week"
                 iconFallback="dumbbell"

@@ -2,17 +2,22 @@
     import { cn, type WithElementRef } from '$lib/utils.js';
     import type { HTMLAttributes } from 'svelte/elements';
     import type { Snippet } from 'svelte';
+    import type { FieldErrorList, FormErrors } from '$lib/types/schemas';
 
     let {
         ref = $bindable(null),
         class: className,
+        errors: errorsProp,
         children,
-        errors,
         ...restProps
     }: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
         children?: Snippet;
-        errors?: ({ message?: string } | string)[];
+        // Callers index into a FormErrors tree, so a leaf access is typed as the
+        // branch-or-leaf union; only the leaf array is renderable here.
+        errors?: FormErrors | FieldErrorList;
     } = $props();
+
+    const errors = $derived(Array.isArray(errorsProp) ? errorsProp : undefined);
 
     const hasContent = $derived.by(() => {
         // has slotted error
