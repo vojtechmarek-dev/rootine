@@ -3,13 +3,27 @@
     import { toast } from 'svelte-sonner';
     import { Button } from '$lib/components/ui/button';
     import { toastError } from '$lib/toast';
-    import { getPushStatus, enablePush, disablePush, type PushStatus } from '$lib/push';
+    import { getPushStatus, isPushSupported, enablePush, disablePush, type PushStatus } from '$lib/push';
 
     let status = $state<PushStatus | 'loading'>('loading');
     let busy = $state(false);
 
     $effect(() => {
-        getPushStatus().then((s) => (status = s));
+        // Decide support synchronously so the button is usable immediately;
+        // refine to the real subscription state in the background. A failed or
+        // slow readiness check can never strand the button on 'loading'.
+        if (!isPushSupported()) {
+            status = 'unsupported';
+            return;
+        }
+        if (Notification.permission === 'denied') {
+            status = 'denied';
+            return;
+        }
+        status = 'disabled';
+        getPushStatus()
+            .then((s) => (status = s))
+            .catch((err) => console.error('Push status check failed:', err));
     });
 
     async function toggle() {
@@ -30,7 +44,9 @@
                 }
             }
         } catch (err) {
-            toastError('Could not update notifications', { detail: err });
+            const message = err instanceof Error ? err.message : String(err);
+            console.error('[push] enable/disable failed:', err);
+            toastError('Could not update notifications', { description: message, detail: err });
         } finally {
             busy = false;
         }

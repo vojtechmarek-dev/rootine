@@ -12,20 +12,28 @@ import { and, eq, gte, inArray } from 'drizzle-orm';
 import { ActivitySchema, WeekExceptionSchema, type Activity, type WeekException } from '$lib/types/schemas';
 import { isScheduledForDate } from '$lib/scheduler';
 import { isoWeekOf } from '$lib/workout-rotation';
+import { tzTodayString, tzTodayDate } from '$lib/utils/date';
 import { sendPush, type StoredSubscription } from '$lib/server/push';
 import type { RequestHandler } from './$types';
 
 // Must match the scheduler's firing interval.
 const WINDOW_MINUTES = 15;
 
-/** Wall-clock "now" in the given IANA timezone, as a server-local Date. */
-function nowInTimezone(timezone: string): Date {
-    return new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
-}
-
-/** yyyy-MM-dd of an absolute instant in the given timezone. */
-function localDayOf(date: Date, timezone: string): string {
-    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone, dateStyle: 'short' }).format(date);
+/**
+ * Minutes-since-local-midnight for `now` in IANA `tz`, floored to the current
+ * WINDOW_MINUTES bucket. Throws on an invalid timezone (caught by the caller).
+ */
+function windowStartInTimezone(tz: string, now: Date = new Date()): number {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+    }).formatToParts(now);
+    const hours = Number(parts.find((p) => p.type === 'hour')?.value);
+    const minutes = Number(parts.find((p) => p.type === 'minute')?.value);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) throw new Error(`Bad timezone: ${tz}`);
+    return Math.floor((hours * 60 + minutes) / WINDOW_MINUTES) * WINDOW_MINUTES;
 }
 
 /** True when "HH:mm" falls inside the window [windowStart, windowStart + WINDOW_MINUTES). */
@@ -100,22 +108,24 @@ export const GET: RequestHandler = async ({ request }) => {
         }
 
         for (const [timezone, tzSubs] of subsByTimezone) {
-            let localNow: Date;
+            let windowStart: number;
             try {
-                localNow = nowInTimezone(timezone);
+                windowStart = windowStartInTimezone(timezone);
             } catch {
                 continue; // bad stored timezone — skip rather than crash the run
             }
-            const windowStart = Math.floor((localNow.getHours() * 60 + localNow.getMinutes()) / WINDOW_MINUTES) * WINDOW_MINUTES;
-            const localToday = localDayOf(new Date(), timezone);
+            // Local "today" as a UTC-midnight date — the canonical bucketing the
+            // dashboard uses (ADR 007), fed straight into the scheduler.
+            const localToday = tzTodayString(timezone);
+            const localTodayDate = tzTodayDate(timezone);
 
             for (const activity of parsed) {
                 const times = 'times' in activity.schedule ? (activity.schedule.times ?? []) : [];
                 if (!times.some((t) => isTimeInWindow(t, windowStart))) continue;
-                if (!isScheduledForDate(activity, localNow, exceptions)) continue;
+                if (!isScheduledForDate(activity, localTodayDate, exceptions)) continue;
 
                 const doneCount = recentLogs.filter(
-                    (l) => l.activityId === activity.id && l.status !== 'skipped' && localDayOf(l.date, timezone) === localToday
+                    (l) => l.activityId === activity.id && l.status !== 'skipped' && tzTodayString(timezone, l.date) === localToday
                 ).length;
                 if (doneCount >= targetCountOf(activity)) continue;
 
