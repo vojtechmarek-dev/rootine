@@ -41,7 +41,6 @@
         { label: 'Longest streak', value: statLong, icon: Trophy, tone: 'text-amber-400' },
         { label: 'Completions', value: statTotal, icon: Sprout, tone: 'text-secondary' },
     ]);
-
 </script>
 
 <div class="flex flex-col gap-4 p-4">

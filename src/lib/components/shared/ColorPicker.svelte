@@ -24,7 +24,9 @@
     });
 </script>
 
-<div class="color-picker-field flex h-12 w-full items-center gap-3 rounded-sm border border-border/60 bg-input px-4 text-sm focus-within:border-ring focus-within:ring-2 focus-within:ring-tertiary-fixed">
+<div
+    class="color-picker-field flex h-12 w-full items-center gap-3 rounded-sm border border-border/60 bg-input px-4 text-sm focus-within:border-ring focus-within:ring-2 focus-within:ring-tertiary-fixed"
+>
     <ColorPicker bind:hex {label} isAlpha={false} position="responsive" isTextInput={false} swatches={ACTIVITY_COLOR_SWATCHES} />
     <span class="ml-auto text-sm text-muted-foreground">{hex}</span>
 </div>

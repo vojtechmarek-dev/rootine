@@ -17,9 +17,7 @@
     let searchQuery = $state('');
     let open = $state(false);
 
-    const filtered = $derived(
-        searchQuery.trim() ? iconNames.filter((name) => name.includes(searchQuery.trim().toLowerCase())) : iconNames
-    );
+    const filtered = $derived(searchQuery.trim() ? iconNames.filter((name) => name.includes(searchQuery.trim().toLowerCase())) : iconNames);
 
     const Current = $derived(getIconComponent(value || fallback));
 

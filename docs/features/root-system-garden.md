@@ -2,8 +2,8 @@
 
 A procedural underground "plant" that grows as the user completes activities.
 **One central taproot** (the shared foundation) with **one offshoot per habit**
-branching off it — and each offshoot's length/complexity tracks *that habit's
-own* completion count. A neglected habit is a short stub (or nothing); an active
+branching off it — and each offshoot's length/complexity tracks _that habit's
+own_ completion count. A neglected habit is a short stub (or nothing); an active
 one is long and richly branched. Layered on top: a **streak** metric, per-habit
 **colour tinting**, milestone **blooms**, **click-through**, and **optimistic
 growth** on completion.
@@ -23,11 +23,11 @@ The generator (`src/lib/roots.ts`) is **pure and deterministic**. We **derive
 everything** from existing rows — so the feature adds **zero tables and zero
 columns**.
 
-| Quantity | Source | Why it's safe |
-| -------- | ------ | ------------- |
-| tree `seed` | FNV-1a hash of the **userId** | One stable shared tree per user; never reshuffles. |
-| per-habit offshoot length | Count of that activity's non-skipped `logs` | Monotonic; raising it only _adds_ segments. |
-| `currentStreak` / `longestStreak` | Pure function over all log dates | Recomputed each load; no drift. |
+| Quantity                          | Source                                      | Why it's safe                                      |
+| --------------------------------- | ------------------------------------------- | -------------------------------------------------- |
+| tree `seed`                       | FNV-1a hash of the **userId**               | One stable shared tree per user; never reshuffles. |
+| per-habit offshoot length         | Count of that activity's non-skipped `logs` | Monotonic; raising it only _adds_ segments.        |
+| `currentStreak` / `longestStreak` | Pure function over all log dates            | Recomputed each load; no drift.                    |
 
 The whole tree is generated up-front; growth only **reveals** more of it:
 
@@ -107,12 +107,12 @@ sequenceDiagram
 
 `GardenData` (`src/lib/types/garden.ts`):
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| `seed` | `number` | FNV-1a of userId → fixed shared-tree shape. |
-| `habits[]` | `GardenHabit[]` | One per non-archived activity. |
-| `totalCompletions` | `number` | Lifetime non-skipped logs — root thickness + a stat. |
-| `currentStreak` / `longestStreak` | `number` | Streaks. |
+| Field                             | Type            | Description                                          |
+| --------------------------------- | --------------- | ---------------------------------------------------- |
+| `seed`                            | `number`        | FNV-1a of userId → fixed shared-tree shape.          |
+| `habits[]`                        | `GardenHabit[]` | One per non-archived activity.                       |
+| `totalCompletions`                | `number`        | Lifetime non-skipped logs — root thickness + a stat. |
+| `currentStreak` / `longestStreak` | `number`        | Streaks.                                             |
 
 `GardenHabit`: `{ id, title, type, color, growth }` — `growth` is that habit's
 completion count (drives its offshoot length, bloom tier, tooltip).
@@ -144,21 +144,21 @@ time, via `Date.UTC(y, m, d)` ordinals.
 
 | Completion days (rel. today) | `current` |
 | ---------------------------- | --------- |
-| today, −1, −2 | 3 |
-| −1, −2 (grace) | 2 |
-| −2, −3 (missed today+yday) | 0 |
+| today, −1, −2                | 3         |
+| −1, −2 (grace)               | 2         |
+| −2, −3 (missed today+yday)   | 0         |
 
 ---
 
 ## Per-Habit Features
 
-| Feature | How |
-| ------- | --- |
-| **Offshoot length** | Revealed segments == habit completions (local `born`). Neglected habit → stub/none. |
-| **Colour tinting** | Offshoot follows the habit's colour token, shaded toward parchment with depth; `zinc`/unset → brown CSS palette. |
+| Feature              | How                                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Offshoot length**  | Revealed segments == habit completions (local `born`). Neglected habit → stub/none.                                                                     |
+| **Colour tinting**   | Offshoot follows the habit's colour token, shaded toward parchment with depth; `zinc`/unset → brown CSS palette.                                        |
 | **Milestone blooms** | Flower pops in (scale transition) at the offshoot's outermost revealed tip when its count crosses `MILESTONES = [7, 30, 100, 365]` (tier sizes petals). |
-| **Click-through** | Tap a root → `onselect(activityId, type)`: workout → `/workout/[id]`; else → `/?focus=<id>` (dashboard expands + scrolls that card). |
-| **Tooltip** | Hover a root → habit title + "N completed". Taproot → "Your foundation". |
+| **Click-through**    | Tap a root → `onselect(activityId, type)`: workout → `/workout/[id]`; else → `/?focus=<id>` (dashboard expands + scrolls that card).                    |
+| **Tooltip**          | Hover a root → habit title + "N completed". Taproot → "Your foundation".                                                                                |
 
 ### Optimistic growth on completion
 
@@ -204,20 +204,20 @@ bottom bar (`Sprout` icon).
 
 ## Files
 
-| File | Role | New / Changed |
-| ---- | ---- | ------------- |
-| `src/lib/roots.ts` | `generateGarden` (taproot + offshoots), `milestoneTier` | changed |
-| `src/lib/roots.spec.ts` | Generator tests | new |
-| `src/lib/streak.ts` + `.spec.ts` | Pure streak math | new |
-| `src/lib/types/garden.ts` | `GardenData` / `GardenHabit` (shared) | new |
-| `src/lib/server/garden.ts` | `getGardenData` rollup | new |
-| `src/lib/state/garden.svelte.ts` | Optimistic growth deltas | new |
-| `src/lib/components/root-system/{RootSystem,Garden,GardenWidget}.svelte` | Renderers | RootSystem changed; Garden/Widget new |
-| `src/routes/(app)/garden/+page.{server.ts,svelte}` | Full view | new |
-| `src/lib/components/layout/Navigation.svelte` | Nav item | changed |
-| `src/routes/(app)/+page.server.ts` | Stream `gardenData` | changed |
-| `src/lib/components/activity/Dashboard.svelte` | Embed widget + `?focus=` | changed |
-| `src/lib/components/activity/ActivityCard.svelte` | Optimistic bump on toggle | changed |
+| File                                                                     | Role                                                    | New / Changed                         |
+| ------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------- |
+| `src/lib/roots.ts`                                                       | `generateGarden` (taproot + offshoots), `milestoneTier` | changed                               |
+| `src/lib/roots.spec.ts`                                                  | Generator tests                                         | new                                   |
+| `src/lib/streak.ts` + `.spec.ts`                                         | Pure streak math                                        | new                                   |
+| `src/lib/types/garden.ts`                                                | `GardenData` / `GardenHabit` (shared)                   | new                                   |
+| `src/lib/server/garden.ts`                                               | `getGardenData` rollup                                  | new                                   |
+| `src/lib/state/garden.svelte.ts`                                         | Optimistic growth deltas                                | new                                   |
+| `src/lib/components/root-system/{RootSystem,Garden,GardenWidget}.svelte` | Renderers                                               | RootSystem changed; Garden/Widget new |
+| `src/routes/(app)/garden/+page.{server.ts,svelte}`                       | Full view                                               | new                                   |
+| `src/lib/components/layout/Navigation.svelte`                            | Nav item                                                | changed                               |
+| `src/routes/(app)/+page.server.ts`                                       | Stream `gardenData`                                     | changed                               |
+| `src/lib/components/activity/Dashboard.svelte`                           | Embed widget + `?focus=`                                | changed                               |
+| `src/lib/components/activity/ActivityCard.svelte`                        | Optimistic bump on toggle                               | changed                               |
 
 > **No `db:push` required** — this feature touches no schema.
 
@@ -225,17 +225,17 @@ bottom bar (`Sprout` icon).
 
 ## Edge Cases
 
-| Scenario | Behaviour |
-| -------- | --------- |
-| Brand-new user (0 completions) | Just the sprout + a 2-segment taproot stub. No offshoots. |
-| Habit with 0 completions | Its offshoot is **not** revealed — only its attachment node exists on the spine. |
+| Scenario                         | Behaviour                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Brand-new user (0 completions)   | Just the sprout + a 2-segment taproot stub. No offshoots.                                         |
+| Habit with 0 completions         | Its offshoot is **not** revealed — only its attachment node exists on the spine.                  |
 | One very active habit, rest idle | Taproot extends to reach that habit's attachment; its offshoot is long; idle habits show nothing. |
-| Habit reaches 7 / 30 / 100 / 365 | A bloom (tier 1–4) appears at its offshoot tip. |
-| Many habits | Attachments stagger down a longer taproot (capped at 16 nodes). |
-| Archived activity | Excluded from `habits` — its offshoot disappears. |
-| Undo a completion | Optimistic −1 immediately (offshoot retracts a segment); server truth on next load. |
-| Complete then open `/garden` | `/garden` fresh-loads server truth (incl. the completion); optimistic deltas are dashboard-only. |
-| Garden query fails on dashboard | Widget shows "Garden unavailable"; activity list unaffected (separate streamed promise). |
+| Habit reaches 7 / 30 / 100 / 365 | A bloom (tier 1–4) appears at its offshoot tip.                                                   |
+| Many habits                      | Attachments stagger down a longer taproot (capped at 16 nodes).                                   |
+| Archived activity                | Excluded from `habits` — its offshoot disappears.                                                 |
+| Undo a completion                | Optimistic −1 immediately (offshoot retracts a segment); server truth on next load.               |
+| Complete then open `/garden`     | `/garden` fresh-loads server truth (incl. the completion); optimistic deltas are dashboard-only.  |
+| Garden query fails on dashboard  | Widget shows "Garden unavailable"; activity list unaffected (separate streamed promise).          |
 
 ---
 

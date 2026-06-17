@@ -38,13 +38,13 @@ removes the hang.
 2. **Disabled SSR globally** (`export const ssr = false;` in `src/routes/+layout.ts`), making
    the app an SPA. This defers all `+page.server.ts` / `+layout.server.ts` data loading off the
    initial document response — those `load` functions run as client-initiated requests after
-   the shell boots — so any remaining DB work (which *does* wake Neon) happens in the
+   the shell boots — so any remaining DB work (which _does_ wake Neon) happens in the
    background with the splash already on screen.
 
 > **Why SSR was not the root cause.** Turning off SSR alone would not have fixed the hang:
 > `handle` runs on every request reaching the server regardless of the `ssr` flag, so the
 > blocking session check would still have blocked the document response — you would just wait
-> the same few seconds for an *empty* shell instead of a rendered page, which is arguably
+> the same few seconds for an _empty_ shell instead of a rendered page, which is arguably
 > worse. The `jwt` switch is what decoupled the document response from Neon. Disabling SSR is
 > what keeps data-loading off the critical path and gives us a cacheable client-rendered shell.
 
@@ -61,7 +61,7 @@ removes the hang.
 - **Graceful cold starts (the genuine win).** Heavy work — waking Neon via Drizzle inside
   server `load` functions and API routes — happens in the background after the shell paints,
   behind the splash screen, instead of a blank tab. This holds because the blocking call was
-  decoupled (`jwt`) *and* loads are deferred (`ssr = false`), not because of the SSR flag by
+  decoupled (`jwt`) _and_ loads are deferred (`ssr = false`), not because of the SSR flag by
   itself.
 - **Cacheable, offline-first shell.** A client-rendered shell is straightforward to cache and
   boot offline, which maps neatly onto an offline-first PWA. _Note: PWA behaviour itself comes
@@ -86,7 +86,7 @@ removes the hang.
 Open the Network tab and hard-load a protected route after the DB has slept. The **document**
 response should arrive in milliseconds (handle + jwt verify); the subsequent `__data.json` /
 `load` requests are the ones that may pause while Neon wakes, with the splash already painted.
-If the *document* response itself hangs for seconds, a blocking call has crept back into
+If the _document_ response itself hangs for seconds, a blocking call has crept back into
 `handle` — fix that, don't reach for the SSR flag.
 
 ## If we ever want a function-free shell
