@@ -11,11 +11,19 @@ export function isPushSupported(): boolean {
 }
 
 /**
- * `navigator.serviceWorker.ready` never resolves until a worker controls the
- * scope — which can hang indefinitely if registration stalled or a stale worker
- * is in the way. Race it against a timeout so callers never block forever.
+ * Get a usable service worker registration for push.
+ *
+ * We deliberately avoid relying solely on `navigator.serviceWorker.ready`, which
+ * only resolves once a worker is **active** — so a waiting update (the "new
+ * version" prompt) or a slow first-install precache leaves it pending and the
+ * caller hangs. A push subscription only needs a *registration*: `pushManager`
+ * is scope-level, independent of which worker version is active. So prefer any
+ * existing registration, and only fall back to waiting for activation (bounded)
+ * on a true first load where none exists yet.
  */
-function serviceWorkerReady(timeoutMs: number): Promise<ServiceWorkerRegistration | null> {
+async function getPushRegistration(timeoutMs: number): Promise<ServiceWorkerRegistration | null> {
+    const existing = await navigator.serviceWorker.getRegistration();
+    if (existing) return existing;
     return Promise.race([navigator.serviceWorker.ready, new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs))]);
 }
 
@@ -25,7 +33,7 @@ export async function getPushStatus(): Promise<PushStatus> {
 
     // Short wait: if the worker isn't active yet, report 'disabled' rather than
     // hanging — the user can still tap Enable, which waits longer.
-    const registration = await serviceWorkerReady(3000);
+    const registration = await getPushRegistration(3000);
     if (!registration) return 'disabled';
     const subscription = await registration.pushManager.getSubscription();
     return subscription ? 'enabled' : 'disabled';
@@ -44,7 +52,7 @@ export async function enablePush(): Promise<PushStatus> {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return 'denied';
 
-    const registration = await serviceWorkerReady(10000);
+    const registration = await getPushRegistration(10000);
     if (!registration) {
         throw new Error('Service worker not ready — reload the page and try again.');
     }
