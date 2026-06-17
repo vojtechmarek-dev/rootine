@@ -37,10 +37,17 @@ Use **`strategies: 'injectManifest'`** with `@vite-pwa/sveltekit` as the single 
 - `src/service-worker.ts` is authored by us (`precacheAndRoute(self.__WB_MANIFEST)` + custom
   handlers: `message`/SKIP_WAITING, `push`, `notificationclick`).
 - SvelteKit still **builds** the file but **does not register** it
-  (`kit.serviceWorker.register = false` in `svelte.config.js`); VitePWA registers it via the
-  generated `registerSW.js`. Exactly one worker runs.
-- `registerType: 'prompt'` — no silent auto-reload. The app drives the update UX
-  (`detectServiceWorkerUpdate` in `src/routes/+layout.svelte` posts `SKIP_WAITING`).
+  (`kit.serviceWorker.register = false` in `svelte.config.js`). We register it **explicitly** via
+  `virtual:pwa-register/svelte` (`useRegisterSW`) in `src/routes/+layout.svelte`, and disable VitePWA's
+  own script injection (`injectRegister: false`). Exactly one worker runs.
+    > **Why not the injected `registerSW.js`?** VitePWA's auto-injection of that `<script>` never landed
+    > in our SPA fallback HTML, so in production **nothing registered the worker** — push and offline
+    > silently did nothing on a fresh client (it only "worked" on machines with a stale registration).
+    > `useRegisterSW` runs inside our app bundle, which is guaranteed to execute. See the type reference
+    > in `src/app.d.ts` (`/// <reference types="vite-plugin-pwa/svelte" />`).
+- `registerType: 'prompt'` — no silent auto-reload. `useRegisterSW`'s `needRefresh` store drives the
+  update prompt in `src/routes/+layout.svelte`; accepting calls `updateServiceWorker()`, which posts
+  `SKIP_WAITING` and reloads on `controllerchange`.
 - The web manifest lives **only** in `vite.config.ts` (icons + screenshots inlined);
   `static/manifest.webmanifest` was deleted. Single source of truth.
 - `devOptions.enabled = true` so the worker runs in `vite dev` — SW features (push, caching)

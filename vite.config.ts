@@ -17,10 +17,15 @@ export default defineConfig({
             strategies: 'injectManifest',
             srcDir: 'src',
             filename: 'service-worker.ts',
-            // 'prompt' = no auto-reload; the app drives the update UX itself
-            // (see detectServiceWorkerUpdate in src/routes/+layout.svelte, which
-            // posts SKIP_WAITING to the worker).
+            // 'prompt' = no auto-reload; the app drives the update UX itself via
+            // useRegisterSW in src/routes/+layout.svelte (prompts, then calls
+            // updateServiceWorker() which posts SKIP_WAITING to the worker).
             registerType: 'prompt',
+            // We register the worker ourselves through `virtual:pwa-register/svelte`
+            // (useRegisterSW) in the root layout, so VitePWA must NOT also inject a
+            // registerSW.js <script>. Its HTML injection never landed in our SPA
+            // fallback anyway, which is why prod registered no worker before.
+            injectRegister: false,
             // Single source of truth for the web manifest. VitePWA emits
             // /manifest.webmanifest from this — do NOT also keep a copy in
             // static/, they collide and the generated one wins.

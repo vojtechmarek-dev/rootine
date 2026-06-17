@@ -4,6 +4,7 @@
     import { initializeTheme } from '$lib/theme/theme.svelte';
     import { onMount } from 'svelte';
     import { afterNavigate } from '$app/navigation';
+    import { useRegisterSW } from 'virtual:pwa-register/svelte';
 
     let { children } = $props();
 
@@ -21,44 +22,30 @@
         }
     });
 
-    let swUpdateDetected = false;
+    // Register the service worker and drive the update prompt via VitePWA's
+    // lifecycle. useRegisterSW runs inside our app bundle (guaranteed to execute),
+    // unlike the generated registerSW.js whose HTML injection never landed in our
+    // SPA fallback — which is why production previously registered no worker at all
+    // (no push, no offline cache). Dev registration is handled by VitePWA's dev
+    // middleware. registerType is 'prompt' (vite.config.ts), so a freshly deployed
+    // version waits until the user accepts before activating.
+    const { needRefresh, updateServiceWorker } = useRegisterSW({
+        onRegisterError(error) {
+            console.error('Service worker registration failed:', error);
+        },
+    });
 
-    async function detectServiceWorkerUpdate() {
-        if (swUpdateDetected) {
-            return;
+    // Mirror the previous confirm() flow: prompt when a new version is waiting.
+    // updateServiceWorker() posts SKIP_WAITING to the worker and reloads on
+    // controllerchange (see the message handler in src/service-worker.ts).
+    $effect(() => {
+        if ($needRefresh && confirm('A new version of the app is available. Do you want to update?')) {
+            void updateServiceWorker();
         }
-        swUpdateDetected = true;
-
-        const registration = await navigator.serviceWorker.ready;
-
-        function promptUpdate(worker: ServiceWorker) {
-            if (confirm('A new version of the app is available. Do you want to update?')) {
-                worker.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
-            }
-        }
-
-        if (registration.waiting) {
-            promptUpdate(registration.waiting);
-            return;
-        }
-
-        registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (!newWorker) return;
-
-            newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    promptUpdate(newWorker);
-                }
-            });
-        });
-    }
+    });
 
     // Hide splash screen after app is hydrated and ready
     onMount(() => {
-        detectServiceWorkerUpdate();
-
         const splash = document.getElementById('app-splash');
         if (!splash) {
             return;

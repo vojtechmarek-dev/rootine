@@ -235,15 +235,24 @@ own 15-minute window, so a slower external interval will simply miss some window
 
 ### 4. Testing locally
 
-The service worker only registers in a built app, not `vite dev`:
+Test push against a **production build via preview** — it exercises the same bundled, registered worker
+that ships to prod (the dev server's worker is module-type and registers inconsistently across browsers,
+e.g. Firefox):
 
 ```sh
-npm run build && npm run preview
+npm run build && npm run preview   # serves on http://localhost:4173
 ```
 
-1. Settings → **Enable reminders** (grant the permission prompt).
-2. Add a reminder time on a habit a few minutes ahead.
-3. Trigger the dispatcher manually:
+> **Windows:** `npm run build` needs symlink permission for the Vercel adapter. Enable **Settings →
+> Privacy & security → For developers → Developer Mode** (then restart the terminal). Without it the
+> build fails with `EPERM … symlink`. `npm run preview` is unaffected and is the correct way to test the
+> service worker locally.
+
+1. Open the preview URL in a **standalone** Chrome/Edge/Firefox window (not an in-editor browser — those
+   have no push service).
+2. Settings → **Enable reminders** (grant the permission prompt).
+3. Add a reminder time on a habit a few minutes ahead.
+4. Trigger the dispatcher manually:
 
 ```sh
 curl -H "Authorization: Bearer dev-cron-secret" http://localhost:4173/api/cron/reminders
