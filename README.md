@@ -9,7 +9,6 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
-[![codecov](https://codecov.io/gh/vojtechmarek-dev/rootine/graph/badge.svg)](https://codecov.io/gh/vojtechmarek-dev/rootine)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 </div>
