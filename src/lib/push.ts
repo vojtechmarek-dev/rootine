@@ -27,6 +27,28 @@ async function getPushRegistration(timeoutMs: number): Promise<ServiceWorkerRegi
     return Promise.race([navigator.serviceWorker.ready, new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs))]);
 }
 
+/**
+ * Human-readable snapshot of the SW registration for this scope. Surfaced in the
+ * "not ready" error so it's debuggable on mobile (where the console is awkward)
+ * straight from the on-screen toast.
+ */
+async function describeServiceWorkerState(): Promise<string> {
+    if (!('serviceWorker' in navigator)) return 'serviceWorker API unavailable';
+    let registration: ServiceWorkerRegistration | undefined;
+    try {
+        registration = await navigator.serviceWorker.getRegistration();
+    } catch (err) {
+        return `getRegistration threw: ${err instanceof Error ? err.message : String(err)}`;
+    }
+    if (!registration) return 'no registration for this scope';
+    const worker =
+        [registration.installing && 'installing', registration.waiting && 'waiting', registration.active && 'active']
+            .filter(Boolean)
+            .join('+') || 'none';
+    const controller = navigator.serviceWorker.controller ? 'controlled' : 'no controller';
+    return `scope=${registration.scope} worker=${worker} ${controller}`;
+}
+
 export async function getPushStatus(): Promise<PushStatus> {
     if (!isPushSupported()) return 'unsupported';
     if (Notification.permission === 'denied') return 'denied';
@@ -54,7 +76,8 @@ export async function enablePush(): Promise<PushStatus> {
 
     const registration = await getPushRegistration(10000);
     if (!registration) {
-        throw new Error('Service worker not ready — reload the page and try again.');
+        const state = await describeServiceWorkerState();
+        throw new Error(`Service worker not ready [${state}] — reload the page and try again.`);
     }
 
     let subscription: PushSubscription;
