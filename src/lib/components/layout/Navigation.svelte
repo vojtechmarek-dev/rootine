@@ -6,10 +6,9 @@
     import { Button } from '$lib/components/ui/button/index.js';
 
     const navItems = [
-        { href: '/', label: 'Dashboard', disabled: false, icon: House, badge: null },
-        { href: '/roots', label: 'Roots', disabled: false, icon: Sprout, badge: null },
-        { href: '/stats', label: 'Stats', disabled: true, icon: ChartBar, badge: 'Soon' },
-        //{ href: '/profile', label: 'Profile', disabled: true, icon: User, badge: null },
+        { href: '/', label: 'Dashboard', disabled: false, icon: House },
+        { href: '/roots', label: 'Roots', disabled: false, icon: Sprout },
+        { href: '/stats', label: 'Stats', disabled: false, icon: ChartBar },
     ] as const;
 
     type NavItem = (typeof navItems)[number];
@@ -38,19 +37,12 @@
                 variant="ghost"
                 size="icon"
                 class="relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 transition-colors hover:bg-transparent hover:text-current"
-                aria-label={item.badge ? `${item.label} (${item.badge.toLowerCase()})` : item.label}
+                aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 disabled={item.disabled}
             >
                 <Icon class="h-5 w-5" />
                 <span class="text-xs font-medium">{item.label}</span>
-                {#if item.badge}
-                    <span
-                        class="absolute -top-1 left-1/2 rounded-full bg-clay px-1.5 py-px text-[9px] leading-snug font-semibold text-clay-foreground"
-                    >
-                        {item.badge}
-                    </span>
-                {/if}
             </Button>
         {/each}
     </div>
