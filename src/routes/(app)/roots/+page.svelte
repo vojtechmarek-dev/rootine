@@ -3,7 +3,7 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { page } from '$app/state';
     import { dev } from '$app/environment';
-    import { Flame, Sprout, Trophy, Maximize } from '@lucide/svelte';
+    import { Sprout, Trophy, Maximize, Flame } from '@lucide/svelte';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -14,7 +14,7 @@
 
     let garden = $state<{ fitToView: () => void } | undefined>();
 
-    // ── dev-only overrides (showcasing / debugging) ──────────────────────────
+    // dev-only overrides (showcasing / debugging) ──────────────────────────
     let revealAll = $state(false);
     let useGrowthOverride = $state(false);
     let growthPerHabit = $state(8);
@@ -33,7 +33,6 @@
     );
     const effTotal = $derived(effHabits.reduce((sum, h) => sum + h.growth, 0));
 
-    const statCur = $derived(curOverride ?? g.currentStreak);
     const statLong = $derived(longOverride ?? g.longestStreak);
 </script>
 
@@ -59,9 +58,7 @@
 
     {#if dev}
         <!-- Dev-only debug panel: stripped from production builds. -->
-        <fieldset
-            class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3 text-sm"
-        >
+        <fieldset class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
             <legend class="px-1 text-xs font-semibold tracking-wide text-amber-500/80 uppercase">Dev · debug</legend>
 
             <label class="flex items-center gap-2">
@@ -85,6 +82,7 @@
                     bind:value={curOverride}
                 />
             </label>
+
             <label class="flex items-center gap-1">
                 <Trophy class="h-3.5 w-3.5 text-amber-400" />
                 <input
@@ -105,12 +103,11 @@
             </label>
 
             <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onclick={() => {
                     revealAll = false;
                     useGrowthOverride = false;
-                    curOverride = longOverride = totalOverride = null;
                 }}
             >
                 Reset
