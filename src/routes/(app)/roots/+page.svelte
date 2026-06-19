@@ -33,6 +33,7 @@
     );
     const effTotal = $derived(effHabits.reduce((sum, h) => sum + h.growth, 0));
 
+    const statCur = $derived(curOverride ?? g.currentStreak);
     const statLong = $derived(longOverride ?? g.longestStreak);
 </script>
 
@@ -45,7 +46,7 @@
             {#if statCur > 0}
                 <span
                     class="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-1 text-sm font-medium"
-                    title="Current streak — see Stats for more"
+                    title="Current streak - see Stats for more"
                 >
                     <Flame class="h-4 w-4 text-orange-400" />{statCur}
                 </span>
@@ -108,6 +109,7 @@
                 onclick={() => {
                     revealAll = false;
                     useGrowthOverride = false;
+                    curOverride = longOverride = totalOverride = null;
                 }}
             >
                 Reset
