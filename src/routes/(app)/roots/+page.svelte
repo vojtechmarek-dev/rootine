@@ -20,6 +20,7 @@
     let growthPerHabit = $state(8);
     let curOverride = $state<number | null>(null);
     let longOverride = $state<number | null>(null);
+    // Override total completions to preview completion-based achievements.
     let totalOverride = $state<number | null>(null);
 
     // Effective habits fed to the visualization (dev overrides applied).
@@ -34,34 +35,26 @@
 
     const statCur = $derived(curOverride ?? g.currentStreak);
     const statLong = $derived(longOverride ?? g.longestStreak);
-    const statTotal = $derived(totalOverride ?? g.totalCompletions);
-
-    const stats = $derived([
-        { label: 'Current streak', value: statCur, icon: Flame, tone: 'text-orange-400' },
-        { label: 'Longest streak', value: statLong, icon: Trophy, tone: 'text-amber-400' },
-        { label: 'Completions', value: statTotal, icon: Sprout, tone: 'text-secondary' },
-    ]);
 </script>
 
 <div class="flex flex-col gap-4 p-4">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-2">
         <h1 class="flex items-center gap-2 font-serif text-2xl">
             <Sprout class="h-6 w-6 text-secondary" /> Your roots
         </h1>
-        <Button variant="outline" size="sm" onclick={() => garden?.fitToView()}>
-            <Maximize class="mr-1 h-4 w-4" /> Fit
-        </Button>
-    </div>
-
-    <div class="grid grid-cols-3 gap-3">
-        {#each stats as stat (stat.label)}
-            {@const Icon = stat.icon}
-            <div class="rounded-2xl bg-surface-container-lowest p-3 text-center sm:p-4">
-                <Icon class="mx-auto mb-1 h-5 w-5 {stat.tone}" />
-                <div class="text-2xl font-semibold">{stat.value}</div>
-                <div class="text-xs text-muted-foreground">{stat.label}</div>
-            </div>
-        {/each}
+        <div class="flex items-center gap-2">
+            {#if statCur > 0}
+                <span
+                    class="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-1 text-sm font-medium"
+                    title="Current streak — see Stats for more"
+                >
+                    <Flame class="h-4 w-4 text-orange-400" />{statCur}
+                </span>
+            {/if}
+            <Button variant="outline" size="sm" onclick={() => garden?.fitToView()}>
+                <Maximize class="mr-1 h-4 w-4" /> Fit
+            </Button>
+        </div>
     </div>
 
     {#if dev}
@@ -130,12 +123,12 @@
             Create a habit and start completing it — your roots grow from here.
         </div>
     {:else}
-        <div class="relative h-[60vh] overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2118] to-[#120c06]">
+        <div class="relative h-[74vh] overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2118] to-[#120c06] sm:h-[68vh]">
             <Garden
                 bind:this={garden}
                 seed={g.seed}
                 habits={effHabits}
-                totalGrowth={effTotal}
+                totalGrowth={totalOverride ?? effTotal}
                 currentStreak={statCur}
                 longestStreak={statLong}
                 {highlightActivityId}
