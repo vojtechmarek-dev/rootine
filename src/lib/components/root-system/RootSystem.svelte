@@ -120,19 +120,33 @@
             return null;
         }
     }
-    // Captured ONCE at init (client-side; ssr=false) — stays fixed for this view.
+    // Captured ONCE at init (client-side; ssr=false) -> stays fixed for this view.
     const seenSnapshot = readSeen();
 
     function isNewlyGrown(seg: Segment): boolean {
-        if (!growthByActivity) return false; // legacy single-plant: no per-segment diff
-        // Always re-grow the highlighted branch (focus & celebrate: grow, then blink).
-        if (highlightActivityId && seg.activityId === highlightActivityId) return true;
-        if (!seenSnapshot) return true; // first ever visit → full draw
+        // legacy single-plant: no per-segment diff
+        if (!growthByActivity) return false;
+
+        // first ever visit → full draw
+        if (!seenSnapshot) return true;
+
+        // taproot: reveal only the tail grown since last visit
         if (seg.activityId == null) {
             return seg.born > (seenSnapshot.t ?? 0) && seg.born <= taprootReveal;
         }
+
         const prev = seenSnapshot.a?.[seg.activityId] ?? 0;
-        return seg.born > prev && seg.born <= (growthByActivity[seg.activityId] ?? 0);
+        const grown = growthByActivity[seg.activityId] ?? 0;
+
+        // highlighted branch: reveal unseen growth; if all already seen, always
+        // re-grow the outermost tip so the focus/celebrate animation still plays.
+        if (highlightActivityId && seg.activityId === highlightActivityId) {
+            if (grown > prev) return seg.born > prev && seg.born <= grown;
+            return flashTip != null && seg.born === flashTip.born;
+        }
+
+        // other branches: reveal only segments grown since last visit
+        return seg.born > prev && seg.born <= grown;
     }
 
     // Persist the current reveal so the NEXT visit only animates newer growth.
