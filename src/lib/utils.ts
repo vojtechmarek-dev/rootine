@@ -78,13 +78,12 @@ type ActivityAccentClasses = {
 
 /** Hex values behind the named tokens — also the swatch palette for the picker. */
 export const ACTIVITY_COLOR_PALETTE: Record<string, string> = {
-    forest: '#6b8f5f',
     emerald: '#10b981',
     clay: '#b08968',
     amber: '#f59e0b',
-    rose: '#f43f5e',
+    rose: '#b43822',
     violet: '#8b5cf6',
-    blue: '#3b82f6',
+    blue: '#116cff',
     zinc: '#71717a',
 };
 

@@ -35,11 +35,21 @@
     /* Strip the library's own input chrome so it sits flush inside our field. */
     .color-picker-field {
         --input-size: 1.25rem;
+        --cp-bg-color: var(--input);
+        --cp-text-color: var(--foreground);
+        --cp-border-color: var(--border);
+        --cp-border-radius: var(--radius);
+        /* Library swatch/input focus rings read this; default is `red`. */
+        --focus-color: var(--ring);
     }
     .color-picker-field :global(.color-picker label) {
         margin: 0;
         background: transparent;
         border: none;
         padding: 0;
+    }
+    /* Lib ships swatches with no radius; the demo rounds them, theme matches. */
+    .color-picker-field :global(.swatch) {
+        border-radius: var(--radius-sm);
     }
 </style>
