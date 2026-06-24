@@ -30,10 +30,10 @@
         <!-- eslint-disable svelte/no-navigation-without-resolve -->
         <button
             type="button"
-            class={cn('flex flex-col items-center gap-1.5 cursor-pointer', isToday ? 'border-1 border-clay/25 rounded-md p-1' : '')}
+            class={cn('flex flex-col items-center gap-1.5 cursor-pointer', isViewed ? 'border-1 border-clay/25 rounded-md p-1' : '')}
             onclick={() => goto(`?date=${format(day.date, 'yyyy-MM-dd')}`, { keepFocus: true })}
         >
-            <span class={cn('text-[10px] font-semibold tracking-wider', isViewed ? 'font-bold text-clay' : 'text-muted-foreground/70')}>
+            <span class={cn('text-[10px] font-semibold tracking-wider', isToday ? 'font-bold text-clay' : 'text-muted-foreground/70')}>
                 {WEEK_LETTERS[i]}
             </span>
             <div
