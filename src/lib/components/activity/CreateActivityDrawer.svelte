@@ -9,18 +9,26 @@
     import type { Component } from 'svelte';
     import * as Drawer from '$lib/components/ui/drawer';
     import { Button, buttonVariants } from '$lib/components/ui/button';
-    import { ChevronLeft, LoaderCircle } from '@lucide/svelte';
+    import { ChevronLeft } from '@lucide/svelte';
     import { cn } from '$lib/utils';
     import { toastError } from '$lib/toast';
     import HabitForm, { meta as HabitMeta } from '$lib/components/activity/forms/HabitForm.svelte';
     import PlantForm, { meta as PlantMeta } from '$lib/components/activity/forms/PlantForm.svelte';
     import WorkoutForm, { meta as WorkoutMeta } from '$lib/components/activity/forms/WorkoutForm.svelte';
-    import type { Activity, HabitConfig, PlantConfig, WorkoutConfig, Schedule, ActivityFormData, DrawerActivity } from '$lib/types/schemas';
+    import type {
+        Activity,
+        HabitConfig,
+        PlantConfig,
+        WorkoutConfig,
+        Schedule,
+        ActivityFormData,
+        DrawerActivity,
+        FormErrors,
+    } from '$lib/types/schemas';
     import { getEmptyDrawerActivity } from '$lib/types/schemas';
     import { slide } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
     import ActivityEditor from '$lib/components/activity/ActivityEditor.svelte';
-    import ProgressBar from '$lib/components/shared/ProgressBar.svelte';
     import { activityDrawerState, closeActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import { enhance } from '$app/forms';
     import { untrack } from 'svelte';
@@ -35,18 +43,24 @@
         workout: { component: WorkoutForm, ...WorkoutMeta },
     } as const;
 
+    // Shared fill/scheduling flags every fresh config carries (see ActivityConfig).
+    const fillDefaults = { allowBackFill: true, allowFutureFill: false, flexible: false };
+
     const defaults = {
         habit: {
-            config: { targetValue: 1, unit: 'times' } as HabitConfig,
+            config: { ...fillDefaults, targetValue: 1, unit: 'times' } as HabitConfig,
             schedule: { type: 'daily' } as Schedule,
+            icon: 'check',
         },
         plant: {
-            config: { location: '', species: '' } as PlantConfig,
+            config: { ...fillDefaults, location: '', species: '' } as PlantConfig,
             schedule: { type: 'interval', value: 7, unit: 'days' } as Schedule,
+            icon: 'sprout',
         },
         workout: {
-            config: { exercises: [], workoutSets: [], rotation: [], useRotation: true } as WorkoutConfig,
+            config: { ...fillDefaults, exercises: [], workoutSets: [], rotation: [], useRotation: true } as WorkoutConfig,
             schedule: { type: 'weekly', days: ['mon', 'wed', 'fri'] } as Schedule,
+            icon: 'dumbbell',
         },
     };
 
@@ -71,7 +85,7 @@
                 return;
             }
             if (!f.valid) {
-                toastError('Could not save activity', {
+                toastError('Could not save habit', {
                     description: 'Please check the highlighted fields and try again.',
                     detail: f.errors,
                 });
@@ -90,6 +104,7 @@
         $form.type = newType;
         $form.config = { ...defaults[newType].config };
         $form.schedule = { ...defaults[newType].schedule };
+        $form.icon = defaults[newType].icon;
         view = newType;
     };
 
@@ -134,7 +149,7 @@
             <div class="shrink-0 px-4 pt-2 pb-3">
                 {#if view === 'menu'}
                     <Drawer.Header class="px-0 text-left">
-                        <Drawer.Title class="text-2xl font-semibold">Create Activity</Drawer.Title>
+                        <Drawer.Title class="font-serif text-2xl font-semibold">Grow a new habit</Drawer.Title>
                         <Drawer.Description class="text-base text-foreground/70">What would you like to track?</Drawer.Description>
                     </Drawer.Header>
                 {:else}
@@ -171,7 +186,7 @@
                                 onclick={() => {
                                     switchView(type as ActivityType);
                                 }}
-                                class="flex h-24 flex-col gap-2"
+                                class="flex h-24 flex-col gap-2 rounded-2xl"
                             >
                                 <Icon class="mb-1 h-7 w-7" />
                                 <span class="text-base font-medium">{def.label}</span>
@@ -183,9 +198,9 @@
                     <div class="h-full w-full" transition:slide={{ axis: 'y', duration: 300, easing: quintOut }}>
                         <ActivityEditor
                             bind:formData={$form}
-                            errors={$errors}
+                            errors={$errors as unknown as FormErrors}
                             formId={FORM_ID}
-                            FormComponent={FormDef.component as Component<{ data: ActivityFormData; errors?: any }>}
+                            FormComponent={FormDef.component as Component<{ data: ActivityFormData; errors?: FormErrors }>}
                             enhance={superEnhance}
                         />
 
@@ -208,7 +223,7 @@
                                     Archive {FormDef.label}
                                 </Button>
                                 <p class="mt-2 text-center text-sm text-muted-foreground">
-                                    Archived activities won't appear on your dashboard.
+                                    Archived habits won't appear on your dashboard.
                                 </p>
                             </form>
                         {/if}
@@ -217,17 +232,13 @@
             </div>
 
             <Drawer.Footer class="shrink-0 border-t border-border/50 p-4 ">
-                {#if $submitting && view !== 'menu'}
-                    <ProgressBar class="mb-2" />
-                {/if}
                 {#if view === 'menu'}
                     <Drawer.Close class={buttonVariants({ variant: 'link' })}>Cancel</Drawer.Close>
                 {:else}
                     <div class="flex gap-3">
                         <Drawer.Close class={cn(buttonVariants({ variant: 'link' }), 'flex-1')}>Cancel</Drawer.Close>
-                        <Button type="submit" variant="default" form={FORM_ID} class="flex-2" disabled={$submitting}>
+                        <Button type="submit" variant="default" form={FORM_ID} class="flex-2" loading={$submitting}>
                             {#if $submitting}
-                                <LoaderCircle class="size-4 animate-spin" />
                                 {activityDrawerState.data ? 'Saving…' : 'Creating…'}
                             {:else}
                                 {activityDrawerState.data ? 'Save Changes' : 'Create'}

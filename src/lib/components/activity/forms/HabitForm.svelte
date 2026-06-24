@@ -9,16 +9,17 @@
 <script lang="ts">
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
-    import type { ActivityFormData } from '$lib/types/schemas';
+    import type { ActivityFormData, FormErrors } from '$lib/types/schemas';
     import CommonActivityFields from '$lib/components/activity/CommonActivityFields.svelte';
     import ScheduleFields from '$lib/components/activity/ScheduleFields.svelte';
+    import ActivityOptionsFields from '$lib/components/activity/ActivityOptionsFields.svelte';
 
     let {
         data = $bindable(),
         errors,
     }: {
         data: Extract<ActivityFormData, { type: 'habit' }>;
-        errors?: any;
+        errors?: FormErrors;
     } = $props();
 </script>
 
@@ -34,26 +35,43 @@
                 bind:color={data.color}
                 bind:icon={data.icon}
                 bind:startDate={data.startDate}
-                bind:endDate={data.endDate}
-                bind:archived={data.archived}
+                iconFallback="check"
                 {errors}
             />
 
             <!-- Habit Specific Fields -->
             <Field.Group>
                 <Field.Field>
-                    <Field.Label>Target Value</Field.Label>
-                    <Input type="number" min="1" bind:value={data.config.targetValue} />
+                    <Field.Label>Daily goal</Field.Label>
+                    <div
+                        class="flex items-stretch overflow-hidden rounded-sm border border-border/60 bg-input focus-within:border-ring focus-within:ring-2 focus-within:ring-tertiary-fixed"
+                    >
+                        <Input
+                            type="number"
+                            min="1"
+                            bind:value={data.config.targetValue}
+                            class="h-12 w-20 shrink-0 border-0 bg-transparent text-center focus:ring-0"
+                            aria-label="Target value"
+                        />
+                        <div class="my-2 w-px bg-border/60"></div>
+                        <Input
+                            type="text"
+                            placeholder="times"
+                            bind:value={data.config.unit}
+                            class="h-12 flex-1 border-0 bg-transparent focus:ring-0"
+                            aria-label="Unit"
+                        />
+                    </div>
+                    <Field.Description>How much counts as done — e.g. "3 glasses" or "1 time".</Field.Description>
                     <Field.Error errors={errors?.config?.targetValue} />
-                </Field.Field>
-                <Field.Field>
-                    <Field.Label>Unit</Field.Label>
-                    <Input type="text" placeholder="e.g. times" bind:value={data.config.unit} />
                     <Field.Error errors={errors?.config?.unit} />
                 </Field.Field>
 
                 <!-- Unified Schedule -->
                 <ScheduleFields bind:schedule={data.schedule} errors={errors?.schedule} />
+
+                <!-- Back-fill / future-fill / flexible options -->
+                <ActivityOptionsFields bind:config={data.config} {errors} />
             </Field.Group>
         </Field.Set>
     </Field.Group>

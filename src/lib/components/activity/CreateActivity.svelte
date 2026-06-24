@@ -4,12 +4,14 @@
     import { cn } from '$lib/utils';
     import { openActivityDrawer } from '$lib/state/activity-drawer.svelte';
     import { onMount } from 'svelte';
+    import type { Component } from 'svelte';
     import type { SuperValidated } from 'sveltekit-superforms';
     import type { DrawerActivity } from '$lib/types/schemas';
 
     let { activityForm }: { activityForm: SuperValidated<DrawerActivity> } = $props();
 
-    let DrawerComponent = $state<any>(null);
+    type DrawerProps = { activityForm: SuperValidated<DrawerActivity> };
+    let DrawerComponent = $state<Component<DrawerProps> | null>(null);
 
     onMount(() => {
         import('./CreateActivityDrawer.svelte').then((mod) => {

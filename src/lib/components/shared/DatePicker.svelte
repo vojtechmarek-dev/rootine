@@ -12,7 +12,7 @@
         dateStyle: 'long',
     });
 
-    let { value = $bindable() }: { value: Date | undefined } = $props();
+    let { value = $bindable(), class: className }: { value: Date | undefined; class?: string } = $props();
 
     // Separate the "View" (what month is visible) from the "Value" (what is selected).
     // We default the view to Today, but we don't default the selection.
@@ -35,7 +35,7 @@
             <Button
                 variant="outline"
                 size="lg"
-                class={cn('w-full justify-start text-start font-normal sm:w-[280px]', !value && 'text-muted-foreground')}
+                class={cn('w-full justify-start text-start font-normal sm:w-[280px]', !value && 'text-muted-foreground', className)}
                 {...props}
             >
                 <CalendarIcon class="me-2 size-4" />

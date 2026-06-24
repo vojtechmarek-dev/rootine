@@ -11,7 +11,7 @@ test('protected root redirects unauthenticated users to /login', async ({ page }
 
 test('login page renders its heading and Google sign-in', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByRole('heading', { name: 'Welcome to Rootine' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Rootine' })).toBeVisible();
     await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible();
 });
 

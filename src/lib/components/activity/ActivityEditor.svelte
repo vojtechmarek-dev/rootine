@@ -1,11 +1,11 @@
 <script lang="ts">
     import type { Component } from 'svelte';
     import type { Action } from 'svelte/action';
-    import type { ActivityFormData } from '$lib/types/schemas';
+    import type { ActivityFormData, FormErrors } from '$lib/types/schemas';
 
     type Props = {
         data: ActivityFormData;
-        errors?: any;
+        errors?: FormErrors;
     };
 
     let {
@@ -16,7 +16,7 @@
         enhance,
     }: {
         formData: ActivityFormData;
-        errors?: any;
+        errors?: FormErrors;
         /** Rendered variant matches formData.type; each form exposes a narrower `data` subtype at runtime */
         FormComponent: Component<Props>;
         formId?: string;
@@ -27,6 +27,6 @@
     const action = $derived(isEditing ? '?/updateActivity' : '?/createActivity');
 </script>
 
-<form id={formId} method="POST" {action} use:enhance>
+<form id={formId} method="POST" {action} novalidate use:enhance>
     <FormComponent bind:data={formData} {errors} />
 </form>

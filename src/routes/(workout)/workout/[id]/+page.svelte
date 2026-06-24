@@ -2,17 +2,18 @@
     import { enhance } from '$app/forms';
     import { goto } from '$app/navigation';
     import { Button } from '$lib/components/ui/button';
-    import { onDestroy, onMount } from 'svelte';
+    import { onDestroy, onMount, tick } from 'svelte';
+    import { haptic } from '$lib/haptics';
     import { cn } from '$lib/utils';
     import { page } from '$app/state';
     import { toastError } from '$lib/toast';
+    import { toast } from 'svelte-sonner';
 
     import WorkoutHeader from '$lib/components/activity/workout/WorkoutHeader.svelte';
     import ActiveExerciseCard from '$lib/components/activity/workout/ActiveExerciseCard.svelte';
     import QueueExerciseCard from '$lib/components/activity/workout/QueueExerciseCard.svelte';
     import WorkoutSummary from '$lib/components/activity/workout/WorkoutSummary.svelte';
     import WorkoutSetPicker from '$lib/components/activity/workout/WorkoutSetPicker.svelte';
-    import ProgressBar from '$lib/components/shared/ProgressBar.svelte';
     import TimerWorker from '$lib/workers/timerWorker.ts?worker';
 
     let { data } = $props();
@@ -62,6 +63,31 @@
 
     let exerciseStates = $state<ExerciseStateRow[]>([]);
     let currentIndex = $state(0);
+
+    // DOM refs for auto-focusing the highlighted set as the user progresses.
+    let cardEls: HTMLElement[] = [];
+    let finishEl = $state<HTMLElement>();
+
+    // Smoothly bring the newly-active set (or the Finish button once everything is
+    // processed) into focus when currentIndex changes — skip the first run so the
+    // page doesn't jump on initial load.
+    let firstFocusRun = true;
+    $effect(() => {
+        const idx = currentIndex; // track dependency
+        if (firstFocusRun) {
+            firstFocusRun = false;
+            return;
+        }
+        tick().then(() => {
+            const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const behavior: ScrollBehavior = reduce ? 'auto' : 'smooth';
+            if (idx >= 0) {
+                cardEls[idx]?.scrollIntoView({ behavior, block: 'center' });
+            } else {
+                finishEl?.scrollIntoView({ behavior, block: 'nearest' });
+            }
+        });
+    });
 
     $effect.pre(() => {
         const list = exercises;
@@ -137,6 +163,7 @@
             weight: exercise.weight ?? 0,
             reps: exercise.reps ?? 0,
         }));
+        haptic('light');
         advanceToNextPending();
     }
 
@@ -150,8 +177,9 @@
     }
 
     function handleExit() {
+        // Replace history so back/swipe doesn't return to the abandoned workout.
         // eslint-disable-next-line svelte/no-navigation-without-resolve
-        goto('/');
+        goto('/', { replaceState: true });
     }
 
     const logDataJSON = $derived.by(() => {
@@ -204,17 +232,19 @@
                 </div>
 
                 {#each exercises as exercise, i (exercise.id)}
-                    {#if i === currentIndex}
-                        <ActiveExerciseCard
-                            {exercise}
-                            index={i}
-                            totalExercises={exercises.length}
-                            onSkip={() => handleSkip(i)}
-                            onComplete={() => handleComplete(i)}
-                        />
-                    {:else}
-                        <QueueExerciseCard {exercise} status={exerciseStates[i].status} onTap={() => handleQueueTap(i)} />
-                    {/if}
+                    <div bind:this={cardEls[i]}>
+                        {#if i === currentIndex}
+                            <ActiveExerciseCard
+                                {exercise}
+                                index={i}
+                                totalExercises={exercises.length}
+                                onSkip={() => handleSkip(i)}
+                                onComplete={() => handleComplete(i)}
+                            />
+                        {:else}
+                            <QueueExerciseCard {exercise} status={exerciseStates[i].status} onTap={() => handleQueueTap(i)} />
+                        {/if}
+                    </div>
                 {/each}
 
                 {#if exercises.length === 0}
@@ -230,6 +260,7 @@
             class="fixed right-0 bottom-0 left-0 z-20 flex justify-center border-t border-border/50 bg-background px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)]"
         >
             <form
+                bind:this={finishEl}
                 class="w-full max-w-md"
                 method="POST"
                 action="?/complete"
@@ -243,9 +274,23 @@
                         isSubmitting = false;
                         if (result.type === 'success') {
                             showSummary = true;
-                            setTimeout(() => {
+                            // The dashboard's grow toast comes from its optimistic
+                            // toggle path, which this flow bypasses — the action
+                            // reports the stage crossing instead.
+                            const grew = (result.data as { grew?: boolean } | undefined)?.grew === true;
+                            setTimeout(async () => {
+                                // Replace history so back/swipe doesn't return to the finished workout.
                                 // eslint-disable-next-line svelte/no-navigation-without-resolve
-                                goto('/');
+                                await goto('/', { replaceState: true });
+                                if (grew) {
+                                    toast.success('Your root has grown! 🌱', {
+                                        action: {
+                                            label: 'View',
+                                            // eslint-disable-next-line svelte/no-navigation-without-resolve
+                                            onClick: () => goto(`/roots?highlight=${activity.id}`),
+                                        },
+                                    });
+                                }
                             }, 2000);
                         } else {
                             console.error('Submission result:', result);
@@ -263,17 +308,15 @@
                 <Button
                     type="submit"
                     variant={isAllProcessed ? 'clay' : 'outline'}
+                    loading={isSubmitting}
                     class={cn(
                         'h-14 w-full rounded-2xl text-lg font-medium shadow-ambient transition-all',
                         !isAllProcessed && 'border-outline-variant/20 bg-surface-container-low text-muted-foreground opacity-60'
                     )}
-                    disabled={!isAllProcessed || isSubmitting || exercises.length === 0}
+                    disabled={!isAllProcessed || exercises.length === 0}
                 >
                     {isSubmitting ? 'Finishing…' : 'Finish Workout'}
                 </Button>
-                {#if isSubmitting}
-                    <ProgressBar class="mt-3" />
-                {/if}
             </form>
         </div>
 

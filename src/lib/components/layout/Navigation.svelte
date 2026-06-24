@@ -2,13 +2,13 @@
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { resolve } from '$app/paths';
-    import { ChartBar, House, User } from '@lucide/svelte';
+    import { ChartBar, House, Sprout } from '@lucide/svelte';
     import { Button } from '$lib/components/ui/button/index.js';
 
     const navItems = [
         { href: '/', label: 'Dashboard', disabled: false, icon: House },
-        { href: '/stats', label: 'Stats', disabled: true, icon: ChartBar },
-        { href: '/profile', label: 'Profile', disabled: true, icon: User },
+        { href: '/roots', label: 'Roots', disabled: false, icon: Sprout },
+        { href: '/stats', label: 'Stats', disabled: false, icon: ChartBar },
     ] as const;
 
     type NavItem = (typeof navItems)[number];
@@ -36,7 +36,9 @@
                 onclick={(e) => handleNavClick(item, e)}
                 variant="ghost"
                 size="icon"
-                class="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 transition-colors hover:bg-transparent hover:text-current"
+                class="relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 transition-colors hover:bg-transparent {active
+                    ? 'text-primary hover:text-primary'
+                    : 'text-muted-foreground hover:text-current'}"
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 disabled={item.disabled}

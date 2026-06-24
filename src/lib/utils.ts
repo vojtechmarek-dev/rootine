@@ -7,6 +7,14 @@ export function formatZodErrorTree(error: z.ZodError): string {
     return JSON.stringify(z.treeifyError(error), null, 2);
 }
 
+/** Completions needed for a "done" day: habits use config.targetValue (≥1), others 1. */
+export function activityTargetCount(activity: { type: string; config: Record<string, unknown> }): number {
+    if (activity.type === 'habit' && typeof activity.config?.targetValue === 'number') {
+        return Math.max(1, activity.config.targetValue);
+    }
+    return 1;
+}
+
 const DEFAULT_TOAST_DESCRIPTION_LENGTH = 220;
 
 export function toToastDescription(value: unknown, maxLength = DEFAULT_TOAST_DESCRIPTION_LENGTH): string | undefined {
@@ -57,13 +65,46 @@ export function getActivityTypeLabel(type: string): string {
     if (type === 'workout') {
         return 'Workout';
     }
-    return 'Activity';
+    return 'Habit';
 }
 
 type ActivityAccentClasses = {
     chip: string;
     bar: string;
+    /** Inline styles, set only for custom hex colours (token colours use classes). */
+    chipStyle?: string;
+    barStyle?: string;
 };
+
+/** Hex values behind the named tokens — also the swatch palette for the picker. */
+export const ACTIVITY_COLOR_PALETTE: Record<string, string> = {
+    emerald: '#10b981',
+    clay: '#b08968',
+    amber: '#f59e0b',
+    rose: '#b43822',
+    violet: '#8b5cf6',
+    blue: '#116cff',
+    zinc: '#71717a',
+};
+
+export const ACTIVITY_COLOR_SWATCHES: string[] = Object.values(ACTIVITY_COLOR_PALETTE);
+
+const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+export function isHexColor(value: string | null | undefined): value is string {
+    return !!value && HEX_RE.test(value.trim());
+}
+
+/** Accent styles for a custom hex: translucent chip, near-solid bar. */
+function hexAccent(hex: string): ActivityAccentClasses {
+    const h = hex.trim();
+    return {
+        chip: '',
+        bar: '',
+        chipStyle: `background-color:${h}26;color:${h};`,
+        barStyle: `background-color:${h}cc;`,
+    };
+}
 
 const activityAccentClasses: Record<string, ActivityAccentClasses> = {
     zinc: {
@@ -90,14 +131,34 @@ const activityAccentClasses: Record<string, ActivityAccentClasses> = {
         chip: 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-100',
         bar: 'bg-rose-500/80 dark:bg-rose-400/90',
     },
+    forest: {
+        chip: 'bg-success/15 text-success dark:bg-success/20',
+        bar: 'bg-success/80',
+    },
+    clay: {
+        chip: 'bg-clay/15 text-clay dark:bg-clay/20',
+        bar: 'bg-clay/80',
+    },
 };
 
-export function getActivityAccentClasses(color: string | null | undefined): ActivityAccentClasses {
-    const normalized = color?.trim().toLowerCase();
+// Without an explicit colour, each type gets its own earthy accent so a
+// default dashboard still reads as varied instead of uniformly grey.
+const typeAccentDefaults: Record<string, string> = {
+    habit: 'forest',
+    plant: 'emerald',
+    workout: 'clay',
+};
+
+export function getActivityAccentClasses(color: string | null | undefined, type?: string): ActivityAccentClasses {
+    if (isHexColor(color)) {
+        return hexAccent(color);
+    }
+    const normalized = (color ?? '').trim().toLowerCase();
     if (normalized && activityAccentClasses[normalized]) {
         return activityAccentClasses[normalized];
     }
-    return activityAccentClasses.zinc;
+    const fallback = type ? typeAccentDefaults[type] : undefined;
+    return activityAccentClasses[fallback ?? 'zinc'] ?? activityAccentClasses.zinc;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

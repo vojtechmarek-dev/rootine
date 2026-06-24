@@ -10,5 +10,10 @@ export default defineConfig({
         reuseExistingServer: true,
     },
     use: { baseURL: 'http://localhost:8007' },
+    // SPA mode (ssr=false) means the first hit on a route waits for Vite's lazy
+    // dev compile + client hydration before any DOM appears. On a cold server
+    // that can exceed Playwright's default 5s assertion timeout, so the smoke
+    // tests flake. Give web-first assertions more headroom.
+    expect: { timeout: 15000 },
     testDir: 'e2e',
 });

@@ -40,7 +40,7 @@
             <p class="mb-1 text-xs font-semibold tracking-widest text-clay/80 uppercase">
                 Exercise {index + 1} of {totalExercises}
             </p>
-            <h2 class="font-sans text-4xl leading-tight font-bold tracking-tight text-foreground sm:text-5xl">
+            <h2 class="font-sans text-3xl leading-tight font-bold tracking-tight text-foreground sm:text-4xl">
                 {exercise.name}
             </h2>
         </div>
@@ -88,7 +88,7 @@
             </Button>
             <Button
                 variant="clay"
-                class="h-14 flex-1 rounded-2xl text-base font-semibold shadow-[0_0_30px_-10px_var(--clay)] transition-all hover:scale-[1.02] hover:shadow-[0_0_40px_-5px_var(--clay)] active:scale-[0.98]"
+                class="h-14 flex-1 rounded-2xl text-base font-semibold shadow-[0_0_30px_-10px_var(--clay)] transition-all hover:scale-[1.02] active:scale-[0.98]"
                 onclick={onComplete}
             >
                 <Check class="mr-2 h-5 w-5" /> Complete

@@ -2,10 +2,12 @@
     import * as Field from '$lib/components/ui/field/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import * as Select from '$lib/components/ui/select/index.js';
+    import { Button } from '$lib/components/ui/button';
+    import { Plus, X } from '@lucide/svelte';
     import { WEEKDAYS } from '$lib/constants';
-    import type { Schedule } from '$lib/types/schemas';
+    import type { Schedule, FormErrors } from '$lib/types/schemas';
 
-    let { schedule = $bindable(), errors }: { schedule: Schedule; errors?: any } = $props();
+    let { schedule = $bindable(), errors }: { schedule: Schedule; errors?: FormErrors } = $props();
 
     // Helper to sync Select value with Schedule type
     let selectedType = $derived<Schedule['type']>(schedule.type);
@@ -13,6 +15,29 @@
 
     const isWeeklySchedule = (value: Schedule): value is WeeklySchedule => {
         return value.type === 'weekly';
+    };
+
+    // Reminder times live on daily/weekly schedules only.
+    type RemindableSchedule = Extract<Schedule, { times?: string[] }>;
+
+    const isRemindable = (value: Schedule): value is RemindableSchedule => {
+        return value.type === 'daily' || value.type === 'weekly';
+    };
+
+    const addTime = () => {
+        if (!isRemindable(schedule)) return;
+        schedule.times = [...(schedule.times ?? []), '09:00'];
+    };
+
+    const updateTime = (index: number, value: string) => {
+        if (!isRemindable(schedule) || !schedule.times) return;
+        schedule.times = schedule.times.map((t, i) => (i === index ? value : t));
+    };
+
+    const removeTime = (index: number) => {
+        if (!isRemindable(schedule) || !schedule.times) return;
+        const next = schedule.times.filter((_, i) => i !== index);
+        schedule.times = next.length ? next : undefined;
     };
 
     const onTypeChange = (newType: Schedule['type']) => {
@@ -27,6 +52,18 @@
         } else if (newType === 'interval') {
             schedule = { type: 'interval', value: 1, unit: 'days' };
         }
+    };
+
+    const INTERVAL_UNITS = [
+        { value: 'days', one: 'day', many: 'days' },
+        { value: 'weeks', one: 'week', many: 'weeks' },
+        { value: 'months', one: 'month', many: 'months' },
+        { value: 'years', one: 'year', many: 'years' },
+    ] as const;
+
+    const unitLabel = (unit: string, value: number) => {
+        const def = INTERVAL_UNITS.find((u) => u.value === unit) ?? INTERVAL_UNITS[0];
+        return value === 1 ? def.one : def.many;
     };
 </script>
 
@@ -54,26 +91,33 @@
     </Field.Field>
 
     {#if schedule.type === 'interval'}
-        <div class="flex gap-2">
-            <Field.Field class="flex-1">
-                <Field.Label>Every</Field.Label>
-                <Input type="number" min="1" bind:value={schedule.value} />
-                <Field.Error errors={errors?.value} />
-            </Field.Field>
-            <Field.Field class="w-1/3">
-                <Field.Label>Unit</Field.Label>
+        <Field.Field>
+            <Field.Label>Repeat every</Field.Label>
+            <div
+                class="flex items-stretch overflow-hidden rounded-sm border border-border/60 bg-input focus-within:border-ring focus-within:ring-2 focus-within:ring-tertiary-fixed"
+            >
+                <Input
+                    type="number"
+                    min="1"
+                    bind:value={schedule.value}
+                    class="h-12 w-20 shrink-0 border-0 bg-transparent text-center focus:ring-0"
+                    aria-label="Interval count"
+                />
+                <div class="my-2 w-px bg-border/60"></div>
                 <Select.Root type="single" bind:value={schedule.unit}>
-                    <Select.Trigger>
-                        {schedule.unit === 'days' ? 'Days' : 'Hours'}
+                    <Select.Trigger class="h-12 flex-1 border-0 bg-transparent capitalize focus:ring-0">
+                        {unitLabel(schedule.unit, schedule.value)}
                     </Select.Trigger>
                     <Select.Content>
-                        <Select.Item value="days" label="Days" />
-                        <Select.Item value="hours" label="Hours" />
+                        {#each INTERVAL_UNITS as u (u.value)}
+                            <Select.Item value={u.value} label={u.many.charAt(0).toUpperCase() + u.many.slice(1)} />
+                        {/each}
                     </Select.Content>
                 </Select.Root>
-                <Field.Error errors={errors?.unit} />
-            </Field.Field>
-        </div>
+            </div>
+            <Field.Error errors={errors?.value} />
+            <Field.Error errors={errors?.unit} />
+        </Field.Field>
     {:else if schedule.type === 'weekly'}
         <Field.Field>
             <Field.Label>Days</Field.Label>
@@ -105,6 +149,29 @@
                 {/each}
             </div>
             <Field.Error errors={errors?.days} />
+        </Field.Field>
+    {/if}
+
+    {#if schedule.type === 'daily' || schedule.type === 'weekly'}
+        <Field.Field>
+            <Field.Label>Reminders</Field.Label>
+            <Field.Description>Get a push notification at these times (enable notifications in Settings).</Field.Description>
+
+            <div class="space-y-2">
+                {#each schedule.times ?? [] as time, index (index)}
+                    <div class="flex items-center gap-2">
+                        <Input type="time" value={time} oninput={(e) => updateTime(index, e.currentTarget.value)} class="w-36" />
+                        <Button type="button" variant="ghost" size="icon" aria-label="Remove reminder" onclick={() => removeTime(index)}>
+                            <X class="h-4 w-4" />
+                        </Button>
+                    </div>
+                {/each}
+                <Button type="button" variant="outline" class="w-full" onclick={addTime}>
+                    <Plus class="mr-2 h-4 w-4" />
+                    Add reminder
+                </Button>
+            </div>
+            <Field.Error errors={errors?.times} />
         </Field.Field>
     {/if}
 </Field.Group>

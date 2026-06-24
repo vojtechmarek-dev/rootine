@@ -30,7 +30,18 @@ export const BaseActivitySchema = z.object({
 // Stored in activities.config JSONB
 
 // Base for type-specific JSONB `config` only. Row timestamps are `activities.createdAt` / `activities.updatedAt`.
-export const ActivityConfig = z.object({});
+// Coerce form strings ('on'/'true'/'1') AND real JSON booleans. `undefined`/`null`
+// (legacy rows missing the key) fall back to the supplied default — note the
+// preprocess must return that default itself, since a preprocess that always
+// emits a concrete boolean makes a downstream `.default()` dead code.
+const boolFlag = (fallback: boolean) =>
+    z.preprocess((v) => (v === undefined || v === null ? fallback : v === 'true' || v === 'on' || v === '1' || v === true), z.boolean());
+
+export const ActivityConfig = z.object({
+    allowBackFill: boolFlag(true),
+    allowFutureFill: boolFlag(false),
+    flexible: boolFlag(false),
+});
 
 // --- SCHEDULE SCHEMA ---
 // Unified scheduling for all activity types
@@ -55,7 +66,9 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
     z.object({
         type: z.literal('interval'),
         value: z.coerce.number().min(1),
-        unit: z.enum(['days', 'hours']), // Usually 'days'
+        // Legacy records stored 'hours'; the day-based scheduler treated it as
+        // days anyway, so migrate it forward on read.
+        unit: z.enum(['days', 'weeks', 'months', 'years']),
     }),
 ]);
 
@@ -235,6 +248,7 @@ export const WeekExceptionSchema = z.object({
     habitId: z.uuid(),
     weekOf: z.string().regex(/^\d{4}-W\d{2}$/, 'Invalid ISO week'), // e.g. "2025-W03"
     shiftDays: z.coerce.number().int(),
+    createdAt: z.coerce.date(),
 });
 
 export const UserSchema = z.object({
@@ -300,6 +314,10 @@ export type DashboardActivity = Activity & {
     isCompleted: boolean;
     logCountToday: number;
     targetCount: number;
+    /** Lifetime distinct days completed — drives the root-growth progress meter. */
+    growthPoints: number;
+    /** Schedule-aware current streak for THIS habit (consecutive due days done). */
+    streak: number;
     logs?: Log[] | null;
     /** True when at least one log for this period has status "skipped". */
     isSkippedToday: boolean;
@@ -309,9 +327,31 @@ export type DashboardActivity = Activity & {
     weekShifted?: boolean;
 };
 
+/** One day of the dashboard's week ribbon. */
+export type DashboardWeekDay = {
+    /** Local calendar day, yyyy-MM-dd. */
+    date: string;
+    /** Activities scheduled on this day. */
+    scheduledCount: number;
+    /** Of those, how many hit their target. */
+    completedCount: number;
+    /** Every scheduled activity completed (false when nothing was scheduled). */
+    completed: boolean;
+};
+
 export type DrawerActivity = z.infer<typeof DrawerActivitySchema>;
 
 export type ActivityFormData = DrawerActivity;
+
+/**
+ * Recursive validation-error tree as produced by superforms / Zod and threaded
+ * down through the activity forms. Branches are keyed by field name (or, for
+ * dynamic collections, by item id/index); leaf nodes are message arrays at
+ * runtime. Indexing always yields `FormErrors` so nested access type-checks;
+ * `Field.Error` guards with `Array.isArray` to render only the leaf arrays.
+ */
+export type FieldErrorList = ({ message?: string } | string)[];
+export type FormErrors = { [key: string]: FormErrors };
 
 export function getEmptyDrawerActivity(): DrawerActivity {
     return {
@@ -323,7 +363,7 @@ export function getEmptyDrawerActivity(): DrawerActivity {
         endDate: undefined,
         archived: false,
         type: 'habit',
-        config: { targetValue: 1, unit: 'times' },
+        config: { targetValue: 1, unit: 'times', allowBackFill: true, allowFutureFill: false, flexible: false },
         schedule: { type: 'daily' },
     };
 }

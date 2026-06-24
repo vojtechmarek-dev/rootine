@@ -3,9 +3,10 @@
     import { Button } from '$lib/components/ui/button';
     import { enhance } from '$app/forms';
     import { toastError, toastSuccess } from '$lib/toast';
-    import { CalendarOff, CalendarClock, LoaderCircle } from '@lucide/svelte';
+    import { CalendarOff, CalendarClock } from '@lucide/svelte';
     import type { DashboardActivity } from '$lib/types/schemas';
     import { shiftWeekdays } from '$lib/workout-rotation';
+    import { WEEKDAYS } from '$lib/constants';
 
     let {
         open = $bindable(false),
@@ -26,6 +27,10 @@
         }
     });
 
+    const today = new Date();
+
+    const affectedDays = WEEKDAYS.slice(today.getDay() - 1);
+
     const originalDays = $derived(activity.schedule.type === 'weekly' ? activity.schedule.days : []);
 
     /** Pair original day -> shifted day, in canonical order, for the preview. */
@@ -33,6 +38,7 @@
         originalDays.map((d, i) => ({
             from: d.slice(0, 3).toUpperCase(),
             to: (shiftWeekdays([d], 1)[0] ?? d).slice(0, 3).toUpperCase(),
+            past: !affectedDays.includes(d),
             key: `${d}-${i}`,
         }))
     );
@@ -93,16 +99,21 @@
                     <CalendarClock class="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
                     <span class="min-w-0">
                         <span class="block text-sm font-medium text-foreground">Shift this week +1 day</span>
-                        <span class="block text-xs text-muted-foreground">Push remaining days this week back by one.</span>
+                        <span class="block text-xs text-muted-foreground">Push remaining days this week forward by one day.</span>
 
                         {#if mode === 'shift'}
                             {#if dayPairs.length > 0}
                                 <span class="mt-2 flex flex-wrap gap-1.5">
                                     {#each dayPairs as pair (pair.key)}
                                         <span class="inline-flex items-center gap-1 rounded-md bg-surface-container-high px-2 py-1 text-xs">
-                                            <span class="text-muted-foreground line-through">{pair.from}</span>
-                                            <span aria-hidden="true">→</span>
-                                            <span class="font-semibold text-foreground">{pair.to}</span>
+                                            {#if pair.past}
+                                                <span class="text-muted-foreground">{pair.from}</span>
+                                                <span aria-hidden="true">✓</span>
+                                            {:else}
+                                                <span class="text-muted-foreground line-through">{pair.from}</span>
+                                                <span aria-hidden="true">→</span>
+                                                <span class="font-semibold text-foreground">{pair.to}</span>
+                                            {/if}
                                         </span>
                                     {/each}
                                 </span>
@@ -116,13 +127,8 @@
 
             <AlertDialog.Footer>
                 <Button type="button" variant="ghost" onclick={() => (open = false)} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" variant="default" disabled={isSubmitting}>
-                    {#if isSubmitting}
-                        <LoaderCircle class="size-4 animate-spin" />
-                        Working…
-                    {:else}
-                        Confirm
-                    {/if}
+                <Button type="submit" variant="default" loading={isSubmitting}>
+                    {isSubmitting ? 'Working…' : 'Confirm'}
                 </Button>
             </AlertDialog.Footer>
         </form>

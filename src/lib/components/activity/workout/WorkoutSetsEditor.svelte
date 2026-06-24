@@ -4,7 +4,7 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import { Plus, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Pencil, RotateCcw } from '@lucide/svelte';
-    import type { WorkoutSet } from '$lib/types/schemas';
+    import type { WorkoutSet, FormErrors } from '$lib/types/schemas';
     import ExerciseListEditor from './ExerciseListEditor.svelte';
 
     let {
@@ -16,7 +16,7 @@
         workoutSets: WorkoutSet[];
         rotation: string[];
         useRotation: boolean;
-        errors?: any;
+        errors?: FormErrors;
     } = $props();
 
     let editingSetId = $state<string | null>(null);
@@ -121,7 +121,7 @@
                                 }
                                 class="bg-surface-container-high font-medium"
                             />
-                            <Field.Error errors={errors?.[set.id]?.name} />
+                            <Field.Error errors={errors?.[i]?.name} />
                         </div>
 
                         <span class="shrink-0 text-xs text-muted-foreground">
@@ -164,14 +164,19 @@
                                         workoutSets = workoutSets.map((s) => (s.id === set.id ? { ...s, exercises: value } : s));
                                     }
                                 }
-                                errors={errors?.[set.id]?.exercises}
+                                errors={errors?.[i]?.exercises}
                             />
                         </div>
                     {/if}
                 </div>
             {/each}
 
-            <Button type="button" variant="outline" class="w-full border-dashed" onclick={addSet}>
+            <Button
+                type="button"
+                variant="ghost"
+                class="w-full rounded-xl bg-surface-container-high/60 hover:bg-primary/10 dark:hover:bg-primary/15"
+                onclick={addSet}
+            >
                 <Plus class="mr-2 h-4 w-4" />
                 Add set
             </Button>

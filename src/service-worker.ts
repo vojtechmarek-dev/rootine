@@ -2,9 +2,11 @@
 //
 // We author the worker here so app-specific logic (e.g. push notifications)
 // lives in our own code, while workbox injects the precache manifest at build
-// time via `self.__WB_MANIFEST`. SvelteKit compiles this file; VitePWA registers
-// it (registerSW.js). SvelteKit's own auto-registration is disabled in
-// svelte.config.js (kit.serviceWorker.register = false), so only one worker runs.
+// time via `self.__WB_MANIFEST`. SvelteKit compiles this file. SvelteKit's own
+// auto-registration is disabled in svelte.config.js (kit.serviceWorker.register =
+// false), and VitePWA's registerSW.js injection is disabled (injectRegister:
+// false) — we register this worker explicitly via `virtual:pwa-register/svelte`
+// (useRegisterSW) in src/routes/+layout.svelte. Exactly one worker runs.
 
 /// <reference no-default-lib="true"/>
 /// <reference lib="esnext" />
@@ -33,7 +35,7 @@ self.addEventListener('message', (event) => {
 // send the subscription to the server. This handles delivery + click.
 
 self.addEventListener('push', (event) => {
-    let payload: { title?: string; body?: string; url?: string } = {};
+    let payload: { title?: string; body?: string; url?: string };
     try {
         payload = event.data?.json() ?? {};
     } catch {

@@ -57,23 +57,69 @@ export function toDateRequired(val: unknown): Date {
 }
 
 /**
- * Whether a completion may be logged for `date` ("make-up" / backfill window).
- *
- * A date is backfillable when it is **today**, or it is **in the past AND
- * within the current ISO week** (Mon–Sun containing today). Future days are
- * never backfillable. Comparison is day-granular and uses local fields via
- * `startOfDay`; ISO-week bucketing uses {@link isoWeekOf} (RRRR-WII), so the
- * same week number in a different year does not match.
+ * The user's local calendar day ("yyyy-MM-dd") for `now`, in IANA `tz` (e.g.
+ * "Europe/Prague"). Uses `Intl` so DST is handled automatically. Falls back to
+ * UTC when `tz` is missing or invalid — so a server (UTC host) never reports its
+ * own day as the user's when the timezone is unknown for one request.
  */
-export function isBackfillableDate(date: Date, now: Date = new Date()): boolean {
+export function tzTodayString(tz: string | null | undefined, now: Date = new Date()): string {
+    const fmt = (timeZone: string) =>
+        new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+    try {
+        return fmt(tz || 'UTC');
+    } catch {
+        return fmt('UTC'); // invalid IANA name → UTC
+    }
+}
+
+/**
+ * The user's local "today" as a UTC-midnight Date — the same representation as
+ * `new Date('yyyy-MM-dd')`, so it lines up with how dashboard dates are bucketed.
+ */
+export function tzTodayDate(tz: string | null | undefined, now: Date = new Date()): Date {
+    return new Date(`${tzTodayString(tz, now)}T00:00:00Z`);
+}
+
+/**
+ * Per-activity fill flags, read straight off the jsonb `config` (so values are
+ * `unknown`). The strict `=== true` / `!== false` checks below narrow safely and
+ * default permissively for back-fill.
+ */
+export type FillConfig = { allowBackFill?: unknown; allowFutureFill?: unknown };
+
+/**
+ * Whether a completion may be logged for `date`, given an activity's fill config.
+ *
+ * - **Today** is always fillable.
+ * - A day in **another ISO week** is never fillable.
+ * - Within the current ISO week (Mon–Sun containing today): a **future** day needs
+ *   `allowFutureFill === true`; a **past** day needs `allowBackFill !== false`
+ *   (back-fill defaults on to match the zod schema).
+ *
+ * Comparison is day-granular via `startOfDay`; ISO-week bucketing uses
+ * {@link isoWeekOf} (RRRR-WII), so the same week number in a different year does
+ * not match.
+ */
+export function canFillDate(date: Date, config: FillConfig = {}, now: Date = new Date()): boolean {
     const day = startOfDay(date);
     const today = startOfDay(now);
 
-    if (isAfter(day, today)) {
-        return false; // future
-    }
     if (day.getTime() === today.getTime()) {
-        return true; // today
+        return true; // today: always
     }
-    return isoWeekOf(day) === isoWeekOf(today); // past, same ISO week only
+    if (isoWeekOf(day) !== isoWeekOf(today)) {
+        return false; // other ISO week: never
+    }
+    if (isAfter(day, today)) {
+        return config.allowFutureFill === true; // future, this week
+    }
+    return config.allowBackFill !== false; // past, this week (default allow)
+}
+
+/**
+ * Legacy back-fill window: today or a missed day earlier this ISO week. Equivalent
+ * to {@link canFillDate} with default flags (back-fill on, future-fill off).
+ */
+export function isBackfillableDate(date: Date, now: Date = new Date()): boolean {
+    return canFillDate(date, {}, now);
 }

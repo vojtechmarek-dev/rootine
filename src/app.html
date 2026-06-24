@@ -25,8 +25,23 @@
                     d.dataset.mode = r;
                     d.classList.toggle('dark', r === 'dark');
                     d.style.colorScheme = r;
+                    // Sync theme-color metas with the resolved app theme so the
+                    // status bar is correct on first paint even when the stored
+                    // mode differs from the OS scheme.
+                    const tc = r === 'dark' ? '#0b130e' : '#f4f1ea';
+                    document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+                        m.setAttribute('content', tc);
+                    });
                 } catch (e) {}
             })();
+        </script>
+        <script>
+            // Record the browser's IANA timezone in a cookie so the server can
+            // resolve "today" in the user's local time. Runs before the first data
+            // request; refreshed on every navigation (see root +layout.svelte).
+            try {
+                document.cookie = 'tz=' + Intl.DateTimeFormat().resolvedOptions().timeZone + ';path=/;max-age=31536000;samesite=lax';
+            } catch (e) {}
         </script>
         <style>
             /* Splash screen styles */
@@ -37,7 +52,7 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: #f8f9fa;
+                background: #f4f1ea;
                 color: #012d1d;
                 opacity: 0;
                 pointer-events: none;
@@ -46,7 +61,7 @@
             }
 
             .dark #app-splash {
-                background: #0b1c14;
+                background: #0b130e;
                 color: #f8f9fa;
             }
 

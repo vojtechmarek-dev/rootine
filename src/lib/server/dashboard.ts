@@ -4,16 +4,19 @@ import {
     ActivitySchema,
     LogSchema,
     WeekExceptionSchema,
+    type Activity,
     type DashboardActivity,
     type Log,
     type WeekException,
     type WorkoutRotationView,
 } from '$lib/types/schemas';
-import { eq, desc, and, between, inArray, gte } from 'drizzle-orm';
+import { eq, desc, and, between, inArray, gte, lt, ne } from 'drizzle-orm';
 import { formatZodErrorTree } from '$lib/utils';
-import { differenceInDays, endOfDay, startOfDay } from 'date-fns';
-import { isScheduledForDate } from '$lib/scheduler';
+import { differenceInDays, eachDayOfInterval, endOfDay, endOfWeek, format, isSameDay, startOfDay, startOfWeek } from 'date-fns';
+import { isScheduledForDate, getPreviousScheduledDate } from '$lib/scheduler';
+import { aggregateHabitStreaks, completedDayOrdinals } from '$lib/streak';
 import { getRotationPosition, isoWeekOf } from '$lib/workout-rotation';
+import type { DashboardWeekDay } from '$lib/types/schemas';
 
 /** Target count for "done" today: habits use config.targetValue, others default to 1. */
 function getTargetCount(activity: { type: string; config: Record<string, unknown> }): number {
@@ -76,18 +79,52 @@ function buildWorkoutRotation(
 export async function getDashboardActivities(
     userId: string,
     targetDate: Date
-): Promise<{ activities: DashboardActivity[]; errors: Array<{ id: string; type: string; message: string }> }> {
+): Promise<{
+    activities: DashboardActivity[];
+    errors: Array<{ id: string; type: string; message: string }>;
+    /** Per-day completion for the target date's ISO week (Mon–Sun). */
+    week: DashboardWeekDay[];
+    /** Global streak: the longest currently-alive per-habit schedule-aware streak. */
+    streak: number;
+}> {
+    // Load the whole ISO week of logs: the day view needs the target date, the
+    // week ribbon needs every day around it.
+    const weekStart = startOfWeek(targetDate, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(targetDate, { weekStartsOn: 1 });
     const userActivities = await db.query.activities.findMany({
         where: and(eq(activities.userId, userId), eq(activities.archived, false)),
         orderBy: [desc(activities.createdAt)],
         with: {
             logs: {
-                where: between(logs.date, startOfDay(targetDate), endOfDay(targetDate)),
+                where: between(logs.date, startOfDay(weekStart), endOfDay(weekEnd)),
             },
         },
     });
 
     const activityIds = userActivities.map((a) => a.id);
+
+    // Lifetime completions (non-skipped) per activity. One scan feeds BOTH the
+    // root-growth meter (distinct days) and the schedule-aware streak (which needs
+    // each habit's actual completed days, not just a count).
+    const completionRows = activityIds.length
+        ? await db
+              .select({ activityId: logs.activityId, date: logs.date })
+              .from(logs)
+              .innerJoin(activities, eq(logs.activityId, activities.id))
+              .where(and(eq(activities.userId, userId), ne(logs.status, 'skipped')))
+        : [];
+    const datesByActivity = new Map<string, Date[]>();
+    for (const row of completionRows) {
+        const list = datesByActivity.get(row.activityId);
+        if (list) list.push(row.date);
+        else datesByActivity.set(row.activityId, [row.date]);
+    }
+    // A day counts as DONE only when the target was met (matches the week ribbon) —
+    // one definition driving both the growth meter and the schedule-aware streak.
+    const completedDaysByActivity = new Map<string, Set<number>>(
+        userActivities.map((a) => [a.id, completedDayOrdinals(datesByActivity.get(a.id) ?? [], getTargetCount(a))])
+    );
+    const growthPointsByActivity = new Map<string, number>([...completedDaysByActivity].map(([id, set]) => [id, set.size]));
 
     // WeekExceptions for the target's ISO week. Only apply for the current or
     // future ISO week — past-week exceptions are expired and should not affect
@@ -136,9 +173,12 @@ export async function getDashboardActivities(
 
     const dashboardActivities: DashboardActivity[] = [];
     const errors: Array<{ id: string; type: string; message: string }> = [];
+    // Validated activities with their week of logs — feeds the week ribbon,
+    // which needs every activity regardless of whether it's scheduled today.
+    const validated: Array<{ parsed: Activity; weekLogs: (typeof userActivities)[number]['logs'] }> = [];
 
     for (const activity of userActivities) {
-        const { logs: rawLogs, ...rawActivityData } = activity;
+        const { logs: weekLogs, ...rawActivityData } = activity;
 
         const validationResult = ActivitySchema.safeParse(rawActivityData);
 
@@ -150,9 +190,38 @@ export async function getDashboardActivities(
         }
 
         const parsedActivity = validationResult.data;
+        validated.push({ parsed: parsedActivity, weekLogs });
+
+        // The dashboard list only looks at the target date's logs. Computed before
+        // the schedule gate so the flexible-spillover branch can read it.
+        const rawLogs = weekLogs.filter((l) => isSameDay(l.date, targetDate));
 
         if (!isScheduledForDate(parsedActivity, targetDate, exceptions)) {
-            continue;
+            // Flexible activities "spill over": a missed scheduled day keeps showing
+            // every day until completed, then resumes the normal schedule.
+            if (!parsedActivity.config.flexible) {
+                continue;
+            }
+            const prevDate = getPreviousScheduledDate(parsedActivity, targetDate);
+            if (!prevDate) {
+                continue;
+            }
+            // A log today means the user is completing it right now → keep rendering.
+            // Otherwise, any log since the cycle's scheduled mark means it's done →
+            // hide until the next mark.
+            if (rawLogs.length === 0) {
+                const cycleLog = await db.query.logs.findFirst({
+                    where: and(
+                        eq(logs.activityId, activity.id),
+                        gte(logs.date, startOfDay(prevDate)),
+                        lt(logs.date, startOfDay(targetDate))
+                    ),
+                });
+                if (cycleLog) {
+                    continue;
+                }
+            }
+            // Fall through: not yet completed this cycle → render as spillover.
         }
 
         const targetCount = getTargetCount(parsedActivity);
@@ -186,6 +255,8 @@ export async function getDashboardActivities(
             isCompleted,
             logCountToday,
             targetCount,
+            growthPoints: growthPointsByActivity.get(activity.id) ?? 0,
+            streak: 0, // filled in below once all activities are validated
             logs: parsedLogs,
             isSkippedToday,
             workoutRotation,
@@ -193,5 +264,43 @@ export async function getDashboardActivities(
         });
     }
 
-    return { activities: dashboardActivities, errors };
+    // Week ribbon: a day is "completed" when every activity scheduled on it hit
+    // its target. Days with nothing scheduled stay neutral (scheduledCount 0).
+    const week: DashboardWeekDay[] = eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day) => {
+        let scheduledCount = 0;
+        let completedCount = 0;
+        for (const { parsed, weekLogs } of validated) {
+            if (!isScheduledForDate(parsed, day, exceptions)) {
+                continue;
+            }
+            scheduledCount++;
+            const count = weekLogs.filter((l) => l.status !== 'skipped' && isSameDay(l.date, day)).length;
+            if (count >= getTargetCount(parsed)) {
+                completedCount++;
+            }
+        }
+        return {
+            date: format(day, 'yyyy-MM-dd'),
+            scheduledCount,
+            completedCount,
+            completed: scheduledCount > 0 && completedCount === scheduledCount,
+        };
+    });
+
+    // Schedule-aware streaks. Each habit's streak counts consecutive *scheduled*
+    // days it completed (rest days don't break it); the global streak is the
+    // longest currently-alive habit streak. Anchored on the real today, not the
+    // viewed date. Exceptions only matter for the current week.
+    const { byActivity, global } = aggregateHabitStreaks(
+        validated.map((v) => v.parsed),
+        completedDaysByActivity,
+        new Date(),
+        exceptions
+    );
+    for (const a of dashboardActivities) {
+        a.streak = byActivity.get(a.id)?.current ?? 0;
+    }
+    const streak = global.current;
+
+    return { activities: dashboardActivities, errors, week, streak };
 }

@@ -63,6 +63,14 @@ export function initializeTheme() {
         root.dataset.mode = theme.resolvedMode;
         root.classList.toggle('dark', theme.resolvedMode === 'dark');
         root.style.colorScheme = theme.resolvedMode;
+
+        // Keep the browser/status-bar color in sync with the app theme, not
+        // just the OS scheme. Writing the same content to both media-tagged
+        // meta tags makes whichever one matches show the right color.
+        const color = theme.resolvedMode === 'dark' ? '#0b130e' : '#f4f1ea';
+        for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+            meta.setAttribute('content', color);
+        }
     });
 }
 

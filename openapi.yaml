@@ -2,34 +2,265 @@ openapi: 3.1.0
 info:
     title: Rootine API
     description: |
-        API documentation for Rootine, a PWA Habit Tracker. The app uses SvelteKit Form Actions for mutations.
-        Authenticated requests require a valid session cookie.
+        API documentation for Rootine, a PWA habit tracker built with SvelteKit.
+
+        ## Conventions
+
+        Mutations are **SvelteKit Form Actions**, not REST endpoints. A named action on
+        a route is invoked by POSTing to the route with a `?/<actionName>` query string,
+        e.g. `POST /?/createActivity`. Bodies are `application/x-www-form-urlencoded`
+        (or `multipart/form-data` when submitted via `use:enhance`).
+
+        Nested object fields use dot notation in form keys (superforms convention),
+        e.g. `config.targetValue`, `schedule.type`. Array fields repeat the key,
+        e.g. `schedule.days=mon&schedule.days=wed`.
+
+        Responses use SvelteKit's action-result envelope. Validation failures return the
+        listed HTTP status with a JSON body; successes either return a small JSON payload
+        or redirect.
+
+        Page `load` functions are documented as `GET` operations returning the data the
+        page renders. Authentication is handled by Auth.js (SvelteKitAuth) with a Google
+        provider and JWT session strategy. Authenticated requests carry the session cookie.
     version: 0.1.0
     contact:
         name: Rootine
 
 servers:
     - url: /
-      description: App root (protected routes under (app) layout)
+      description: App root
 
 tags:
+    - name: Dashboard
+      description: Dashboard page load + activity completion actions
     - name: Activities
-      description: Activity (habit, plant, workout) management
+      description: Create, update, and archive activities (habits, plants, workouts)
+    - name: Workout
+      description: Workout session page load + logging
+    - name: Garden
+      description: Roots / garden view
     - name: Auth
       description: Authentication (handled by Auth.js)
 
 paths:
     /:
-        post:
-            operationId: createActivity
-            summary: Create an activity
+        get:
+            operationId: getDashboard
+            summary: Load the dashboard
             description: |
-                SvelteKit Form Action. Creates a new activity (habit, plant, or workout) for the authenticated user.
-                Submit as `application/x-www-form-urlencoded` with `_action=createActivity`.
+                Returns the authenticated user's activities for a target day. Defaults to
+                the user's local "today" derived from the `tz` cookie; override with the
+                `date` query param. Unauthenticated requests redirect (303) to `/login`.
             tags:
+                - Dashboard
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: date
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                      format: date-time
+                  description: ISO 8601 date to load. Defaults to local today.
+            responses:
+                '200':
+                    description: Dashboard data
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    dashboardPayload:
+                                        type: object
+                                        properties:
+                                            activities:
+                                                type: array
+                                                items:
+                                                    $ref: '#/components/schemas/DashboardActivity'
+                                            week:
+                                                type: array
+                                                items:
+                                                    $ref: '#/components/schemas/DashboardWeekDay'
+                '303':
+                    $ref: '#/components/responses/LoginRedirect'
+
+        post:
+            operationId: dashboardActions
+            summary: Dashboard form actions
+            description: |
+                Multiplexed SvelteKit form actions on the dashboard route, selected by the
+                `?/<action>` query string. Supported actions:
+
+                - `createActivity` — create a new activity (no `id`)
+                - `updateActivity` — update an existing activity (`id` required)
+                - `toggleActivity` — log/un-log a completion for a day
+                - `archiveActivity` — archive an activity
+                - `skipDay` — skip or shift a workout habit for the day/week
+
+                The `action` query parameter below documents which handler runs; the request
+                body schema depends on it (see referenced schemas).
+            tags:
+                - Dashboard
                 - Activities
             security:
                 - cookieAuth: []
+            parameters:
+                - name: '/action'
+                  in: query
+                  required: true
+                  description: |
+                      SvelteKit action selector. Pass as the bare query string `?/<action>`,
+                      e.g. `?/createActivity`.
+                  schema:
+                      type: string
+                      enum:
+                          - createActivity
+                          - updateActivity
+                          - toggleActivity
+                          - archiveActivity
+                          - skipDay
+            requestBody:
+                required: true
+                content:
+                    application/x-www-form-urlencoded:
+                        schema:
+                            oneOf:
+                                - $ref: '#/components/schemas/CreateActivityForm'
+                                - $ref: '#/components/schemas/UpdateActivityForm'
+                                - $ref: '#/components/schemas/ToggleActivityForm'
+                                - $ref: '#/components/schemas/ArchiveActivityForm'
+                                - $ref: '#/components/schemas/SkipDayForm'
+            responses:
+                '200':
+                    description: Action succeeded
+                    content:
+                        application/json:
+                            schema:
+                                oneOf:
+                                    - $ref: '#/components/schemas/SuccessMessage'
+                                    - $ref: '#/components/schemas/ToggleResult'
+                                    - $ref: '#/components/schemas/SkipResult'
+                '400':
+                    $ref: '#/components/responses/ValidationError'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '500':
+                    $ref: '#/components/responses/ServerError'
+
+    /roots:
+        get:
+            operationId: getGarden
+            summary: Load the garden / roots view
+            description: |
+                Returns aggregated garden data for the authenticated user. Unauthenticated
+                requests redirect (303) to `/login`.
+            tags:
+                - Garden
+            security:
+                - cookieAuth: []
+            responses:
+                '200':
+                    description: Garden data
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    gardenData:
+                                        type: object
+                                        description: Aggregated garden/growth data.
+                '303':
+                    $ref: '#/components/responses/LoginRedirect'
+
+    /workout/{id}:
+        get:
+            operationId: getWorkout
+            summary: Load a workout session
+            description: |
+                Returns a workout habit, its sets, and derived rotation state (recommended
+                next set, days since last completion). Non-workout activities redirect (303)
+                to `/`. Unknown IDs return 404. Unauthenticated requests redirect to `/login`.
+            tags:
+                - Workout
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+                  description: Activity ID
+            responses:
+                '200':
+                    description: Workout session data
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    activity:
+                                        $ref: '#/components/schemas/WorkoutActivity'
+                                    sets:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/WorkoutSet'
+                                    useRotation:
+                                        type: boolean
+                                    recommendedSetId:
+                                        type: string
+                                        nullable: true
+                                    lastSet:
+                                        type: object
+                                        nullable: true
+                                        properties:
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                                nullable: true
+                                            daysSinceLast:
+                                                type: number
+                                                nullable: true
+                '303':
+                    description: Redirect (not a workout → `/`, or unauthenticated → `/login`)
+                '404':
+                    $ref: '#/components/responses/NotFound'
+
+        post:
+            operationId: completeWorkout
+            summary: Log a completed workout
+            description: |
+                SvelteKit form action `?/complete`. Records a completed workout log for the
+                given activity. Only today or a missed day earlier this ISO week may be
+                logged (backfill window), enforced server-side.
+            tags:
+                - Workout
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+                  description: Activity ID
+                - name: '/action'
+                  in: query
+                  required: true
+                  description: SvelteKit action selector. Pass as `?/complete`.
+                  schema:
+                      type: string
+                      enum: [complete]
             requestBody:
                 required: true
                 content:
@@ -37,81 +268,18 @@ paths:
                         schema:
                             type: object
                             required:
-                                - _action
-                                - type
-                                - title
+                                - logData
                             properties:
-                                _action:
+                                logData:
                                     type: string
-                                    enum: [createActivity]
-                                    description: SvelteKit form action name
-                                type:
-                                    type: string
-                                    enum: [habit, plant, workout]
-                                    description: Activity type (discriminator)
-                                title:
-                                    type: string
-                                    minLength: 1
-                                description:
-                                    type: string
-                                color:
-                                    type: string
-                                    default: zinc
-                                icon:
-                                    type: string
-                                    default: circle
-                                startDate:
+                                    description: JSON-encoded WorkoutLog (see WorkoutLog schema).
+                                targetDate:
                                     type: string
                                     format: date-time
-                                    description: ISO 8601 date
-                                endDate:
-                                    type: string
-                                    format: date-time
-                                    description: ISO 8601 date, optional
-                                # Schedule
-                                schedule_type:
-                                    type: string
-                                    enum: [daily, interval, weekly]
-                                    description: Required for explicit schedule
-                                schedule_value:
-                                    type: number
-                                    description: For schedule_type=interval
-                                schedule_unit:
-                                    type: string
-                                    enum: [days, hours]
-                                    description: For schedule_type=interval
-                                schedule_days:
-                                    type: array
-                                    items:
-                                        type: string
-                                        enum: [mon, tue, wed, thu, fri, sat, sun]
-                                    description: For schedule_type=weekly, repeat param for each day
-                                # Legacy/fallback
-                                period:
-                                    type: string
-                                    enum: [weekly]
-                                waterIntervalDays:
-                                    type: number
-                                    description: Legacy plant watering interval
-                                # Habit config
-                                targetValue:
-                                    type: number
-                                    minimum: 1
-                                    default: 1
-                                unit:
-                                    type: string
-                                    default: times
-                                # Plant config
-                                location:
-                                    type: string
-                                species:
-                                    type: string
-                                # Workout config
-                                estimatedDurationMin:
-                                    type: number
+                                    description: ISO date to log against. Defaults to now.
             responses:
                 '200':
-                    description: Success (returns redirect or success payload)
+                    description: Workout logged
                     content:
                         application/json:
                             schema:
@@ -119,41 +287,126 @@ paths:
                                 properties:
                                     success:
                                         type: boolean
+                                    grew:
+                                        type: boolean
+                                        description: True if this log crossed a growth stage.
                 '400':
-                    description: Validation error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    message:
-                                        type: string
-                                    errors:
-                                        type: object
-                                        additionalProperties:
-                                            type: array
-                                            items:
-                                                type: string
-                                    values:
-                                        type: object
+                    $ref: '#/components/responses/ValidationError'
                 '401':
-                    description: Unauthorized (no session)
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+
+    /login:
+        get:
+            operationId: getLogin
+            summary: Login page
+            description: |
+                Renders the login page (Google sign-in). Authenticated users are redirected
+                (303) to `/`.
+            tags:
+                - Auth
+            responses:
+                '200':
+                    description: Login page
+                '303':
+                    description: Already authenticated → redirect to `/`
+
+    /auth/signin:
+        get:
+            operationId: authSignin
+            summary: Auth.js sign-in
+            description: Auth.js built-in sign-in endpoint. Initiates the Google OAuth flow.
+            tags:
+                - Auth
+            responses:
+                '200':
+                    description: Sign-in handled by Auth.js
+        post:
+            operationId: authSigninPost
+            summary: Auth.js sign-in (POST)
+            description: Auth.js sign-in POST (CSRF-protected). Redirects to the provider.
+            tags:
+                - Auth
+            responses:
+                '302':
+                    description: Redirect to OAuth provider
+
+    /auth/callback/google:
+        get:
+            operationId: authCallbackGoogle
+            summary: Google OAuth callback
+            description: Auth.js OAuth callback for the Google provider. Sets the session cookie.
+            tags:
+                - Auth
+            responses:
+                '302':
+                    description: Redirect after authentication
+
+    /auth/signout:
+        post:
+            operationId: authSignout
+            summary: Auth.js sign-out
+            description: Auth.js sign-out (CSRF-protected). Clears the session.
+            tags:
+                - Auth
+            security:
+                - cookieAuth: []
+            responses:
+                '302':
+                    description: Redirect after sign-out
+
+    /auth/session:
+        get:
+            operationId: authSession
+            summary: Current session
+            description: Auth.js session endpoint. Returns the current session or null.
+            tags:
+                - Auth
+            security:
+                - cookieAuth: []
+            responses:
+                '200':
+                    description: Current session (or empty when unauthenticated)
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Session'
+
+    /auth/csrf:
+        get:
+            operationId: authCsrf
+            summary: CSRF token
+            description: Auth.js CSRF token, required for sign-in/sign-out POSTs.
+            tags:
+                - Auth
+            responses:
+                '200':
+                    description: CSRF token
                     content:
                         application/json:
                             schema:
                                 type: object
                                 properties:
-                                    message:
+                                    csrfToken:
                                         type: string
-                '500':
-                    description: Server error
+
+    /auth/providers:
+        get:
+            operationId: authProviders
+            summary: Configured providers
+            description: Auth.js list of configured authentication providers.
+            tags:
+                - Auth
+            responses:
+                '200':
+                    description: Provider map
                     content:
                         application/json:
                             schema:
                                 type: object
-                                properties:
-                                    message:
-                                        type: string
 
 components:
     securitySchemes:
@@ -161,9 +414,234 @@ components:
             type: apiKey
             in: cookie
             name: authjs.session-token
-            description: Session cookie from Auth.js (SvelteKitAuth)
+            description: JWT session cookie from Auth.js (SvelteKitAuth).
+
+    responses:
+        LoginRedirect:
+            description: Unauthenticated → 303 redirect to `/login`
+        Unauthorized:
+            description: Unauthorized (no valid session)
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ErrorMessage'
+        Forbidden:
+            description: Forbidden (e.g. date outside the backfill window)
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ErrorMessage'
+        NotFound:
+            description: Resource not found
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ErrorMessage'
+        Conflict:
+            description: Conflict (e.g. the ISO week is already shifted)
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ErrorMessage'
+        ValidationError:
+            description: Validation error
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            message:
+                                type: string
+                            form:
+                                type: object
+                                description: superforms form object with field-level errors.
+                                properties:
+                                    valid:
+                                        type: boolean
+                                    errors:
+                                        type: object
+                                        additionalProperties:
+                                            type: array
+                                            items:
+                                                type: string
+                                    data:
+                                        type: object
+        ServerError:
+            description: Server error
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ErrorMessage'
 
     schemas:
+        ErrorMessage:
+            type: object
+            properties:
+                message:
+                    type: string
+
+        SuccessMessage:
+            type: object
+            description: superforms success with a flash message.
+            properties:
+                form:
+                    type: object
+                    properties:
+                        message:
+                            type: string
+                        valid:
+                            type: boolean
+
+        ToggleResult:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                logId:
+                    type: string
+                    nullable: true
+
+        SkipResult:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                mode:
+                    type: string
+                    enum: [skip, shift]
+
+        # ===== Form action request bodies (form-encoded) =====
+
+        CreateActivityForm:
+            type: object
+            description: |
+                Body for `?/createActivity`. Shared fields plus type-specific `config.*`
+                and `schedule.*`. No `id`.
+            required:
+                - type
+                - title
+            properties:
+                type:
+                    type: string
+                    enum: [habit, plant, workout]
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                color:
+                    type: string
+                    default: zinc
+                icon:
+                    type: string
+                    default: circle
+                startDate:
+                    type: string
+                    format: date-time
+                endDate:
+                    type: string
+                    format: date-time
+                archived:
+                    type: boolean
+                    default: false
+                'config.targetValue':
+                    type: number
+                    minimum: 1
+                    default: 1
+                    description: Habit only.
+                'config.unit':
+                    type: string
+                    default: times
+                    description: Habit only.
+                'config.location':
+                    type: string
+                    description: Plant only.
+                'config.species':
+                    type: string
+                    description: Plant only.
+                'config.estimatedDurationMin':
+                    type: number
+                    description: Workout only.
+                'schedule.type':
+                    type: string
+                    enum: [daily, weekly, interval]
+                'schedule.days':
+                    type: array
+                    items:
+                        type: string
+                        enum: [mon, tue, wed, thu, fri, sat, sun]
+                    description: For `schedule.type=weekly`. Repeat the key per day.
+                'schedule.times':
+                    type: array
+                    items:
+                        type: string
+                    description: Optional reminder times, e.g. "09:00".
+                'schedule.value':
+                    type: number
+                    minimum: 1
+                    description: For `schedule.type=interval`.
+                'schedule.unit':
+                    type: string
+                    enum: [days, hours]
+                    description: For `schedule.type=interval`.
+
+        UpdateActivityForm:
+            allOf:
+                - $ref: '#/components/schemas/CreateActivityForm'
+                - type: object
+                  required:
+                      - id
+                  properties:
+                      id:
+                          type: string
+                          format: uuid
+                          description: Required — identifies the activity to update.
+
+        ToggleActivityForm:
+            type: object
+            description: Body for `?/toggleActivity`. Optionally pass `?date=` on the URL.
+            required:
+                - activityId
+                - action
+            properties:
+                activityId:
+                    type: string
+                    format: uuid
+                action:
+                    type: string
+                    enum: [complete, undo]
+                logId:
+                    type: string
+                    description: Optional log to delete on `undo`; else most recent that day.
+
+        ArchiveActivityForm:
+            type: object
+            description: Body for `?/archiveActivity`.
+            required:
+                - id
+            properties:
+                id:
+                    type: string
+                    format: uuid
+
+        SkipDayForm:
+            type: object
+            description: Body for `?/skipDay`. Workout habits only.
+            required:
+                - activityId
+                - mode
+            properties:
+                activityId:
+                    type: string
+                    format: uuid
+                mode:
+                    type: string
+                    enum: [skip, shift]
+                    description: |
+                        `skip` logs today as skipped; `shift` creates a +1 week exception.
+
+        # ===== Domain models =====
+
         Activity:
             oneOf:
                 - $ref: '#/components/schemas/HabitActivity'
@@ -172,17 +650,21 @@ components:
             discriminator:
                 propertyName: type
 
-        HabitActivity:
+        BaseActivityFields:
             type: object
             required: [type, title]
             properties:
-                type:
+                id:
                     type: string
-                    enum: [habit]
+                    format: uuid
+                userId:
+                    type: string
+                    format: uuid
                 title:
                     type: string
                 description:
                     type: string
+                    nullable: true
                 color:
                     type: string
                 icon:
@@ -193,62 +675,89 @@ components:
                 endDate:
                     type: string
                     format: date-time
-                config:
-                    $ref: '#/components/schemas/HabitConfig'
+                    nullable: true
+                archived:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
                 schedule:
                     $ref: '#/components/schemas/Schedule'
+
+        HabitActivity:
+            allOf:
+                - $ref: '#/components/schemas/BaseActivityFields'
+                - type: object
+                  properties:
+                      type:
+                          type: string
+                          enum: [habit]
+                      config:
+                          $ref: '#/components/schemas/HabitConfig'
 
         PlantActivity:
-            type: object
-            required: [type, title]
-            properties:
-                type:
-                    type: string
-                    enum: [plant]
-                title:
-                    type: string
-                description:
-                    type: string
-                color:
-                    type: string
-                icon:
-                    type: string
-                startDate:
-                    type: string
-                    format: date-time
-                endDate:
-                    type: string
-                    format: date-time
-                config:
-                    $ref: '#/components/schemas/PlantConfig'
-                schedule:
-                    $ref: '#/components/schemas/Schedule'
+            allOf:
+                - $ref: '#/components/schemas/BaseActivityFields'
+                - type: object
+                  properties:
+                      type:
+                          type: string
+                          enum: [plant]
+                      config:
+                          $ref: '#/components/schemas/PlantConfig'
 
         WorkoutActivity:
+            allOf:
+                - $ref: '#/components/schemas/BaseActivityFields'
+                - type: object
+                  properties:
+                      type:
+                          type: string
+                          enum: [workout]
+                      config:
+                          $ref: '#/components/schemas/WorkoutConfig'
+
+        DashboardActivity:
+            allOf:
+                - $ref: '#/components/schemas/Activity'
+                - type: object
+                  properties:
+                      isCompleted:
+                          type: boolean
+                      logCountToday:
+                          type: number
+                      targetCount:
+                          type: number
+                      growthPoints:
+                          type: number
+                          description: Lifetime distinct days completed.
+                      streak:
+                          type: number
+                      isSkippedToday:
+                          type: boolean
+                      weekShifted:
+                          type: boolean
+                      logs:
+                          type: array
+                          nullable: true
+                          items:
+                              $ref: '#/components/schemas/Log'
+
+        DashboardWeekDay:
             type: object
-            required: [type, title]
             properties:
-                type:
+                date:
                     type: string
-                    enum: [workout]
-                title:
-                    type: string
-                description:
-                    type: string
-                color:
-                    type: string
-                icon:
-                    type: string
-                startDate:
-                    type: string
-                    format: date-time
-                endDate:
-                    type: string
-                    format: date-time
-                config:
-                    $ref: '#/components/schemas/WorkoutConfig'
-                schedule:
-                    $ref: '#/components/schemas/Schedule'
+                    description: Local calendar day, yyyy-MM-dd.
+                scheduledCount:
+                    type: number
+                completedCount:
+                    type: number
+                completed:
+                    type: boolean
 
         Schedule:
             oneOf:
@@ -269,7 +778,7 @@ components:
                     type: array
                     items:
                         type: string
-                    description: Optional time strings e.g. ["09:00"]
+                    description: Optional reminder times, e.g. ["09:00"].
 
         ScheduleWeekly:
             type: object
@@ -318,11 +827,14 @@ components:
             properties:
                 location:
                     type: string
+                    nullable: true
                 species:
                     type: string
+                    nullable: true
                 lastWatered:
                     type: string
                     format: date-time
+                    nullable: true
 
         WorkoutConfig:
             type: object
@@ -330,7 +842,168 @@ components:
                 exercises:
                     type: array
                     items:
-                        type: string
+                        $ref: '#/components/schemas/Exercise'
                     default: []
                 estimatedDurationMin:
                     type: number
+                    nullable: true
+                workoutSets:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WorkoutSet'
+                    default: []
+                rotation:
+                    type: array
+                    items:
+                        type: string
+                    description: Ordered WorkoutSet IDs defining the cycle.
+                    default: []
+                useRotation:
+                    type: boolean
+                    default: true
+
+        Exercise:
+            type: object
+            required: [name]
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                    minLength: 1
+                sets:
+                    type: number
+                    minimum: 1
+                    default: 3
+                reps:
+                    type: number
+                    minimum: 1
+                    default: 10
+                weight:
+                    type: number
+                    nullable: true
+
+        WorkoutSet:
+            type: object
+            required: [name]
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                    minLength: 1
+                exercises:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Exercise'
+                    default: []
+
+        # ===== Log models =====
+
+        Log:
+            oneOf:
+                - $ref: '#/components/schemas/HabitLog'
+                - $ref: '#/components/schemas/PlantLog'
+                - $ref: '#/components/schemas/WorkoutLog'
+            discriminator:
+                propertyName: type
+
+        HabitLog:
+            type: object
+            properties:
+                count:
+                    type: number
+                    default: 1
+
+        PlantLog:
+            type: object
+            properties:
+                action:
+                    type: string
+                    enum: [water, fertilize, prune]
+                    default: water
+                notes:
+                    type: string
+                photoUrl:
+                    type: string
+
+        WorkoutLog:
+            type: object
+            properties:
+                durationMin:
+                    type: number
+                    default: 0
+                durationSec:
+                    type: number
+                    default: 0
+                setId:
+                    type: string
+                    nullable: true
+                    description: Completed WorkoutSet ID. null for habits without sets / skips.
+                exercises:
+                    type: array
+                    default: []
+                    items:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                            sets:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        weight:
+                                            type: number
+                                        reps:
+                                            type: number
+                                        rpe:
+                                            type: number
+                                            description: Rate of Perceived Exertion (1-10).
+
+        WeekException:
+            type: object
+            description: One shifted ISO week; offsets a habit's weekly preferred days.
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                habitId:
+                    type: string
+                    format: uuid
+                weekOf:
+                    type: string
+                    description: ISO week, e.g. "2025-W03".
+                shiftDays:
+                    type: number
+                createdAt:
+                    type: string
+                    format: date-time
+
+        # ===== Auth models =====
+
+        User:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                name:
+                    type: string
+                email:
+                    type: string
+                    format: email
+                emailVerified:
+                    type: string
+                    format: date-time
+                image:
+                    type: string
+
+        Session:
+            type: object
+            properties:
+                expires:
+                    type: string
+                    format: date-time
+                user:
+                    $ref: '#/components/schemas/User'

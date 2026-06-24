@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CalendarDate } from '@internationalized/date';
-import { toDate, toDateValue, toDateRequired, isBackfillableDate } from './date';
+import { toDate, toDateValue, toDateRequired, isBackfillableDate, canFillDate, tzTodayString, tzTodayDate } from './date';
 
 describe('toDateValue', () => {
     it('returns undefined for null/undefined', () => {
@@ -96,5 +96,66 @@ describe('isBackfillableDate', () => {
 
     it('rejects future days even within the same ISO week', () => {
         expect(isBackfillableDate(new Date(2026, 4, 31), now)).toBe(false); // Sun, same week
+    });
+});
+
+describe('canFillDate', () => {
+    // Wed 27 May 2026. ISO week = Mon 25 May .. Sun 31 May.
+    const now = new Date(2026, 4, 27, 12, 0, 0);
+    const today = new Date(2026, 4, 27);
+    const pastThisWeek = new Date(2026, 4, 26); // Tue
+    const futureThisWeek = new Date(2026, 4, 28); // Thu
+    const prevWeek = new Date(2026, 4, 24); // Sun, last week
+    const nextWeek = new Date(2026, 5, 1); // Mon, next week
+
+    it('always allows today regardless of flags', () => {
+        expect(canFillDate(today, { allowBackFill: false, allowFutureFill: false }, now)).toBe(true);
+    });
+
+    it('back-fill defaults on (empty config behaves like the legacy window)', () => {
+        expect(canFillDate(pastThisWeek, {}, now)).toBe(true);
+        expect(canFillDate(futureThisWeek, {}, now)).toBe(false);
+    });
+
+    it('gates a past day this week on allowBackFill', () => {
+        expect(canFillDate(pastThisWeek, { allowBackFill: true }, now)).toBe(true);
+        expect(canFillDate(pastThisWeek, { allowBackFill: false }, now)).toBe(false);
+    });
+
+    it('gates a future day this week on allowFutureFill', () => {
+        expect(canFillDate(futureThisWeek, { allowFutureFill: true }, now)).toBe(true);
+        expect(canFillDate(futureThisWeek, { allowFutureFill: false }, now)).toBe(false);
+    });
+
+    it('never allows another ISO week, even with both flags on', () => {
+        const open = { allowBackFill: true, allowFutureFill: true };
+        expect(canFillDate(prevWeek, open, now)).toBe(false);
+        expect(canFillDate(nextWeek, open, now)).toBe(false);
+    });
+});
+
+describe('tzTodayString / tzTodayDate', () => {
+    // 22:30 UTC — already "tomorrow" east of UTC, still "today" to the west.
+    const lateUtc = new Date('2026-06-16T22:30:00Z');
+
+    it('reports the local day east of UTC (Prague, +2 in summer)', () => {
+        expect(tzTodayString('Europe/Prague', lateUtc)).toBe('2026-06-17');
+    });
+
+    it('reports the local day west of UTC (New York, -4 in summer)', () => {
+        expect(tzTodayString('America/New_York', lateUtc)).toBe('2026-06-16');
+    });
+
+    it('handles DST: Prague is +1 in winter', () => {
+        expect(tzTodayString('Europe/Prague', new Date('2026-01-15T23:30:00Z'))).toBe('2026-01-16');
+    });
+
+    it('falls back to UTC for a missing or invalid timezone', () => {
+        expect(tzTodayString(undefined, lateUtc)).toBe('2026-06-16');
+        expect(tzTodayString('Not/AZone', lateUtc)).toBe('2026-06-16');
+    });
+
+    it('tzTodayDate is the local day at UTC midnight', () => {
+        expect(tzTodayDate('Europe/Prague', lateUtc).toISOString()).toBe('2026-06-17T00:00:00.000Z');
     });
 });

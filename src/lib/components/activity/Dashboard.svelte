@@ -8,18 +8,24 @@
     import { goto } from '$app/navigation';
     import { format, addDays, subDays } from 'date-fns';
     import { Button } from '$lib/components/ui/button/index.js';
-    import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+    import { ChevronLeft, ChevronRight, Flame } from '@lucide/svelte';
     import * as Select from '$lib/components/ui/select/index.js';
     import DatePicker from '$lib/components/shared/DatePicker.svelte';
-    import { isBackfillableDate } from '$lib/utils/date';
+    import { canFillDate } from '$lib/utils/date';
+    import type { DashboardWeekDay } from '$lib/types/schemas';
+    import WeekRibbon from './WeekRibbon.svelte';
 
     let {
         session,
         activities,
+        week = [],
+        streak = 0,
         loading = false,
     }: {
         session: Session | null;
         activities: DashboardActivity[];
+        week?: DashboardWeekDay[];
+        streak?: number;
         loading?: boolean;
     } = $props();
 
@@ -27,7 +33,18 @@
 
     let hydrated = $state(false);
 
-    const isActivityCompleted = (activity: DashboardActivity) => activity.logCountToday >= activity.targetCount;
+    // Cards toggle optimistically without invalidating the page, so the server
+    // counts in `activities` go stale; cards report their live count up here.
+    let optimisticCounts = $state<Record<string, number>>({});
+    $effect(() => {
+        // Fresh server data → optimistic overrides are obsolete.
+        if (activities) {
+            optimisticCounts = {};
+        }
+    });
+
+    const logCountFor = (activity: DashboardActivity) => optimisticCounts[activity.id] ?? activity.logCountToday;
+    const isActivityCompleted = (activity: DashboardActivity) => logCountFor(activity) >= activity.targetCount;
 
     // Date state
     const todayDateStr = format(new Date(), 'yyyy-MM-dd');
@@ -42,10 +59,6 @@
         const [year, month, day] = currentDateStr.split('-').map(Number);
         return year && month && day ? new Date(year, month - 1, day) : new Date();
     });
-
-    // Completion is allowed for today or a missed day earlier this ISO week
-    // (make-up / backfill). The server enforces the same window.
-    const canCompleteActivities = $derived(isBackfillableDate(parsedCurrentDate));
 
     let selectValue = $state('today');
     let customDate = $state<Date | undefined>(undefined);
@@ -143,6 +156,21 @@
         }
         expandedActivityId = activityId;
     };
+
+    // Day summary for the tiles under the greeting.
+    const doneCount = $derived(activities.filter(isActivityCompleted).length);
+    const dayProgress = $derived(activities.length > 0 ? doneCount / activities.length : 0);
+
+    // Optimistic streak: the server streak counts days with at least one
+    // completion, and includes today only if a log existed at load time. Adjust
+    // by today's live state so the tile moves with the first completion (and
+    // drops back if everything is undone). Only today affects the anchored run.
+    const viewingToday = $derived(currentDateStr === todayDateStr);
+    const todayActiveAtLoad = $derived(viewingToday && activities.some((a) => a.logCountToday > 0));
+    const todayActiveNow = $derived(viewingToday && activities.some((a) => logCountFor(a) > 0));
+    const displayStreak = $derived(
+        Math.max(0, streak + (todayActiveNow && !todayActiveAtLoad ? 1 : 0) - (!todayActiveNow && todayActiveAtLoad ? 1 : 0))
+    );
 </script>
 
 <div class="p-4">
@@ -166,7 +194,7 @@
                 </Button>
 
                 <Select.Root type="single" bind:value={selectValue}>
-                    <Select.Trigger class="w-[140px]">
+                    <Select.Trigger size="sm" class="h-10 min-w-0 flex-1 justify-center rounded-full sm:w-[150px] sm:flex-none">
                         {#if selectValue === 'today'}
                             Today
                         {:else if selectValue === 'tomorrow'}
@@ -189,18 +217,60 @@
             </div>
 
             {#if selectValue === 'custom'}
-                <div class="w-full animate-in zoom-in-95 fade-in sm:w-auto">
-                    <DatePicker bind:value={customDate} />
-                </div>
+                <DatePicker bind:value={customDate} class="h-10 w-full justify-center sm:w-[240px] sm:justify-start" />
             {/if}
         </div>
     </div>
 
+    {#if !loading && week.length > 0}
+        <div class="mb-6 space-y-3">
+            <!-- Week ribbon: checks on fully completed days, viewed day bordered. -->
+            <WeekRibbon {week} {currentDateStr} {todayDateStr} {activities} {doneCount} />
+            <!-- Streak + day summary tiles -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-2xl bg-surface-container-lowest px-5 py-4 shadow-ambient">
+                    <div class="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                        <Flame class="h-3.5 w-3.5 text-clay" />
+                        Streak
+                    </div>
+                    <div class="mt-1 flex items-baseline gap-1.5">
+                        <span class="font-serif text-3xl font-semibold tracking-tight">{displayStreak}</span>
+                        <span class="text-sm text-muted-foreground">{displayStreak === 1 ? 'day' : 'days'}</span>
+                    </div>
+                </div>
+                <div class="rounded-2xl bg-surface-container-lowest px-5 py-4 shadow-ambient">
+                    <div class="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                        {currentDateStr === todayDateStr ? 'Today' : 'This day'}
+                    </div>
+                    {#if activities.length === 0}
+                        <div class="mt-1 flex items-baseline gap-1.5">
+                            <span class="font-serif text-xl font-semibold tracking-tight">Rest day</span>
+                        </div>
+                    {:else}
+                        <div class="mt-1 flex items-baseline gap-1.5">
+                            <span class="font-serif text-3xl font-semibold tracking-tight">{doneCount}</span>
+                            <span class="text-sm text-muted-foreground">/ {activities.length} done</span>
+                        </div>
+                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+                            <div
+                                class="h-full rounded-full bg-success transition-[width] duration-500 ease-out"
+                                style="width: {Math.round(dayProgress * 100)}%"
+                            ></div>
+                        </div>
+                    {/if}
+                </div>
+            </div>
+        </div>
+    {/if}
+
     {#if loading}
         <ActivitySkeletons />
     {:else if activities.length === 0}
-        <div class="rounded-2xl bg-surface-container-lowest p-6">
-            <p class="text-muted-foreground">Your activities will appear here.</p>
+        <div class="rounded-2xl bg-surface-container-lowest p-6 text-center shadow-ambient">
+            <p class="font-medium text-foreground">
+                {currentDateStr === todayDateStr ? 'Nothing scheduled today.' : 'Nothing scheduled for this day.'}
+            </p>
+            <p class="mt-1 text-sm text-muted-foreground">Enjoy the rest - scheduled habits will show up here.</p>
         </div>
     {:else}
         <div class="space-y-8">
@@ -208,12 +278,15 @@
                 {#each activities as activity (activity.id)}
                     <ActivityCard
                         {activity}
-                        canToggle={canCompleteActivities}
+                        canToggle={canFillDate(parsedCurrentDate, activity.config)}
                         isPast={isPastDate}
                         viewDate={currentDateStr}
                         isOpen={expandedActivityId === activity.id}
                         onToggle={() => {
                             toggleExpanded(activity.id);
+                        }}
+                        onLogCountChange={(count) => {
+                            optimisticCounts[activity.id] = count;
                         }}
                     />
                 {/each}

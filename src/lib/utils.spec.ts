@@ -47,9 +47,9 @@ describe('getActivityTypeLabel', () => {
         expect(getActivityTypeLabel('workout')).toBe('Workout');
     });
 
-    it('falls back to "Activity" for unknown types', () => {
-        expect(getActivityTypeLabel('unknown')).toBe('Activity');
-        expect(getActivityTypeLabel('')).toBe('Activity');
+    it('falls back to "Habit" for unknown types', () => {
+        expect(getActivityTypeLabel('unknown')).toBe('Habit');
+        expect(getActivityTypeLabel('')).toBe('Habit');
     });
 });
 
