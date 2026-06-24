@@ -1,4 +1,4 @@
-import { differenceInDays, differenceInCalendarMonths, differenceInCalendarYears, endOfMonth, startOfDay } from 'date-fns';
+import { differenceInDays, differenceInCalendarMonths, differenceInCalendarYears, endOfMonth, startOfDay, subDays } from 'date-fns';
 import type { Activity, WeekException } from '$lib/types/schemas';
 import { WEEKDAYS } from '$lib/constants';
 import { isoWeekOf, shiftWeekdays } from '$lib/workout-rotation';
@@ -52,6 +52,37 @@ export function isScheduledForDate(activity: Activity, targetDate: Date, excepti
             return false;
         }
     }
+}
+
+/**
+ * Most recent scheduled day strictly before `targetDate`, or `null` if there is
+ * none on/after `startDate`. Drives flexible "spillover": the cycle the activity
+ * is currently overdue for began on this day.
+ *
+ * Generic backward scan over {@link isScheduledForDate} so it works for every
+ * schedule type/unit; it breaks on the first match (cheap for daily/weekly/short
+ * intervals) and is bounded so a long interval can't loop unbounded — past the cap
+ * spillover simply doesn't trigger. WeekException shifting is intentionally ignored
+ * here (v1): the cycle anchor uses the base schedule.
+ */
+export function getPreviousScheduledDate(activity: Activity, targetDate: Date): Date | null {
+    const start = startOfDay(new Date(activity.startDate));
+    const target = startOfDay(targetDate);
+    if (target <= start) {
+        return null;
+    }
+
+    const MAX_LOOKBACK_DAYS = 366;
+    for (let i = 1; i <= MAX_LOOKBACK_DAYS; i++) {
+        const candidate = subDays(target, i);
+        if (candidate < start) {
+            return null;
+        }
+        if (isScheduledForDate(activity, candidate)) {
+            return candidate;
+        }
+    }
+    return null;
 }
 
 /** Returns the activity's schedule with any matching WeekException shift applied. */

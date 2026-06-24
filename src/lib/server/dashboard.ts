@@ -10,10 +10,10 @@ import {
     type WeekException,
     type WorkoutRotationView,
 } from '$lib/types/schemas';
-import { eq, desc, and, between, inArray, gte, ne } from 'drizzle-orm';
+import { eq, desc, and, between, inArray, gte, lt, ne } from 'drizzle-orm';
 import { formatZodErrorTree } from '$lib/utils';
 import { differenceInDays, eachDayOfInterval, endOfDay, endOfWeek, format, isSameDay, startOfDay, startOfWeek } from 'date-fns';
-import { isScheduledForDate } from '$lib/scheduler';
+import { isScheduledForDate, getPreviousScheduledDate } from '$lib/scheduler';
 import { aggregateHabitStreaks, completedDayOrdinals } from '$lib/streak';
 import { getRotationPosition, isoWeekOf } from '$lib/workout-rotation';
 import type { DashboardWeekDay } from '$lib/types/schemas';
@@ -192,12 +192,37 @@ export async function getDashboardActivities(
         const parsedActivity = validationResult.data;
         validated.push({ parsed: parsedActivity, weekLogs });
 
-        if (!isScheduledForDate(parsedActivity, targetDate, exceptions)) {
-            continue;
-        }
-
-        // The dashboard list only looks at the target date's logs.
+        // The dashboard list only looks at the target date's logs. Computed before
+        // the schedule gate so the flexible-spillover branch can read it.
         const rawLogs = weekLogs.filter((l) => isSameDay(l.date, targetDate));
+
+        if (!isScheduledForDate(parsedActivity, targetDate, exceptions)) {
+            // Flexible activities "spill over": a missed scheduled day keeps showing
+            // every day until completed, then resumes the normal schedule.
+            if (!parsedActivity.config.flexible) {
+                continue;
+            }
+            const prevDate = getPreviousScheduledDate(parsedActivity, targetDate);
+            if (!prevDate) {
+                continue;
+            }
+            // A log today means the user is completing it right now → keep rendering.
+            // Otherwise, any log since the cycle's scheduled mark means it's done →
+            // hide until the next mark.
+            if (rawLogs.length === 0) {
+                const cycleLog = await db.query.logs.findFirst({
+                    where: and(
+                        eq(logs.activityId, activity.id),
+                        gte(logs.date, startOfDay(prevDate)),
+                        lt(logs.date, startOfDay(targetDate))
+                    ),
+                });
+                if (cycleLog) {
+                    continue;
+                }
+            }
+            // Fall through: not yet completed this cycle → render as spillover.
+        }
 
         const targetCount = getTargetCount(parsedActivity);
         // Skipped logs record an intent, not a completion — don't count them.

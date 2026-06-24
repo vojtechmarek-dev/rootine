@@ -15,6 +15,7 @@
     import ScheduleFields from '$lib/components/activity/ScheduleFields.svelte';
     import ExerciseListEditor from '$lib/components/activity/workout/ExerciseListEditor.svelte';
     import WorkoutSetsEditor from '$lib/components/activity/workout/WorkoutSetsEditor.svelte';
+    import ActivityOptionsFields from '$lib/components/activity/ActivityOptionsFields.svelte';
 
     let {
         data = $bindable(),
@@ -127,6 +128,9 @@
                         errors={errors?.config?.workoutSets}
                     />
                 {/if}
+
+                <!-- Back-fill / future-fill / flexible options -->
+                <ActivityOptionsFields bind:config={data.config} {errors} />
             </Field.Group>
         </Field.Set>
     </Field.Group>

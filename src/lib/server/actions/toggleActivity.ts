@@ -1,25 +1,20 @@
 import { fail } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { logs } from '$lib/server/db/schema';
+import { activities, logs } from '$lib/server/db/schema';
 import { eq, and, between, desc } from 'drizzle-orm';
 import { startOfDay, endOfDay, isSameDay, isValid } from 'date-fns';
-import { isBackfillableDate } from '$lib/utils/date';
+import { canFillDate } from '$lib/utils/date';
 
 type SessionWithUser = { user: { id: string } };
 
 /**
  * `now` is the user's local "today" (UTC-midnight Date, from the tz cookie) so the
- * backfill window and logged timestamp track the day they're viewing — not the
+ * fill window and logged timestamp track the day they're viewing — not the
  * server's UTC day. Defaults to the server clock when a caller omits it.
  */
-export async function toggleActivity(_session: SessionWithUser, formData: FormData, targetDate: Date, now: Date = new Date()) {
+export async function toggleActivity(session: SessionWithUser, formData: FormData, targetDate: Date, now: Date = new Date()) {
     if (!isValid(targetDate)) {
         return fail(400, { message: 'Invalid dashboard date' });
-    }
-
-    // Allow today or a missed day earlier this ISO week (make-up / backfill).
-    if (!isBackfillableDate(targetDate, now)) {
-        return fail(403, { message: 'Completion is only available for today or a missed day earlier this week' });
     }
 
     const activityId = formData.get('activityId') as string;
@@ -27,6 +22,20 @@ export async function toggleActivity(_session: SessionWithUser, formData: FormDa
 
     if (action !== 'complete' && action !== 'undo') {
         return fail(400, { message: 'Invalid action' });
+    }
+
+    // Load the owned activity for its fill config (and to enforce ownership).
+    const activity = await db.query.activities.findFirst({
+        where: and(eq(activities.id, activityId), eq(activities.userId, session.user.id)),
+        columns: { config: true },
+    });
+    if (!activity) {
+        return fail(404, { message: 'Activity not found' });
+    }
+
+    // Today / make-up (back-fill) / future-fill, gated per-activity & to this ISO week.
+    if (!canFillDate(targetDate, activity.config, now)) {
+        return fail(403, { message: 'Completion is only available for today or an allowed day this week' });
     }
 
     const dayStart = startOfDay(targetDate);

@@ -36,7 +36,9 @@
                 onclick={(e) => handleNavClick(item, e)}
                 variant="ghost"
                 size="icon"
-                class="relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 transition-colors hover:bg-transparent hover:text-current"
+                class="relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 transition-colors hover:bg-transparent {active
+                    ? 'text-primary hover:text-primary'
+                    : 'text-muted-foreground hover:text-current'}"
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 disabled={item.disabled}

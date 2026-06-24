@@ -8,12 +8,12 @@
     import { goto } from '$app/navigation';
     import { format, addDays, subDays } from 'date-fns';
     import { Button } from '$lib/components/ui/button/index.js';
-    import { Check, ChevronLeft, ChevronRight, Flame } from '@lucide/svelte';
+    import { ChevronLeft, ChevronRight, Flame } from '@lucide/svelte';
     import * as Select from '$lib/components/ui/select/index.js';
     import DatePicker from '$lib/components/shared/DatePicker.svelte';
-    import { isBackfillableDate } from '$lib/utils/date';
-    import { cn } from '$lib/utils';
+    import { canFillDate } from '$lib/utils/date';
     import type { DashboardWeekDay } from '$lib/types/schemas';
+    import WeekRibbon from './WeekRibbon.svelte';
 
     let {
         session,
@@ -28,8 +28,6 @@
         streak?: number;
         loading?: boolean;
     } = $props();
-
-    const WEEK_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
     const hasSessionUser = $derived(Boolean(session?.user));
 
@@ -61,10 +59,6 @@
         const [year, month, day] = currentDateStr.split('-').map(Number);
         return year && month && day ? new Date(year, month - 1, day) : new Date();
     });
-
-    // Completion is allowed for today or a missed day earlier this ISO week
-    // (make-up / backfill). The server enforces the same window.
-    const canCompleteActivities = $derived(isBackfillableDate(parsedCurrentDate));
 
     let selectValue = $state('today');
     let customDate = $state<Date | undefined>(undefined);
@@ -230,41 +224,8 @@
 
     {#if !loading && week.length > 0}
         <div class="mb-6 space-y-3">
-            <!-- Week ribbon: checks on fully completed days, viewed day ringed. -->
-            <div class="flex items-center justify-between rounded-2xl bg-surface-container-lowest px-4 py-3 shadow-ambient sm:px-6">
-                {#each week as day, i (day.date)}
-                    {@const isViewed = day.date === currentDateStr}
-                    {@const done = isViewed && activities.length > 0 ? doneCount === activities.length : day.completed}
-                    {@const partial = !done && day.completedCount > 0}
-                    <div class="flex flex-col items-center gap-1.5">
-                        <span
-                            class={cn(
-                                'text-[10px] font-semibold tracking-wider',
-                                isViewed ? 'font-bold text-clay' : 'text-muted-foreground/70'
-                            )}
-                        >
-                            {WEEK_LETTERS[i]}
-                        </span>
-                        <div
-                            class={cn(
-                                'flex h-5 w-5 items-center justify-center rounded-md transition-colors',
-                                done
-                                    ? 'bg-clay text-clay-foreground'
-                                    : partial
-                                      ? 'bg-clay/25'
-                                      : day.scheduledCount === 0
-                                        ? 'bg-surface-container-low/60'
-                                        : 'bg-surface-container-high/70'
-                            )}
-                        >
-                            {#if done}
-                                <Check class="h-3 w-3" strokeWidth={2.5} />
-                            {/if}
-                        </div>
-                    </div>
-                {/each}
-            </div>
-
+            <!-- Week ribbon: checks on fully completed days, viewed day bordered. -->
+            <WeekRibbon {week} {currentDateStr} {todayDateStr} {activities} {doneCount} />
             <!-- Streak + day summary tiles -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="rounded-2xl bg-surface-container-lowest px-5 py-4 shadow-ambient">
@@ -317,7 +278,7 @@
                 {#each activities as activity (activity.id)}
                     <ActivityCard
                         {activity}
-                        canToggle={canCompleteActivities}
+                        canToggle={canFillDate(parsedCurrentDate, activity.config)}
                         isPast={isPastDate}
                         viewDate={currentDateStr}
                         isOpen={expandedActivityId === activity.id}

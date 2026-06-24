@@ -47,6 +47,10 @@
     let { activity, canToggle = true, isPast = false, viewDate = '', isOpen = false, onToggle, onLogCountChange }: Props = $props();
 
     const dateQuery = $derived(viewDate ? `&date=${viewDate}` : '');
+    // Why the Done button is locked: past day ⇒ back-fill off; future day ⇒ future-fill off.
+    const toggleBlockedTitle = $derived(
+        isPast ? 'Back-filling earlier days is turned off for this activity' : 'Completing future days is turned off for this activity'
+    );
     const accent = $derived(getActivityAccentClasses(activity.color, activity.type));
     const typeLabel = $derived(getActivityTypeLabel(activity.type));
 
@@ -410,13 +414,7 @@
                     {/if}
 
                     {#if !canToggle}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            class="h-10 gap-2"
-                            disabled
-                            title="You can only complete today or a missed day earlier this week"
-                        >
+                        <Button type="button" variant="outline" class="h-10 gap-2" disabled title={toggleBlockedTitle}>
                             <CalendarClock class="h-4 w-4" />
                         </Button>
                     {:else if isCompleted}

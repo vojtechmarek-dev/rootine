@@ -7,7 +7,7 @@ import { WorkoutConfigSchema, WorkoutLogSchema } from '$lib/types/schemas';
 import { z } from 'zod';
 import { differenceInDays, endOfDay, parseISO, startOfDay } from 'date-fns';
 import { getRotationPosition } from '$lib/workout-rotation';
-import { isBackfillableDate } from '$lib/utils/date';
+import { canFillDate } from '$lib/utils/date';
 import { growthStage } from '$lib/growth';
 
 export const load: PageServerLoad = async (event) => {
@@ -119,12 +119,6 @@ export const actions: Actions = {
         // Use provided targetDate, or fallback to current date.
         const date = targetDate ? parseISO(targetDate) : new Date();
 
-        // Only today or a missed day earlier this ISO week may be logged
-        // (make-up / backfill window). Enforced here, not just in the UI.
-        if (!isBackfillableDate(date)) {
-            return fail(403, { message: 'You can only log a workout for today or a missed day earlier this week' });
-        }
-
         // Ensure activity belongs to user
         const activityId = event.params.id;
         const activity = await db.query.activities.findFirst({
@@ -133,6 +127,12 @@ export const actions: Actions = {
 
         if (!activity) {
             return fail(404, { message: 'Activity not found' });
+        }
+
+        // Today / make-up (back-fill) / future-fill, gated per-activity & to this ISO
+        // week. Enforced here, not just in the UI.
+        if (!canFillDate(date, activity.config)) {
+            return fail(403, { message: 'You can only log a workout for today or an allowed day this week' });
         }
 
         // Growth check for the client toast: growth counts DISTINCT days, so this

@@ -30,7 +30,18 @@ export const BaseActivitySchema = z.object({
 // Stored in activities.config JSONB
 
 // Base for type-specific JSONB `config` only. Row timestamps are `activities.createdAt` / `activities.updatedAt`.
-export const ActivityConfig = z.object({});
+// Coerce form strings ('on'/'true'/'1') AND real JSON booleans. `undefined`/`null`
+// (legacy rows missing the key) fall back to the supplied default — note the
+// preprocess must return that default itself, since a preprocess that always
+// emits a concrete boolean makes a downstream `.default()` dead code.
+const boolFlag = (fallback: boolean) =>
+    z.preprocess((v) => (v === undefined || v === null ? fallback : v === 'true' || v === 'on' || v === '1' || v === true), z.boolean());
+
+export const ActivityConfig = z.object({
+    allowBackFill: boolFlag(true),
+    allowFutureFill: boolFlag(false),
+    flexible: boolFlag(false),
+});
 
 // --- SCHEDULE SCHEMA ---
 // Unified scheduling for all activity types
@@ -352,7 +363,7 @@ export function getEmptyDrawerActivity(): DrawerActivity {
         endDate: undefined,
         archived: false,
         type: 'habit',
-        config: { targetValue: 1, unit: 'times' },
+        config: { targetValue: 1, unit: 'times', allowBackFill: true, allowFutureFill: false, flexible: false },
         schedule: { type: 'daily' },
     };
 }

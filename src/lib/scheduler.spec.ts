@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isScheduledForDate } from './scheduler';
+import { isScheduledForDate, getPreviousScheduledDate } from './scheduler';
 import type { Activity, WeekException } from '$lib/types/schemas';
 
 // Minimal Activity factory. Only the fields scheduler reads matter, so we cast.
@@ -137,7 +137,7 @@ describe('isScheduledForDate — plant anchors on lastWatered', () => {
         const a = activity({
             type: 'plant',
             startDate: new Date(2025, 0, 1),
-            config: { lastWatered: new Date(2025, 0, 10).toISOString() },
+            config: { allowBackFill: true, allowFutureFill: false, flexible: false, lastWatered: new Date(2025, 0, 10).toISOString() },
             schedule: { type: 'interval', value: 7, unit: 'days' },
         });
         expect(isScheduledForDate(a, new Date(2025, 0, 17))).toBe(true); // 7 days after lastWatered
@@ -174,5 +174,30 @@ describe('isScheduledForDate — week exceptions', () => {
     it('ignores exceptions for a different habit', () => {
         const other = { ...exception, habitId: '00000000-0000-0000-0000-0000000000bb' };
         expect(isScheduledForDate(base, new Date(2025, 0, 6), [other])).toBe(true);
+    });
+});
+
+describe('getPreviousScheduledDate — drives flexible spillover', () => {
+    it('daily: returns the prior day', () => {
+        const a = activity({ schedule: { type: 'daily' } });
+        expect(getPreviousScheduledDate(a, new Date(2025, 0, 10))).toEqual(new Date(2025, 0, 9));
+    });
+
+    it('weekly: walks back to the most recent scheduled weekday', () => {
+        // Mon/Wed schedule. From Fri 10 Jan 2025 → previous mark is Wed 8 Jan.
+        const a = activity({ type: 'workout', schedule: { type: 'weekly', days: ['mon', 'wed'] } });
+        expect(getPreviousScheduledDate(a, new Date(2025, 0, 10))).toEqual(new Date(2025, 0, 8));
+    });
+
+    it('interval(days): returns the last cycle mark before target', () => {
+        // Anchored on startDate Wed 1 Jan 2025, every 7 days → 1, 8, 15...
+        // From an off-cycle day (12 Jan) the previous mark is 8 Jan.
+        const a = activity({ startDate: new Date(2025, 0, 1), schedule: { type: 'interval', value: 7, unit: 'days' } });
+        expect(getPreviousScheduledDate(a, new Date(2025, 0, 12))).toEqual(new Date(2025, 0, 8));
+    });
+
+    it('returns null on or before the start date', () => {
+        const a = activity({ startDate: new Date(2025, 0, 10), schedule: { type: 'daily' } });
+        expect(getPreviousScheduledDate(a, new Date(2025, 0, 10))).toBeNull();
     });
 });

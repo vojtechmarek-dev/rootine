@@ -43,19 +43,22 @@
         workout: { component: WorkoutForm, ...WorkoutMeta },
     } as const;
 
+    // Shared fill/scheduling flags every fresh config carries (see ActivityConfig).
+    const fillDefaults = { allowBackFill: true, allowFutureFill: false, flexible: false };
+
     const defaults = {
         habit: {
-            config: { targetValue: 1, unit: 'times' } as HabitConfig,
+            config: { ...fillDefaults, targetValue: 1, unit: 'times' } as HabitConfig,
             schedule: { type: 'daily' } as Schedule,
             icon: 'check',
         },
         plant: {
-            config: { location: '', species: '' } as PlantConfig,
+            config: { ...fillDefaults, location: '', species: '' } as PlantConfig,
             schedule: { type: 'interval', value: 7, unit: 'days' } as Schedule,
             icon: 'sprout',
         },
         workout: {
-            config: { exercises: [], workoutSets: [], rotation: [], useRotation: true } as WorkoutConfig,
+            config: { ...fillDefaults, exercises: [], workoutSets: [], rotation: [], useRotation: true } as WorkoutConfig,
             schedule: { type: 'weekly', days: ['mon', 'wed', 'fri'] } as Schedule,
             icon: 'dumbbell',
         },
