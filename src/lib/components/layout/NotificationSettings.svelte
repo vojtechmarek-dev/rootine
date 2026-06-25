@@ -73,13 +73,13 @@
     {:else}
         <Button
             variant={status === 'enabled' ? 'default' : 'outline'}
-            class="w-full justify-center"
+            class="h-auto min-h-10 w-full justify-center py-2 text-center leading-snug whitespace-normal"
             disabled={busy || status === 'loading'}
             onclick={toggle}
         >
             {#if status === 'enabled'}
                 <BellRing class="mr-2 h-4 w-4" />
-                Reminders on — tap to disable
+                Reminders on - tap to disable
             {:else}
                 <BellOff class="mr-2 h-4 w-4" />
                 Enable reminders

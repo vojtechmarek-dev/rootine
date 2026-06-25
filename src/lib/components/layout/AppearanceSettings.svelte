@@ -26,7 +26,7 @@
         {#each modes as { mode, label, icon: Icon } (mode)}
             <Button
                 variant={theme.mode === mode ? 'default' : 'outline'}
-                class="h-11 w-0 min-w-0 flex-1 shrink justify-center gap-2"
+                class="h-11 w-0 min-w-0 flex-1 shrink justify-center gap-1.5 px-2"
                 aria-label="Theme mode: {label}"
                 onclick={() => setThemeMode(mode)}
             >

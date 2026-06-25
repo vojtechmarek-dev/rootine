@@ -38,7 +38,7 @@
             {#each options as { value, label } (value)}
                 <Button
                     variant={settings.hapticIntensity === value ? 'default' : 'outline'}
-                    class="h-11 w-0 min-w-0 flex-1 shrink justify-center"
+                    class="h-11 w-0 min-w-0 flex-1 shrink justify-center px-2"
                     aria-label="Haptic intensity: {label}"
                     onclick={() => select(value)}
                 >

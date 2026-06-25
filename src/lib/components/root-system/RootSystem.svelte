@@ -469,25 +469,25 @@
             <!-- Cheap soft glow for root tips (a radial gradient, NOT an animated
                  SVG blur filter — the latter re-rasters every frame and pegs CPU). -->
             <radialGradient id="rs-tipglow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#a9e08a" stop-opacity="0.55" />
-                <stop offset="100%" stop-color="#a9e08a" stop-opacity="0" />
+                <stop offset="0%" style="stop-color: var(--tip-glow); stop-opacity: 0.55" />
+                <stop offset="100%" style="stop-color: var(--tip-glow); stop-opacity: 0" />
             </radialGradient>
             <filter id="rs-shadow" x="-30%" y="-30%" width="160%" height="160%">
-                <feDropShadow dx="0" dy="1.1" stdDeviation="0.9" flood-color="#000" flood-opacity="0.45" />
+                <feDropShadow dx="0" dy="1.1" stdDeviation="0.9" style="flood-color: var(--rs-shadow-color); flood-opacity: var(--rs-shadow-opacity)" />
             </filter>
             <radialGradient id="rs-leaf" cx="35%" cy="30%" r="80%">
-                <stop offset="0%" stop-color="#bfe39a" />
-                <stop offset="100%" stop-color="#6f9e54" />
+                <stop offset="0%" style="stop-color: var(--rs-leaf-top)" />
+                <stop offset="100%" style="stop-color: var(--rs-leaf-bottom)" />
             </radialGradient>
             <!-- World-fixed (userSpaceOnUse) so the horizon stays at y=0 while
                  panning/zooming. Pad spread clamps beyond the stop range. -->
             <linearGradient id="rs-sky" x1="0" y1="-420" x2="0" y2="0" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#0f1a13" />
-                <stop offset="100%" stop-color="#1c2b20" />
+                <stop offset="0%" style="stop-color: var(--rs-sky-top)" />
+                <stop offset="100%" style="stop-color: var(--rs-sky-bottom)" />
             </linearGradient>
             <linearGradient id="rs-soil" x1="0" y1="0" x2="0" y2="560" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#2a2118" />
-                <stop offset="100%" stop-color="#120c06" />
+                <stop offset="0%" style="stop-color: var(--rs-soil-top)" />
+                <stop offset="100%" style="stop-color: var(--rs-soil-bottom)" />
             </linearGradient>
         </defs>
 
@@ -603,18 +603,94 @@
 </div>
 
 <style>
-    /* Designed for a dark "soil" background — the parent supplies that.
-	   Retheme by overriding these custom properties from the parent. */
+    /* The garden carries its own themed palette so it reads as a daylight garden
+       in light mode and lamp-lit soil in dark mode. Light is the default; the
+       .dark (or [data-mode='dark']) override below restores the original
+       dark-soil look. Roots stay DARKER than the soil in light mode and lighter
+       in dark mode, so they always have contrast against it. */
     .root-system {
         position: relative;
         width: 100%;
         height: 100%;
+
+        /* sky band (above the surface) + soil (below). A clean warm white fading
+           to the app's cream background at the horizon — bright, neutral, never
+           cold against the tan soil. */
+        --rs-sky-top: #fcfbf8;
+        --rs-sky-bottom: #f4f1ea;
+        --rs-soil-top: #e7dcc6;
+        --rs-soil-bottom: #d2c3a6;
+
+        /* roots, by depth (taproot strongest) — dark on the light soil */
+        --root-0: #5f4327;
+        --root-1: #6b4d2e;
+        --root-2: #775836;
+        --root-3: #846640;
+
+        /* growing tips — a medium sage, between dark mode's bright tip and a deep
+           green, so it reads as growth on the light soil without glaring */
+        --tip: #7fa977;
+        --tip-glow: #8cc78b;
+
+        /* above-ground plant */
+        --rs-stem: #6b4a2a;
+        --rs-crown: #6b4a2a;
+        --rs-leaf-top: #9fca77;
+        --rs-leaf-bottom: #4f7d3a;
+        --rs-leaf-stroke: #4f7d3a;
+
+        /* soil dressing — dark enough to read as flecks/pebbles on the light soil
+           (the per-element opacity from the generator is only 0.05–0.16). */
+        --rs-speck: #6a5230;
+        --rs-stone: #7c6541;
+        --rs-surface: rgb(95 74 42 / 0.22);
+        --rs-tuft: #5f8a48;
+
+        /* root drop shadow — softer + warmer on light soil */
+        --rs-shadow-color: #3a2a18;
+        --rs-shadow-opacity: 0.18;
+
+        /* hover tooltip */
+        --rs-tooltip-bg: rgb(247 243 235 / 0.78);
+        --rs-tooltip-border: rgb(19 36 27 / 0.12);
+        --rs-tooltip-fg: #13241b;
+        --rs-tooltip-meta: #5c6a5e;
+    }
+
+    /* Dark mode: the original lamp-lit soil palette (look unchanged). */
+    :global(.dark) .root-system,
+    :global([data-mode='dark']) .root-system {
+        --rs-sky-top: #0f1a13;
+        --rs-sky-bottom: #1c2b20;
+        --rs-soil-top: #2a2118;
+        --rs-soil-bottom: #120c06;
+
         --root-0: #d2a067;
         --root-1: #cd9a61;
         --root-2: #c69463;
         --root-3: #c1936a;
+
         --tip: #cfe7a0;
         --tip-glow: #a9e08a;
+
+        --rs-stem: #8a6a3e;
+        --rs-crown: #8a6a3e;
+        --rs-leaf-top: #bfe39a;
+        --rs-leaf-bottom: #6f9e54;
+        --rs-leaf-stroke: #5f8a48;
+
+        --rs-speck: #d2a067;
+        --rs-stone: #c9b08e;
+        --rs-surface: rgb(214 196 166 / 0.22);
+        --rs-tuft: #5f8a48;
+
+        --rs-shadow-color: #000000;
+        --rs-shadow-opacity: 0.45;
+
+        --rs-tooltip-bg: rgb(28 22 16 / 0.62);
+        --rs-tooltip-border: rgb(243 233 218 / 0.14);
+        --rs-tooltip-fg: #f3e9da;
+        --rs-tooltip-meta: #c9bba6;
     }
 
     svg {
@@ -641,36 +717,36 @@
         pointer-events: none;
     }
     .scenery .speck {
-        fill: #d2a067;
+        fill: var(--rs-speck);
     }
     .scenery .stone {
-        fill: #c9b08e;
+        fill: var(--rs-stone);
     }
     .scenery .surface {
         fill: none;
-        stroke: rgba(214, 196, 166, 0.22);
+        stroke: var(--rs-surface);
         stroke-width: 0.9;
         stroke-linecap: round;
     }
     .scenery .tuft {
         fill: none;
-        stroke: #5f8a48;
+        stroke: var(--rs-tuft);
         stroke-width: 0.7;
         stroke-linecap: round;
         opacity: 0.55;
     }
     .stem {
         fill: none;
-        stroke: #8a6a3e;
+        stroke: var(--rs-stem);
         stroke-width: 3;
         stroke-linecap: round;
         transition: d 0.6s ease;
     }
     .crown {
-        fill: #8a6a3e;
+        fill: var(--rs-crown);
     }
     .leaf {
-        stroke: #5f8a48;
+        stroke: var(--rs-leaf-stroke);
         stroke-width: 0.4;
         cursor: pointer;
         transition: filter 0.18s ease;
@@ -789,10 +865,10 @@
         padding: 9px 12px;
         border-radius: 12px;
         line-height: 1.35;
-        background: rgba(28, 22, 16, 0.62);
-        border: 1px solid rgba(243, 233, 218, 0.14);
+        background: var(--rs-tooltip-bg);
+        border: 1px solid var(--rs-tooltip-border);
         backdrop-filter: blur(10px);
-        color: #f3e9da;
+        color: var(--rs-tooltip-fg);
         font-size: 12.5px;
         box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
     }
@@ -800,7 +876,7 @@
         font-weight: 600;
     }
     .t-meta {
-        color: #c9bba6;
+        color: var(--rs-tooltip-meta);
         font-size: 11.5px;
         margin-top: 2px;
     }

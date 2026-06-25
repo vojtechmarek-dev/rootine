@@ -119,10 +119,12 @@
 
     {#if g.habits.length === 0}
         <div class="rounded-2xl bg-surface-container-lowest p-6 text-center text-muted-foreground">
-            Create a habit and start completing it — your roots grow from here.
+            Create a habit and start completing it - your roots grow from here.
         </div>
     {:else}
-        <div class="relative h-[74vh] overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2118] to-[#120c06] sm:h-[68vh]">
+        <div
+            class="relative h-[74vh] overflow-hidden rounded-2xl bg-gradient-to-b from-[#e7dcc6] to-[#d2c3a6] sm:h-[68vh] dark:from-[#2a2118] dark:to-[#120c06]"
+        >
             <Garden
                 bind:this={garden}
                 seed={g.seed}

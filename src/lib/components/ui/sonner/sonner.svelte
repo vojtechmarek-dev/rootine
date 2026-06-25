@@ -49,3 +49,20 @@
         <TriangleAlertIcon class="size-4" />
     {/snippet}
 </Sonner>
+
+<style>
+    /* Long error detail / stack-trace URLs must never widen the toast past the
+       viewport. `min-width: 0` lets the flex content shrink below its content
+       size, and `overflow-wrap: anywhere` lets unbreakable tokens (URLs) break —
+       `break-word` alone does neither, so the box kept growing off-screen. */
+    :global([data-sonner-toast]) {
+        max-width: calc(100vw - 2rem);
+    }
+    :global([data-sonner-toast] [data-content]) {
+        min-width: 0;
+    }
+    :global([data-sonner-toast] [data-title]),
+    :global([data-sonner-toast] [data-description]) {
+        overflow-wrap: anywhere;
+    }
+</style>
