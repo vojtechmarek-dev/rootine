@@ -4,6 +4,7 @@
     import CreateActivity from '@/components/activity/CreateActivity.svelte';
     import { Toaster } from '$lib/components/ui/sonner';
     import NavigationProgress from '@/components/shared/NavigationProgress.svelte';
+    import { page } from '$app/state';
     import type { LayoutData } from './$types';
 
     let { children, data } = $props<{
@@ -30,6 +31,10 @@
     </div>
 
     <!-- Fixed Bottom Navigation -->
-    <CreateActivity activityForm={data.activityForm} />
+    <!-- "+" create-habit FAB: dashboard only. Kept outside the vaul wrapper so it
+         doesn't scale with the drawer (see note above). -->
+    {#if page.url.pathname === '/'}
+        <CreateActivity activityForm={data.activityForm} />
+    {/if}
     <Navigation />
 </div>
