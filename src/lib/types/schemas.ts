@@ -166,12 +166,33 @@ export const ArchiveActivityFormSchema = z.object({
     id: z.uuid('Invalid activity ID'),
 });
 
+// Reminders only fire 06:00–23:00 (the dispatcher runs every 30 min in waking
+// hours — see ADR 008), so a time outside that window would silently never
+// fire. Validated on the form/write path only; the read path (ScheduleSchema /
+// ActivitySchema) stays lenient so legacy out-of-range times still load.
+const REMINDER_MIN = 6 * 60; // 06:00
+const REMINDER_MAX = 23 * 60; // 23:00
+
 /** Create / edit drawer: same shape as create, optional id when inserting. */
 export const DrawerActivitySchema = CreateActivitySchema.and(
     z.object({
         id: z.uuid().optional(),
     })
-);
+).superRefine((val, ctx) => {
+    const times = (val as { schedule?: { times?: string[] } }).schedule?.times;
+    if (!Array.isArray(times)) return;
+    times.forEach((t, i) => {
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
+            ctx.addIssue({ code: 'custom', message: 'Use HH:mm', path: ['schedule', 'times', i] });
+            return;
+        }
+        const [h, m] = t.split(':').map(Number);
+        const mins = h * 60 + m;
+        if (mins < REMINDER_MIN || mins > REMINDER_MAX) {
+            ctx.addIssue({ code: 'custom', message: 'Reminders fire between 06:00 and 23:00', path: ['schedule', 'times', i] });
+        }
+    });
+});
 
 // ==========================================
 // 5. THE MASTER ACTIVITY SCHEMA (For Reading from DB)

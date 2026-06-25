@@ -155,12 +155,23 @@
     {#if schedule.type === 'daily' || schedule.type === 'weekly'}
         <Field.Field>
             <Field.Label>Reminders</Field.Label>
-            <Field.Description>Get a push notification at these times (enable notifications in Settings).</Field.Description>
+            <Field.Description>
+                Get a push notification at these times (enable notifications in Settings). Reminders fire on the half-hour between
+                06:00 and 23:00, in your device's timezone.
+            </Field.Description>
 
             <div class="space-y-2">
                 {#each schedule.times ?? [] as time, index (index)}
                     <div class="flex items-center gap-2">
-                        <Input type="time" value={time} oninput={(e) => updateTime(index, e.currentTarget.value)} class="w-36" />
+                        <Input
+                            type="time"
+                            min="06:00"
+                            max="23:00"
+                            step={1800}
+                            value={time}
+                            oninput={(e) => updateTime(index, e.currentTarget.value)}
+                            class="w-36"
+                        />
                         <Button type="button" variant="ghost" size="icon" aria-label="Remove reminder" onclick={() => removeTime(index)}>
                             <X class="h-4 w-4" />
                         </Button>

@@ -135,8 +135,10 @@ sequenceDiagram
 
 ## Reminder Dispatch (cron)
 
-`GET /api/cron/reminders` is hit every 15 minutes. It is authorized by an
-`Authorization: Bearer ${CRON_SECRET}` header and **fails closed** (401) when `CRON_SECRET` is unset.
+`GET /api/cron/reminders` is hit every 30 minutes during waking hours (06:00–23:00). It is authorized
+by an `Authorization: Bearer ${CRON_SECRET}` header and **fails closed** (401) when `CRON_SECRET` is
+unset. The 30-minute cadence and overnight pause keep Neon compute (scale-to-zero) well under the
+free-plan CU budget — see [ADR 008](../decisions/008-reminder-dispatch-cu-cost.md).
 
 ```mermaid
 flowchart TD
@@ -146,7 +148,7 @@ flowchart TD
     C --> D[Group by user]
     D --> E[Per user: load activities<br/>with schedule.times set]
     E --> F[Group that user's subs by timezone]
-    F --> G[Per timezone: compute<br/>15-min window from local clock]
+    F --> G[Per timezone: compute<br/>30-min window from local clock]
     G --> H{activity time<br/>in window?}
     H -- no --> G
     H -- yes --> I{isScheduledForDate<br/>today, local?}
@@ -162,8 +164,8 @@ Why the shape:
 
 - **Per-timezone evaluation.** A user's reminder at `09:00` should fire at 09:00 _local_ to each
   device. Subscriptions are grouped by their stored `timezone`; the local wall clock is computed with
-  `Intl` and floored to the current 15-minute bucket (`windowStartInTimezone`). A reminder fires when
-  its `"HH:mm"` falls in `[windowStart, windowStart + 15)`.
+  `Intl` and floored to the current 30-minute bucket (`windowStartInTimezone`). A reminder fires when
+  its `"HH:mm"` falls in `[windowStart, windowStart + 30)`.
 - **Local "today" reuses ADR 007 helpers.** The schedule check and the "already done" check both bucket
   by the device's local day via `tzTodayString` / `tzTodayDate` (`src/lib/utils/date.ts`) — the same
   DST-correct bucketing the dashboard uses, instead of the UTC host clock.
@@ -214,8 +216,11 @@ already follows.
 
 ### 3. Cron schedule
 
-The reminder window is 15 minutes ([`WINDOW_MINUTES`](../../src/routes/api/cron/reminders/+server.ts)),
-so for reminders to land near their set time the dispatcher must run **every ~15 minutes**. Vercel Hobby
+The reminder window is 30 minutes ([`WINDOW_MINUTES`](../../src/routes/api/cron/reminders/+server.ts)),
+so for reminders to land near their set time the dispatcher must run **every ~30 minutes**, and only
+during waking hours (06:00–23:00) to stay under the Neon free-plan CU budget
+([ADR 008](../decisions/008-reminder-dispatch-cu-cost.md)). Reminder times are validated to the
+**06:00–23:00** window in the activity form so a time that would never fire can't be saved. Vercel Hobby
 caps cron at **once per day**, so the real cadence comes from an **external scheduler** and `vercel.json`
 keeps only a once-daily safety net:
 
@@ -228,10 +233,12 @@ keeps only a once-daily safety net:
 > invocations.
 
 **External scheduler (the real driver):** point a service like [cron-job.org](https://cron-job.org) at
-`https://<your-domain>/api/cron/reminders` every 15 minutes, with header
-`Authorization: Bearer <CRON_SECRET>`. The endpoint accepts any caller with the right secret, so the
-external scheduler and Vercel's daily run use the exact same path. A reminder time only fires inside its
-own 15-minute window, so a slower external interval will simply miss some windows.
+`https://<your-domain>/api/cron/reminders` on `*/30 6-23 * * *` (every 30 min, 06:00–23:00, in the
+user-base timezone), with header `Authorization: Bearer <CRON_SECRET>`. The endpoint accepts any caller
+with the right secret, so the external scheduler and Vercel's daily run use the exact same path. A
+reminder time only fires inside its own 30-minute window, so a slower external interval will simply miss
+some windows. The waking-hours window assumes a single timezone — a geographically spread user base would
+need per-timezone scheduling (see [ADR 008](../decisions/008-reminder-dispatch-cu-cost.md)).
 
 ### 4. Testing locally
 
@@ -277,7 +284,7 @@ curl -H "Authorization: Bearer dev-cron-secret" http://localhost:4173/api/cron/r
 | Invalid stored timezone                | That timezone group is skipped for the run; others still process.                 |
 | Missed cron window (downtime)          | Reminders in the missed window are dropped, not replayed — avoids stale spam.     |
 | `CRON_SECRET` unset                    | `/api/cron/reminders` returns 401 (fails closed).                                 |
-| Cron retried within same 15-min bucket | Possible duplicate send; acceptable for a low-volume app (no per-send dedup).     |
+| Cron retried within same 30-min bucket | Possible duplicate send; acceptable for a low-volume app (no per-send dedup).     |
 
 ---
 

@@ -1,8 +1,11 @@
-// Reminder dispatcher. Hit every 15 minutes by a scheduler (Vercel cron or
-// any external one) with `Authorization: Bearer ${CRON_SECRET}`. For each push
-// subscription it evaluates the owner's activities in the subscription's
-// timezone and sends a notification for every schedule time falling inside the
-// current 15-minute window — unless the activity is already done today.
+// Reminder dispatcher. Hit every 30 minutes during waking hours (06:00–23:00)
+// by a scheduler (Vercel cron or any external one) with
+// `Authorization: Bearer ${CRON_SECRET}`. For each push subscription it
+// evaluates the owner's activities in the subscription's timezone and sends a
+// notification for every schedule time falling inside the current 30-minute
+// window — unless the activity is already done today. The 30-min cadence +
+// overnight pause keep Neon compute (scale-to-zero) well under the free-plan
+// CU budget — see ADR 008.
 
 import { json, error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
@@ -16,8 +19,8 @@ import { tzTodayString, tzTodayDate } from '$lib/utils/date';
 import { sendPush, type StoredSubscription } from '$lib/server/push';
 import type { RequestHandler } from './$types';
 
-// Must match the scheduler's firing interval.
-const WINDOW_MINUTES = 15;
+// Must match the scheduler's firing interval (cron-job.org: `*/30 6-23 * * *`).
+const WINDOW_MINUTES = 30;
 
 /**
  * Minutes-since-local-midnight for `now` in IANA `tz`, floored to the current
