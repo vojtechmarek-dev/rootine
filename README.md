@@ -21,6 +21,16 @@ Rootine is a **mobile-first PWA habit tracker** built on a single polymorphic da
 
 The interface follows a "Grounded Gallery" design language — organic shapes, editorial serif/sans pairing, earthy tones, and tonal layering instead of hard borders (see [DESIGN.md](DESIGN.md)).
 
+## Screenshots
+
+<div align="center">
+
+![Rootine — insights, the daily dashboard, and the root-system garden](docs/assets/hero.png)
+
+_Insights · daily dashboard · the root-system garden_
+
+</div>
+
 ## Features
 
 - **Three activity types, one model** — Habits (counters with targets), Plants (interval watering), Workouts (exercise templates).
@@ -188,7 +198,7 @@ src/
 Deploys to **Vercel** (`@sveltejs/adapter-vercel`). Set the environment variables above in the project settings, then:
 
 - **Database:** run `npm run db:push` against the production `DATABASE_URL` (the build's `db:migrate` step is a no-op — see above).
-- **Reminders:** [`vercel.json`](vercel.json) registers a once-daily cron as a safety net. Because Vercel Hobby caps cron at once/day, the real ~15-minute cadence comes from an external scheduler (e.g. cron-job.org) hitting `/api/cron/reminders` with `Authorization: Bearer <CRON_SECRET>`. See [push notifications](docs/features/push-notifications.md#3-cron-schedule).
+- **Reminders:** [`vercel.json`](vercel.json) registers a once-daily cron as a safety net. Because Vercel Hobby caps cron at once/day, the real ~30-minute, waking-hours (06:00–23:00) cadence comes from an external scheduler (e.g. cron-job.org) hitting `/api/cron/reminders` with `Authorization: Bearer <CRON_SECRET>`. See [push notifications](docs/features/push-notifications.md#3-cron-schedule) and [ADR 008](docs/decisions/008-reminder-dispatch-cu-cost.md) for the Neon CU-budget rationale.
 
 ## Roadmap
 

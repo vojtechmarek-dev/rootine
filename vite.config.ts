@@ -47,14 +47,14 @@ export default defineConfig({
                 screenshots: [
                     {
                         src: 'screenshot-wide.png',
-                        sizes: '1280x720',
+                        sizes: '1200x720',
                         type: 'image/png',
                         form_factor: 'wide',
                         label: 'Rootine on desktop',
                     },
                     {
                         src: 'screenshot-mobile.png',
-                        sizes: '720x1280',
+                        sizes: '720x1200',
                         type: 'image/png',
                         form_factor: 'narrow',
                         label: 'Rootine on mobile',
