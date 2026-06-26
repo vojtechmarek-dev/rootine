@@ -21,7 +21,7 @@
     type RemindableSchedule = Extract<Schedule, { times?: string[] }>;
 
     const isRemindable = (value: Schedule): value is RemindableSchedule => {
-        return value.type === 'daily' || value.type === 'weekly';
+        return value.type === 'daily' || value.type === 'weekly' || value.type === 'interval';
     };
 
     const addTime = () => {
@@ -152,37 +152,35 @@
         </Field.Field>
     {/if}
 
-    {#if schedule.type === 'daily' || schedule.type === 'weekly'}
-        <Field.Field>
-            <Field.Label>Reminders</Field.Label>
-            <Field.Description>
-                Get a push notification at these times (enable notifications in Settings). Reminders fire on the half-hour between
-                06:00 and 23:00, in your device's timezone.
-            </Field.Description>
+    <Field.Field>
+        <Field.Label>Reminders</Field.Label>
+        <Field.Description>
+            Get a push notification at these times (enable notifications in Settings). Reminders fire on the half-hour between 06:00 and
+            23:00, in your device's timezone.
+        </Field.Description>
 
-            <div class="space-y-2">
-                {#each schedule.times ?? [] as time, index (index)}
-                    <div class="flex items-center gap-2">
-                        <Input
-                            type="time"
-                            min="06:00"
-                            max="23:00"
-                            step={1800}
-                            value={time}
-                            oninput={(e) => updateTime(index, e.currentTarget.value)}
-                            class="w-36"
-                        />
-                        <Button type="button" variant="ghost" size="icon" aria-label="Remove reminder" onclick={() => removeTime(index)}>
-                            <X class="h-4 w-4" />
-                        </Button>
-                    </div>
-                {/each}
-                <Button type="button" variant="outline" class="w-full" onclick={addTime}>
-                    <Plus class="mr-2 h-4 w-4" />
-                    Add reminder
-                </Button>
-            </div>
-            <Field.Error errors={errors?.times} />
-        </Field.Field>
-    {/if}
+        <div class="space-y-2">
+            {#each schedule.times ?? [] as time, index (index)}
+                <div class="flex items-center gap-2">
+                    <Input
+                        type="time"
+                        min="06:00"
+                        max="23:00"
+                        step={1800}
+                        value={time}
+                        oninput={(e) => updateTime(index, e.currentTarget.value)}
+                        class="w-36"
+                    />
+                    <Button type="button" variant="ghost" size="icon" aria-label="Remove reminder" onclick={() => removeTime(index)}>
+                        <X class="h-4 w-4" />
+                    </Button>
+                </div>
+            {/each}
+            <Button type="button" variant="outline" class="w-full" onclick={addTime}>
+                <Plus class="mr-2 h-4 w-4" />
+                Add reminder
+            </Button>
+        </div>
+        <Field.Error errors={errors?.times} />
+    </Field.Field>
 </Field.Group>

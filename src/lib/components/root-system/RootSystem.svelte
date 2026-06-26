@@ -473,7 +473,12 @@
                 <stop offset="100%" style="stop-color: var(--tip-glow); stop-opacity: 0" />
             </radialGradient>
             <filter id="rs-shadow" x="-30%" y="-30%" width="160%" height="160%">
-                <feDropShadow dx="0" dy="1.1" stdDeviation="0.9" style="flood-color: var(--rs-shadow-color); flood-opacity: var(--rs-shadow-opacity)" />
+                <feDropShadow
+                    dx="0"
+                    dy="1.1"
+                    stdDeviation="0.9"
+                    style="flood-color: var(--rs-shadow-color); flood-opacity: var(--rs-shadow-opacity)"
+                />
             </filter>
             <radialGradient id="rs-leaf" cx="35%" cy="30%" r="80%">
                 <stop offset="0%" style="stop-color: var(--rs-leaf-top)" />

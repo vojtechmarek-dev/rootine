@@ -66,6 +66,7 @@ export const ScheduleSchema = z.discriminatedUnion('type', [
     z.object({
         type: z.literal('interval'),
         value: z.coerce.number().min(1),
+        times: z.array(z.string()).optional(),
         // Legacy records stored 'hours'; the day-based scheduler treated it as
         // days anyway, so migrate it forward on read.
         unit: z.enum(['days', 'weeks', 'months', 'years']),
@@ -346,6 +347,9 @@ export type DashboardActivity = Activity & {
     workoutRotation?: WorkoutRotationView | null;
     /** True when a WeekException already shifts the current ISO week. */
     weekShifted?: boolean;
+    /** When this flexible habit is spilling over onto today, how many calendar days
+     *  ago its missed scheduled mark was. Null when not spilling over. Always >= 1. */
+    spilloverDaysAgo: number | null;
 };
 
 /** One day of the dashboard's week ribbon. */

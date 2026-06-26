@@ -12,7 +12,17 @@ import {
 } from '$lib/types/schemas';
 import { eq, desc, and, between, inArray, gte, lt, ne } from 'drizzle-orm';
 import { formatZodErrorTree } from '$lib/utils';
-import { differenceInDays, eachDayOfInterval, endOfDay, endOfWeek, format, isSameDay, startOfDay, startOfWeek } from 'date-fns';
+import {
+    differenceInCalendarDays,
+    differenceInDays,
+    eachDayOfInterval,
+    endOfDay,
+    endOfWeek,
+    format,
+    isSameDay,
+    startOfDay,
+    startOfWeek,
+} from 'date-fns';
 import { isScheduledForDate, getPreviousScheduledDate } from '$lib/scheduler';
 import { aggregateHabitStreaks, completedDayOrdinals } from '$lib/streak';
 import { getRotationPosition, isoWeekOf } from '$lib/workout-rotation';
@@ -78,7 +88,8 @@ function buildWorkoutRotation(
 
 export async function getDashboardActivities(
     userId: string,
-    targetDate: Date
+    targetDate: Date,
+    localTzToday: Date
 ): Promise<{
     activities: DashboardActivity[];
     errors: Array<{ id: string; type: string; message: string }>;
@@ -193,19 +204,28 @@ export async function getDashboardActivities(
         validated.push({ parsed: parsedActivity, weekLogs });
 
         // The dashboard list only looks at the target date's logs. Computed before
-        // the schedule gate so the flexible-spillover branch can read it.
+        // the schedule gate so the flexible spillover branch can read it.
         const rawLogs = weekLogs.filter((l) => isSameDay(l.date, targetDate));
 
+        let prevDate: Date | null = null;
+
         if (!isScheduledForDate(parsedActivity, targetDate, exceptions)) {
-            // Flexible activities "spill over": a missed scheduled day keeps showing
-            // every day until completed, then resumes the normal schedule.
+            // Flexible activities "spillover": a missed scheduled day keeps showing
+            // on "today" until completed, then resumes the normal schedule.
             if (!parsedActivity.config.flexible) {
                 continue;
             }
-            const prevDate = getPreviousScheduledDate(parsedActivity, targetDate);
+
+            prevDate = getPreviousScheduledDate(parsedActivity, targetDate);
             if (!prevDate) {
                 continue;
             }
+
+            // Show flexible habit to spillover on "today's dashboard"
+            if (!isSameDay(targetDate, localTzToday)) {
+                continue;
+            }
+
             // A log today means the user is completing it right now → keep rendering.
             // Otherwise, any log since the cycle's scheduled mark means it's done →
             // hide until the next mark.
@@ -261,6 +281,7 @@ export async function getDashboardActivities(
             isSkippedToday,
             workoutRotation,
             weekShifted: shiftedHabitIds.has(activity.id),
+            spilloverDaysAgo: prevDate ? differenceInCalendarDays(localTzToday, prevDate) : null,
         });
     }
 

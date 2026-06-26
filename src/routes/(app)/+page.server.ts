@@ -20,10 +20,11 @@ export const load: PageServerLoad = async (event) => {
     // Default to the user's LOCAL today (from the tz cookie), not the server's UTC
     // day — otherwise just-after-midnight loads show yesterday for users east of UTC.
     const urlDate = event.url.searchParams.get('date');
-    const targetDate = urlDate ? new Date(urlDate) : tzTodayDate(event.cookies.get('tz'));
+    const localToday = tzTodayDate(event.cookies.get('tz'));
+    const targetDate = urlDate ? new Date(urlDate) : localToday;
     return {
         session,
-        dashboardPayload: getDashboardActivities(session.user.id, targetDate),
+        dashboardPayload: getDashboardActivities(session.user.id, targetDate, localToday),
     };
 };
 

@@ -12,9 +12,12 @@
     import {
         CalendarClock,
         CalendarOff,
+        CalendarPlus,
         CheckIcon,
         ChevronDown,
+        History,
         Pencil,
+        Repeat,
         Sprout,
         MoreHorizontal,
         Archive,
@@ -225,6 +228,16 @@
     };
 </script>
 
+{#snippet configFlag(Icon: typeof Repeat, label: string, on: boolean)}
+    <span
+        class={cn('inline-flex items-center gap-1.5', on ? 'text-foreground' : 'text-muted-foreground/50 line-through')}
+        title={on ? `${label}: on` : `${label}: off`}
+    >
+        <Icon class={cn('h-4 w-4 shrink-0', on ? 'text-clay/80' : 'text-muted-foreground/40')} />
+        {label}
+    </span>
+{/snippet}
+
 <Card.Root
     class={cn(
         'relative cursor-pointer overflow-hidden border-l-4 border-l-transparent shadow-ambient transition-all duration-200 active:scale-[0.99] dark:ring-1 dark:ring-outline-variant/15',
@@ -248,6 +261,14 @@
                 >
                     {typeLabel}
                 </span>
+                {#if activity.config.flexible}
+                    <span
+                        class="inline-flex items-center rounded-full bg-primary/15 px-2 py-1 text-xs font-medium text-primary"
+                        title="Flexible habit — a missed day carries over until you complete it, then the normal schedule resumes"
+                    >
+                        <Repeat class="h-3 w-3" />
+                    </span>
+                {/if}
                 {#if displayStreak > 0}
                     <span
                         class="inline-flex items-center gap-1 rounded-full bg-clay/15 px-2 py-0.5 text-xs font-medium text-clay"
@@ -307,6 +328,17 @@
                     {/if}
                 </div>
             </div>
+            {#if activity.spilloverDaysAgo}
+                <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span
+                        class="inline-flex items-center gap-1.5 rounded-full border border-clay/30 bg-clay/15 px-2.5 py-1 text-xs font-medium text-clay shadow-sm"
+                        title="Flexible habit: a missed scheduled day carries over until you complete it, then the normal schedule resumes."
+                    >
+                        <History class="h-3.5 w-3.5 shrink-0" />
+                        Carried over from {activity.spilloverDaysAgo === 1 ? 'yesterday' : `${activity.spilloverDaysAgo} days ago`}
+                    </span>
+                </div>
+            {/if}
 
             {#if showSequence && rotationView}
                 <div class="flex flex-wrap items-center gap-1.5 pt-1">
@@ -472,6 +504,12 @@
                     {displayPoints === 1 ? 'day' : 'days'} grown ·
                     {growth.stage > 0 ? `next root segment in ${growth.toNext} completions` : `sprouts in ${growth.toNext} completions`}
                 </span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                {@render configFlag(Repeat, 'Flexible', activity.config.flexible)}
+                {@render configFlag(CalendarPlus, 'Future fill', activity.config.allowFutureFill)}
+                {@render configFlag(History, 'Back-fill', activity.config.allowBackFill)}
             </div>
 
             {#if activity.description}

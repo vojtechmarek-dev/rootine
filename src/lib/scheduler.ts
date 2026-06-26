@@ -1,4 +1,4 @@
-import { differenceInDays, differenceInCalendarMonths, differenceInCalendarYears, endOfMonth, startOfDay, subDays } from 'date-fns';
+import { differenceInCalendarMonths, differenceInCalendarYears, endOfMonth, startOfDay, subDays, differenceInCalendarDays } from 'date-fns';
 import type { Activity, WeekException } from '$lib/types/schemas';
 import { WEEKDAYS } from '$lib/constants';
 import { isoWeekOf, shiftWeekdays } from '$lib/workout-rotation';
@@ -113,7 +113,7 @@ function isScheduledBySchedule(schedule: Activity['schedule'], anchor: Date, tar
 
             switch (schedule.unit) {
                 case 'weeks': {
-                    return differenceInDays(target, anchor) % (intervalVal * 7) === 0;
+                    return differenceInCalendarDays(target, anchor) % (intervalVal * 7) === 0;
                 }
                 case 'months': {
                     const months = differenceInCalendarMonths(target, anchor);
@@ -130,7 +130,8 @@ function isScheduledBySchedule(schedule: Activity['schedule'], anchor: Date, tar
                 }
                 case 'days':
                 default: {
-                    return differenceInDays(target, anchor) % intervalVal === 0;
+                    const diff = differenceInCalendarDays(target, anchor);
+                    return diff % intervalVal === 0;
                 }
             }
         }

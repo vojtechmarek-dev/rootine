@@ -24,7 +24,7 @@ keeps compute awake **5 of every 15 minutes = a 33% duty cycle, around the clock
 
 That is **~61 of the 100 CU-hr budget consumed by the heartbeat alone**, before any real user
 traffic — a real risk of exhausting the budget (and the DB being suspended) before the monthly reset.
-The user's Neon compute graph (pinned near the 0.25 CU floor) confirmed real load is tiny; the *floor*
+The user's Neon compute graph (pinned near the 0.25 CU floor) confirmed real load is tiny; the _floor_
 created by the cron is the problem.
 
 The cron endpoint itself is cheap (1 + 3×users `findMany`s, all < 1 s); the cost is entirely the
