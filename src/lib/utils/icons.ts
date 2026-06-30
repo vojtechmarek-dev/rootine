@@ -29,6 +29,7 @@ import {
     Coffee,
     Utensils,
     Cookie,
+    Scissors,
     // Mind / learning / hobbies
     Check,
     CircleCheck,
@@ -124,6 +125,7 @@ export const iconMap: Record<string, LucideIcon> = {
     coffee: Coffee,
     utensils: Utensils,
     cookie: Cookie,
+    scissors: Scissors,
     // Mind / learning / hobbies
     check: Check,
     'circle-check': CircleCheck,
