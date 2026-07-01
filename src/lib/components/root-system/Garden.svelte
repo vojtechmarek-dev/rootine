@@ -22,6 +22,8 @@
         maxGrowth?: number;
         /** Pan / zoom enabled? Off for the dashboard preview. */
         interactive?: boolean;
+        /** Screen px obscured at the bottom (fixed nav) — biases auto-fit upward. */
+        bottomInset?: number;
         /** Draw the above-ground sprout at the origin. */
         sprout?: boolean;
         /** A root was clicked — bubble up the owning activity. */
@@ -38,6 +40,7 @@
         maxGrowth = 60,
         interactive = true,
         sprout = true,
+        bottomInset = 0,
         onselect,
     }: Props = $props();
 
@@ -140,6 +143,7 @@
     {maxGrowth}
     {interactive}
     {sprout}
+    {bottomInset}
     {seed}
     {describe}
     onselect={handleSelect}
