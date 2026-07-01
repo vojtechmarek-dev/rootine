@@ -134,7 +134,6 @@
                 longestStreak={statLong}
                 {highlightActivityId}
                 interactive={true}
-                bottomInset={80}
             />
         </div>
         <p class="text-center text-xs text-muted-foreground">

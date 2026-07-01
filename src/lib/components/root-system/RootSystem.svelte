@@ -44,12 +44,6 @@
         interactive?: boolean;
         /** Stable seed for the decorative soil scatter (stones, specks, tufts). */
         seed?: number;
-        /**
-         * Screen px at the bottom of the SVG that are visually obscured (e.g. a
-         * fixed bottom nav overlapping the view). Auto-fit biases framing upward
-         * by this much so focused/highlighted roots don't hide behind it.
-         */
-        bottomInset?: number;
     }
 
     let {
@@ -64,7 +58,6 @@
         sprout = true,
         interactive = true,
         seed = 1,
-        bottomInset = 0,
     }: Props = $props();
 
     // ── derived view of the system ──────────────────────────────────────────────
@@ -343,10 +336,7 @@
             h = bh + pad * 2;
         if (w / h > aspect) h = w / aspect;
         else w = h * aspect;
-        // Bias framing up so an obscured bottom strip (fixed nav) doesn't hide the
-        // focused/highlighted roots: center content in the VISIBLE region only.
-        const inset = r.height > 1 ? Math.max(0, bottomInset) : 0;
-        const target = { x: cx - w / 2, y: cy - h / 2 + (inset / 2) * (h / r.height), w, h };
+        const target = { x: cx - w / 2, y: cy - h / 2, w, h };
         if (animate) tweenView(target);
         else view = target;
     }
@@ -904,7 +894,9 @@
             left: 0.75rem !important;
             right: 0.75rem;
             top: auto !important;
-            bottom: 0.75rem !important;
+            /* Clear the fixed bottom nav (+ device safe-area) so the inspect card
+               isn't hidden behind it on touch devices. */
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 4.5rem) !important;
             max-width: none;
             padding: 12px 16px;
             font-size: 14px;
