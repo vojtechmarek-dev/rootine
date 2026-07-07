@@ -69,16 +69,15 @@
 {#if href}
     <!-- Generic UI primitive: href is caller-supplied and may be external, so resolve() doesn't apply. -->
     <!-- eslint-disable svelte/no-navigation-without-resolve -->
-    {@const dis = disabled || loading}
     <a
         bind:this={ref}
         data-slot="button"
         class={cn(buttonVariants({ variant, size }), className)}
-        href={dis ? undefined : href}
-        aria-disabled={dis}
-        role={dis ? 'link' : undefined}
-        tabindex={dis ? -1 : undefined}
+        href={disabled || loading ? undefined : href}
+        aria-disabled={disabled || loading}
         aria-busy={loading}
+        role={disabled ? 'link' : undefined}
+        tabindex={disabled || loading ? -1 : undefined}
         {...restProps}
     >
         {#if loading}

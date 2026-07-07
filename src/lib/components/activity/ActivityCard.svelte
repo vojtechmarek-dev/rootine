@@ -55,6 +55,10 @@
     const toggleBlockedTitle = $derived(
         isPast ? 'Back-filling earlier days is turned off for this activity' : 'Completing future days is turned off for this activity'
     );
+
+    // Start Workout is a link, so use:enhance can't drive its pending state
+    // derive it from the in-flight navigation to this activity's workout page.
+    const goingToWorkout = $derived(navigating.to?.url.pathname === `/workout/${activity.id}`);
     const accent = $derived(getActivityAccentClasses(activity.color, activity.type));
     const typeLabel = $derived(getActivityTypeLabel(activity.type));
 
@@ -470,7 +474,7 @@
                             {/if}
                             <Button
                                 href="/workout/{activity.id}?date={viewDate}"
-                                loading={navigating.to?.route.id === '/(workout)/workout/[id]' && navigating.to?.params?.id === activity.id}
+                                loading={goingToWorkout}
                                 variant="default"
                                 class="h-10 px-4"
                             >
