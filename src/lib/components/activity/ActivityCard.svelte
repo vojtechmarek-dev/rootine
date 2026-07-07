@@ -32,6 +32,7 @@
     import { buttonVariants } from '$lib/components/ui/button';
     import { toast } from 'svelte-sonner';
     import SkipDayModal from '$lib/components/activity/workout/SkipDayModal.svelte';
+    import { navigating } from '$app/state';
 
     interface Props {
         activity: DashboardActivity;
@@ -467,7 +468,12 @@
                                     Skip day
                                 </Button>
                             {/if}
-                            <Button href="/workout/{activity.id}?date={viewDate}" variant="default" class="h-10 px-4">
+                            <Button
+                                href="/workout/{activity.id}?date={viewDate}"
+                                loading={navigating.to?.route.id === '/(workout)/workout/[id]' && navigating.to?.params?.id === activity.id}
+                                variant="default"
+                                class="h-10 px-4"
+                            >
                                 {isPast ? 'Make up' : 'Start Workout'}
                             </Button>
                         </div>

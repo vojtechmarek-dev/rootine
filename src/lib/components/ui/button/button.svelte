@@ -69,16 +69,21 @@
 {#if href}
     <!-- Generic UI primitive: href is caller-supplied and may be external, so resolve() doesn't apply. -->
     <!-- eslint-disable svelte/no-navigation-without-resolve -->
+    {@const dis = disabled || loading}
     <a
         bind:this={ref}
         data-slot="button"
         class={cn(buttonVariants({ variant, size }), className)}
-        href={disabled ? undefined : href}
-        aria-disabled={disabled}
-        role={disabled ? 'link' : undefined}
-        tabindex={disabled ? -1 : undefined}
+        href={dis ? undefined : href}
+        aria-disabled={dis}
+        role={dis ? 'link' : undefined}
+        tabindex={dis ? -1 : undefined}
+        aria-busy={loading}
         {...restProps}
     >
+        {#if loading}
+            <LoaderCircle class="size-4 animate-spin" />
+        {/if}
         {@render children?.()}
     </a>
     <!-- eslint-enable svelte/no-navigation-without-resolve -->
